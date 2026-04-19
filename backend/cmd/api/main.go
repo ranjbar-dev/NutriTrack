@@ -102,12 +102,14 @@ func main() {
 	tokenRepo := repository.NewTokenRepository(pool)
 	foodRepo := repository.NewFoodRepository(pool)
 	medRepo := repository.NewMedicationRepository(pool)
+	planRepo := repository.NewDietPlanRepository(pool)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, otpRepo, tokenRepo, smsSender, jwtSecret, logger)
 	userService := service.NewUserService(userRepo, logger)
 	foodService := service.NewFoodService(foodRepo, logger)
 	medService := service.NewMedicationService(medRepo, logger)
+	planService := service.NewDietPlanService(planRepo, logger)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -115,6 +117,7 @@ func main() {
 	clientHandler := handler.NewClientHandler(userService)
 	foodHandler := handler.NewFoodHandler(foodService)
 	medHandler := handler.NewMedicationHandler(medService)
+	planHandler := handler.NewDietPlanHandler(planService)
 
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
 	r := gin.New()
@@ -176,6 +179,55 @@ func main() {
 	nutri.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist"))
 	{
 		nutri.POST("/clients", clientHandler.RegisterClient)
+	}
+
+	// Client plan list: GET /api/clients/:clientId/plans (nutritionist or super_admin)
+	nutriClientRoutes := r.Group("/api/clients")
+	nutriClientRoutes.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist", "super_admin"))
+	{
+		nutriClientRoutes.GET("/:clientId/plans", planHandler.ListClientPlans)
+	}
+
+	// Diet plan CRUD + sub-resources (nutritionist or super_admin)
+	dietPlans := r.Group("/api/diet-plans")
+	dietPlans.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist", "super_admin"))
+	{
+		dietPlans.POST("", planHandler.CreatePlan)
+		dietPlans.GET("/:id", planHandler.GetPlanAggregate)
+		dietPlans.PATCH("/:id", planHandler.UpdatePlanHeader)
+		dietPlans.PATCH("/:id/activate", planHandler.ActivatePlan)
+		dietPlans.DELETE("/:id", planHandler.DeletePlan)
+
+		dietPlans.POST("/:id/days", planHandler.AddDay)
+		dietPlans.PUT("/:id/days/:dayId", planHandler.UpdateDay)
+		dietPlans.DELETE("/:id/days/:dayId", planHandler.DeleteDay)
+
+		dietPlans.POST("/:id/days/:dayId/meals", planHandler.AddMeal)
+		dietPlans.PUT("/:id/days/:dayId/meals/:mealId", planHandler.UpdateMeal)
+		dietPlans.DELETE("/:id/days/:dayId/meals/:mealId", planHandler.DeleteMeal)
+		dietPlans.PATCH("/:id/days/:dayId/meals/:mealId/order", planHandler.ReorderMeal)
+
+		dietPlans.POST("/:id/days/:dayId/meals/:mealId/options", planHandler.AddOption)
+		dietPlans.DELETE("/:id/days/:dayId/meals/:mealId/options/:optId", planHandler.DeleteOption)
+
+		dietPlans.POST("/:id/days/:dayId/meals/:mealId/options/:optId/items", planHandler.AddItem)
+		dietPlans.PUT("/:id/days/:dayId/meals/:mealId/options/:optId/items/:itemId", planHandler.UpdateItem)
+		dietPlans.DELETE("/:id/days/:dayId/meals/:mealId/options/:optId/items/:itemId", planHandler.DeleteItem)
+
+		dietPlans.POST("/:id/days/:dayId/exercises", planHandler.AddExercise)
+		dietPlans.PUT("/:id/days/:dayId/exercises/:exId", planHandler.UpdateExercise)
+		dietPlans.DELETE("/:id/days/:dayId/exercises/:exId", planHandler.DeleteExercise)
+
+		dietPlans.POST("/:id/medications", planHandler.AddMedication)
+		dietPlans.PUT("/:id/medications/:medId", planHandler.UpdateMedication)
+		dietPlans.DELETE("/:id/medications/:medId", planHandler.DeleteMedication)
+	}
+
+	// Client active-plan route (client role only)
+	clientGroup := r.Group("/api/clients")
+	clientGroup.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("client"))
+	{
+		clientGroup.GET("/me/active-plan", planHandler.GetActivePlan)
 	}
 
 	// Client routes (placeholder for future phases)
