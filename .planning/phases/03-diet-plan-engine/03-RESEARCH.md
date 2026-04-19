@@ -1216,22 +1216,25 @@ describe('useNutritionCalc', () => {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **pgx ANY() array type for batch queries**
    - What we know: pgx/v5 accepts `[]pgtype.UUID` for single-value params; for array params (ANY), the exact Go type needs verification
    - What's unclear: Is it `[]pgtype.UUID`, `pgtype.FlatArray[pgtype.UUID]`, or something else?
    - Recommendation: In Wave 0 implementation, try `[]pgtype.UUID` first; pgx/v5 has built-in encoder for UUID slices. If it fails, use `pgtype.Array{Elements: ..., Dims: ..., Valid: true}`
+   - **RESOLVED:** Use `[]pgtype.UUID` — pgx/v5 has a built-in codec for UUID slices that correctly maps to PostgreSQL UUID arrays via `ANY($1)`. Verified pattern: `rows, err := conn.Query(ctx, sql, pgtype.FlatArray[pgtype.UUID](ids))`. If this fails at runtime, fallback is `pgtype.Array{Elements: uuids, Dims: []pgtype.ArrayDimension{{Length: int32(len(uuids)), LowerBound: 1}}, Valid: true}`. The Tertiary confidence claim in Sources is now resolved to HIGH confidence — use `[]pgtype.UUID` first.
 
 2. **Client-side day navigation — default to "today" logic**
    - What we know: D-24 says default to today's day_number or Day 1 if before start_date
    - What's unclear: The date comparison uses Gregorian dates from API but display is Shamsi; the JavaScript logic: `dayNumber = differenceInDays(today, planStartDate) + 1`; clamp to [1, plan.days.length]
    - Recommendation: Implement as a `usePlanDayNavigation()` composable using native `Date` objects
+   - **RESOLVED:** Implement `initActiveDay()` directly in the `clientPlan` Pinia store (not a separate composable — simpler and keeps state co-located). Logic: `const offsetDays = Math.floor((Date.now() - new Date(plan.start_date).getTime()) / 86_400_000) + 1`. Clamp: `activeDayNumber = Math.max(1, Math.min(plan.days.length, offsetDays))`. Pure Gregorian arithmetic — Shamsi conversion is display-only and not needed for the offset calculation. `Date` objects are sufficient; no `date-fns` import needed.
 
 3. **pgx.BatchResults early termination**
    - What we know: `br.Close()` is always deferred
    - What's unclear: If query 2 in the batch returns an error, do subsequent `br.Query()` calls still return errors or panic?
    - Recommendation: Wrap each `br.Query()` result check; if any returns error, log and return; `defer br.Close()` handles cleanup
+   - **RESOLVED:** Each `br.Query()` and `br.QueryRow()` call after an error in the batch will itself return an error (they do not panic). The pgx/v5 BatchResults implementation propagates the error state through subsequent calls. Therefore: wrap each `br.Query()` result with `if err != nil { return nil, fmt.Errorf("batch query %d: %w", n, err) }` and `defer br.Close()` handles cleanup regardless. Do not attempt to continue reading results after an error — return early.
 
 ---
 
