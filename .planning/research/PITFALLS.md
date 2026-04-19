@@ -220,7 +220,7 @@ Issues that cause significant rework or user frustration but are recoverable.
 **Prevention:**
 - **All date storage is Gregorian** (never store Jalali dates in the database)
 - **All date API parameters are Gregorian** (frontend converts before sending)
-- **Create a `useShamsiDate` composable** (as phases.md suggests) that wraps `jalaali-js` and handles: display formatting, "today" calculation with Tehran timezone offset, date range conversion
+- **Create a `useShamsiDate` composable** (as docs/phases.md suggests) that wraps `jalaali-js` and handles: display formatting, "today" calculation with Tehran timezone offset, date range conversion
 - **Set a fixed timezone** in the Go backend: `time.LoadLocation("Asia/Tehran")` — use this for all "today" calculations
 - **Test Esfand 29/30 boundary** in both leap and non-leap years
 - **Test midnight boundary:** log at 23:59 Tehran time → should be today's date, not tomorrow's
@@ -625,4 +625,4 @@ When a pitfall is discovered in production:
 | pgx v5 docs (pkg.go.dev/github.com/jackc/pgx/v5) | Official docs via Context7 | Batch queries, connection pool configuration |
 | golang-jwt/jwt docs (GitHub) | Official docs via Context7 | JWT signing, security notices |
 | NutriTrack PRD (project file) | Project documentation | Domain requirements, data model, feature specs |
-| NutriTrack phases.md (project file) | Project documentation | Phase structure, risk heatmap, implementation guidance |
+| NutriTrack docs/phases.md (project file) | Project documentation | Phase structure, risk heatmap, implementation guidance |

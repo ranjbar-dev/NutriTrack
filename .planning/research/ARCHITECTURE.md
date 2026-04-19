@@ -1020,4 +1020,4 @@ Phase 7: Hardening & Launch
 - **Nuxt 4 documentation** — Context7 `/websites/nuxt_4_x`: Directory structure (`app/` as srcDir), composables, middleware, Pinia state management, server directory. **HIGH confidence.**
 - **Dexie.js documentation** — Context7 `/websites/dexie`: Schema versioning, table definitions, query patterns for IndexedDB. **HIGH confidence.**
 - **NutriTrack PRD** — Sections 8 (Tech Stack), 9 (Data Model), 6 (Offline Strategy), 7 (Notifications): Definitive source for all data entities, relationships, and architectural decisions. **HIGH confidence.**
-- **NutriTrack phases.md** — Implementation guidance on batch loading, pg_trgm search, sync manager pattern, polling vs WebSocket decision. **HIGH confidence.**
+- **NutriTrack docs/phases.md** — Implementation guidance on batch loading, pg_trgm search, sync manager pattern, polling vs WebSocket decision. **HIGH confidence.**
