@@ -66,6 +66,26 @@ func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (
 	return i, err
 }
 
+const getRefreshTokenByHashAny = `-- name: GetRefreshTokenByHashAny :one
+SELECT id, user_id, token_hash, family_id, expires_at, revoked, created_at FROM refresh_tokens
+WHERE token_hash = $1
+`
+
+func (q *Queries) GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByHashAny, tokenHash)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.FamilyID,
+		&i.ExpiresAt,
+		&i.Revoked,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens
 SET revoked = true

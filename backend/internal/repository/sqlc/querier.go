@@ -18,6 +18,7 @@ type Querier interface {
 	GetActiveOTPByMobile(ctx context.Context, mobile string) (OtpCode, error)
 	GetClientsByNutritionistID(ctx context.Context, nutritionistID pgtype.UUID) ([]User, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
+	GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User, error)

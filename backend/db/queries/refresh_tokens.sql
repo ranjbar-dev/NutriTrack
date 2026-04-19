@@ -9,6 +9,10 @@ INSERT INTO refresh_tokens (
 SELECT * FROM refresh_tokens
 WHERE token_hash = $1 AND revoked = false;
 
+-- name: GetRefreshTokenByHashAny :one
+SELECT * FROM refresh_tokens
+WHERE token_hash = $1;
+
 -- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens
 SET revoked = true
