@@ -11,33 +11,69 @@ import (
 )
 
 type Querier interface {
+	ActivateDietPlan(ctx context.Context, arg ActivateDietPlanParams) error
 	AddFoodCategory(ctx context.Context, arg AddFoodCategoryParams) error
+	ArchivePreviousActivePlan(ctx context.Context, arg ArchivePreviousActivePlanParams) error
 	CheckDuplicateFoodName(ctx context.Context, arg CheckDuplicateFoodNameParams) (bool, error)
 	CheckDuplicateMedicationName(ctx context.Context, arg CheckDuplicateMedicationNameParams) (bool, error)
 	CountActiveFoods(ctx context.Context) (int64, error)
+	CountClientPlans(ctx context.Context, arg CountClientPlansParams) (int64, error)
 	CountFoods(ctx context.Context, arg CountFoodsParams) (int64, error)
 	CountMedications(ctx context.Context, arg CountMedicationsParams) (int64, error)
+	CountMyPlans(ctx context.Context, clientID pgtype.UUID) (int64, error)
+	CountPlanDays(ctx context.Context, planID pgtype.UUID) (int64, error)
+	CreateDietPlan(ctx context.Context, arg CreateDietPlanParams) (DietPlan, error)
 	CreateFood(ctx context.Context, arg CreateFoodParams) (Food, error)
+	CreateMeal(ctx context.Context, arg CreateMealParams) (Meal, error)
+	CreateMealOption(ctx context.Context, arg CreateMealOptionParams) (MealOption, error)
+	CreateMealOptionItem(ctx context.Context, arg CreateMealOptionItemParams) (MealOptionItem, error)
 	CreateMedication(ctx context.Context, arg CreateMedicationParams) (Medication, error)
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
+	CreatePlanDay(ctx context.Context, arg CreatePlanDayParams) (PlanDay, error)
+	CreatePlanExercise(ctx context.Context, arg CreatePlanExerciseParams) (PlanExercise, error)
+	CreatePlanMedication(ctx context.Context, arg CreatePlanMedicationParams) (PlanMedication, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteDietPlan(ctx context.Context, arg DeleteDietPlanParams) error
 	DeleteExpiredOTPs(ctx context.Context) error
 	DeleteFoodCategories(ctx context.Context, foodID pgtype.UUID) error
+	DeleteMeal(ctx context.Context, arg DeleteMealParams) error
+	DeleteMealOption(ctx context.Context, arg DeleteMealOptionParams) error
+	DeleteMealOptionItem(ctx context.Context, arg DeleteMealOptionItemParams) error
+	DeletePlanDay(ctx context.Context, arg DeletePlanDayParams) error
+	DeletePlanExercise(ctx context.Context, arg DeletePlanExerciseParams) error
+	DeletePlanMedication(ctx context.Context, arg DeletePlanMedicationParams) error
 	GetActiveOTPByMobile(ctx context.Context, mobile string) (OtpCode, error)
+	GetActivePlanIDForClient(ctx context.Context, clientID pgtype.UUID) (pgtype.UUID, error)
 	GetClientsByNutritionistID(ctx context.Context, nutritionistID pgtype.UUID) ([]User, error)
+	GetDietPlanByID(ctx context.Context, arg GetDietPlanByIDParams) (DietPlan, error)
+	GetDietPlanByIDForClient(ctx context.Context, arg GetDietPlanByIDForClientParams) (DietPlan, error)
+	GetDietPlanStatus(ctx context.Context, id pgtype.UUID) (DietPlanStatus, error)
 	GetFoodByID(ctx context.Context, id pgtype.UUID) (GetFoodByIDRow, error)
 	GetFoodCategories(ctx context.Context, foodID pgtype.UUID) ([]string, error)
+	GetMealByID(ctx context.Context, arg GetMealByIDParams) (Meal, error)
+	GetMealOptionByID(ctx context.Context, arg GetMealOptionByIDParams) (MealOption, error)
+	GetMealOptionItemByID(ctx context.Context, arg GetMealOptionItemByIDParams) (MealOptionItem, error)
 	GetMedicationByID(ctx context.Context, id pgtype.UUID) (GetMedicationByIDRow, error)
+	GetNextOptionNumber(ctx context.Context, mealID pgtype.UUID) (int32, error)
+	GetPlanDayByID(ctx context.Context, arg GetPlanDayByIDParams) (PlanDay, error)
+	GetPlanExerciseByID(ctx context.Context, arg GetPlanExerciseByIDParams) (PlanExercise, error)
+	GetPlanMedicationByID(ctx context.Context, arg GetPlanMedicationByIDParams) (PlanMedication, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User, error)
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) error
+	ListClientPlans(ctx context.Context, arg ListClientPlansParams) ([]DietPlan, error)
 	ListFoods(ctx context.Context, arg ListFoodsParams) ([]ListFoodsRow, error)
+	ListMealOptions(ctx context.Context, mealID pgtype.UUID) ([]MealOption, error)
+	ListMeals(ctx context.Context, dayID pgtype.UUID) ([]Meal, error)
 	ListMedications(ctx context.Context, arg ListMedicationsParams) ([]ListMedicationsRow, error)
+	ListMyPlans(ctx context.Context, arg ListMyPlansParams) ([]DietPlan, error)
+	ListPlanDays(ctx context.Context, planID pgtype.UUID) ([]PlanDay, error)
 	MarkOTPVerified(ctx context.Context, id pgtype.UUID) error
+	ReorderMeal(ctx context.Context, arg ReorderMealParams) error
 	RevokeRefreshToken(ctx context.Context, id pgtype.UUID) error
 	RevokeTokenFamily(ctx context.Context, familyID pgtype.UUID) error
 	RevokeUserTokens(ctx context.Context, userID pgtype.UUID) error
@@ -45,8 +81,14 @@ type Querier interface {
 	SoftDeleteFoodByOwner(ctx context.Context, arg SoftDeleteFoodByOwnerParams) error
 	SoftDeleteMedication(ctx context.Context, id pgtype.UUID) error
 	SoftDeleteMedicationByOwner(ctx context.Context, arg SoftDeleteMedicationByOwnerParams) error
+	UpdateDietPlanHeader(ctx context.Context, arg UpdateDietPlanHeaderParams) (DietPlan, error)
 	UpdateFood(ctx context.Context, arg UpdateFoodParams) (Food, error)
+	UpdateMeal(ctx context.Context, arg UpdateMealParams) (Meal, error)
+	UpdateMealOptionItem(ctx context.Context, arg UpdateMealOptionItemParams) (MealOptionItem, error)
 	UpdateMedication(ctx context.Context, arg UpdateMedicationParams) (Medication, error)
+	UpdatePlanDay(ctx context.Context, arg UpdatePlanDayParams) (PlanDay, error)
+	UpdatePlanExercise(ctx context.Context, arg UpdatePlanExerciseParams) (PlanExercise, error)
+	UpdatePlanMedication(ctx context.Context, arg UpdatePlanMedicationParams) (PlanMedication, error)
 	UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error
 }
 

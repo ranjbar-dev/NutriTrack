@@ -11,6 +11,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type DietPlanStatus string
+
+const (
+	DietPlanStatusDraft    DietPlanStatus = "draft"
+	DietPlanStatusActive   DietPlanStatus = "active"
+	DietPlanStatusArchived DietPlanStatus = "archived"
+)
+
+func (e *DietPlanStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DietPlanStatus(s)
+	case string:
+		*e = DietPlanStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DietPlanStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDietPlanStatus struct {
+	DietPlanStatus DietPlanStatus `json:"diet_plan_status"`
+	Valid          bool           `json:"valid"` // Valid is true if DietPlanStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDietPlanStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DietPlanStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DietPlanStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDietPlanStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DietPlanStatus), nil
+}
+
 type FoodCategoryType string
 
 const (
@@ -243,6 +286,19 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 	return string(ns.UserRole), nil
 }
 
+type DietPlan struct {
+	ID                 pgtype.UUID        `json:"id"`
+	ClientID           pgtype.UUID        `json:"client_id"`
+	NutritionistID     pgtype.UUID        `json:"nutritionist_id"`
+	StartDate          pgtype.Date        `json:"start_date"`
+	EndDate            pgtype.Date        `json:"end_date"`
+	Notes              pgtype.Text        `json:"notes"`
+	DailyWaterTargetMl pgtype.Int4        `json:"daily_water_target_ml"`
+	Status             DietPlanStatus     `json:"status"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Food struct {
 	ID                pgtype.UUID         `json:"id"`
 	Name              string              `json:"name"`
@@ -266,6 +322,34 @@ type Food struct {
 type FoodCategory struct {
 	FoodID   pgtype.UUID      `json:"food_id"`
 	Category FoodCategoryType `json:"category"`
+}
+
+type Meal struct {
+	ID            pgtype.UUID        `json:"id"`
+	DayID         pgtype.UUID        `json:"day_id"`
+	Title         string             `json:"title"`
+	ScheduledTime pgtype.Time        `json:"scheduled_time"`
+	DisplayOrder  int32              `json:"display_order"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type MealOption struct {
+	ID           pgtype.UUID        `json:"id"`
+	MealID       pgtype.UUID        `json:"meal_id"`
+	OptionNumber int16              `json:"option_number"`
+	Label        pgtype.Text        `json:"label"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type MealOptionItem struct {
+	ID              pgtype.UUID         `json:"id"`
+	OptionID        pgtype.UUID         `json:"option_id"`
+	FoodID          pgtype.UUID         `json:"food_id"`
+	Quantity        pgtype.Numeric      `json:"quantity"`
+	MeasurementUnit MeasurementUnitType `json:"measurement_unit"`
+	Notes           pgtype.Text         `json:"notes"`
+	CreatedAt       pgtype.Timestamptz  `json:"created_at"`
 }
 
 type Medication struct {
@@ -292,6 +376,39 @@ type OtpCode struct {
 	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
 	Verified    bool               `json:"verified"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type PlanDay struct {
+	ID        pgtype.UUID        `json:"id"`
+	PlanID    pgtype.UUID        `json:"plan_id"`
+	DayNumber int32              `json:"day_number"`
+	Label     pgtype.Text        `json:"label"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type PlanExercise struct {
+	ID                   pgtype.UUID        `json:"id"`
+	DayID                pgtype.UUID        `json:"day_id"`
+	ExerciseName         string             `json:"exercise_name"`
+	DurationMinutes      int32              `json:"duration_minutes"`
+	Description          pgtype.Text        `json:"description"`
+	CaloriesBurnEstimate pgtype.Int4        `json:"calories_burn_estimate"`
+	DisplayOrder         int32              `json:"display_order"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+}
+
+type PlanMedication struct {
+	ID           pgtype.UUID        `json:"id"`
+	PlanID       pgtype.UUID        `json:"plan_id"`
+	MedicationID pgtype.UUID        `json:"medication_id"`
+	Dosage       string             `json:"dosage"`
+	Frequency    string             `json:"frequency"`
+	Times        []byte             `json:"times"`
+	Instructions pgtype.Text        `json:"instructions"`
+	StartDate    pgtype.Date        `json:"start_date"`
+	EndDate      pgtype.Date        `json:"end_date"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
 type RefreshToken struct {
