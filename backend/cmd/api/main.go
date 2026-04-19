@@ -22,7 +22,11 @@ import (
 
 	"github.com/ranjbar-dev/nutritrack/backend/internal/config"
 	"github.com/ranjbar-dev/nutritrack/backend/internal/handler"
+	"github.com/ranjbar-dev/nutritrack/backend/internal/middleware"
+	"github.com/ranjbar-dev/nutritrack/backend/internal/repository"
+	"github.com/ranjbar-dev/nutritrack/backend/internal/service"
 	customvalidator "github.com/ranjbar-dev/nutritrack/backend/internal/validator"
+	"github.com/ranjbar-dev/nutritrack/backend/pkg/sms"
 )
 
 func main() {
@@ -34,9 +38,9 @@ func main() {
 	}
 
 	// Setup zerolog
-	setupLogger(cfg.Environment)
+	logger := setupLogger(cfg.Environment)
 
-	log.Info().
+	logger.Info().
 		Str("environment", cfg.Environment).
 		Str("port", cfg.Port).
 		Msg("starting NutriTrack API")
@@ -45,35 +49,115 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Connect to PostgreSQL
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	// Connect to PostgreSQL with pool configuration
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create database pool")
+		logger.Fatal().Err(err).Msg("failed to parse database URL")
+	}
+	poolConfig.MaxConns = 20
+	poolConfig.MinConns = 5
+	poolConfig.MaxConnLifetime = 1 * time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create database pool")
 	}
 	defer pool.Close()
 
 	// Verify database connection
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatal().Err(err).Msg("failed to ping database")
+		logger.Fatal().Err(err).Msg("failed to ping database")
 	}
-	log.Info().Msg("database connection established")
+	logger.Info().Msg("database connection established")
 
 	// Run migrations
 	if err := runMigrations(cfg.DatabaseURL); err != nil {
-		log.Fatal().Err(err).Msg("failed to run migrations")
+		logger.Fatal().Err(err).Msg("failed to run migrations")
 	}
 
 	// Register custom validators (e.g. iranian_mobile)
 	if err := customvalidator.RegisterCustomValidators(); err != nil {
-		log.Fatal().Err(err).Msg("failed to register custom validators")
+		logger.Fatal().Err(err).Msg("failed to register custom validators")
 	}
 
+	// Initialize SMS sender — mock in development, Kavenegar in production (D-04)
+	var smsSender sms.Sender
+	if cfg.Environment == "development" {
+		smsSender = sms.NewMockSender(logger)
+	} else {
+		smsSender = sms.NewKavenegarSender(cfg.SMSAPIKey, cfg.SMSTemplate)
+	}
+
+	// Initialize rate limiter: 3 requests per 10-minute window (D-27, AUTH-07, SEC-07)
+	rateLimiter := middleware.NewRateLimiter(3, 10*time.Minute)
+
+	// JWT secret as bytes
+	jwtSecret := []byte(cfg.JWTSecret)
+
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(pool)
+	otpRepo := repository.NewOTPRepository(pool)
+	tokenRepo := repository.NewTokenRepository(pool)
+
+	// Initialize services
+	authService := service.NewAuthService(userRepo, otpRepo, tokenRepo, smsSender, jwtSecret, logger)
+	userService := service.NewUserService(userRepo, logger)
+
+	// Initialize handlers
+	authHandler := handler.NewAuthHandler(authService)
+	adminHandler := handler.NewAdminHandler(userService)
+	clientHandler := handler.NewClientHandler(userService)
+
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
-	// (we add our own middleware in Plan 03)
 	r := gin.New()
 
-	// Register routes
-	r.GET("/api/health", handler.HealthCheck)
+	// Global middleware chain: Recovery → SecurityHeaders → RequestID → Logger → CORS
+	r.Use(middleware.Recovery())
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.RequestID())
+	r.Use(middleware.Logger(logger))
+	r.Use(middleware.CORS(cfg.FrontendURL))
+
+	// Public routes — no auth required
+	pub := r.Group("/api")
+	{
+		pub.GET("/health", handler.HealthCheck)
+		pub.POST("/auth/login", authHandler.Login)
+		pub.POST("/auth/otp/request", middleware.RateLimit(rateLimiter), authHandler.RequestOTP)
+		pub.POST("/auth/otp/verify", middleware.RateLimit(rateLimiter), authHandler.VerifyOTP)
+		pub.POST("/auth/refresh", authHandler.Refresh)
+		pub.POST("/auth/logout", authHandler.Logout)
+	}
+
+	// Authenticated routes (any logged-in user, regardless of role)
+	authed := r.Group("/api")
+	authed.Use(middleware.Auth(jwtSecret))
+	{
+		authed.GET("/auth/me", authHandler.GetMe)
+	}
+
+	// Admin routes — super_admin only
+	admin := r.Group("/api/admin")
+	admin.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("super_admin"))
+	{
+		admin.POST("/nutritionists", adminHandler.CreateNutritionist)
+	}
+
+	// Nutritionist routes
+	nutri := r.Group("/api/nutritionist")
+	nutri.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist"))
+	{
+		nutri.POST("/clients", clientHandler.RegisterClient)
+	}
+
+	// Client routes (placeholder for future phases)
+	client := r.Group("/api/client")
+	client.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("client"))
+	{
+		// Routes added in Phase 2+
+	}
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -86,37 +170,42 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Info().Str("addr", srv.Addr).Msg("HTTP server listening")
+		logger.Info().Str("addr", srv.Addr).Msg("HTTP server listening")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("HTTP server error")
+			logger.Fatal().Err(err).Msg("HTTP server error")
 		}
 	}()
 
 	// Wait for interrupt signal
 	<-ctx.Done()
-	log.Info().Msg("shutdown signal received")
+	logger.Info().Msg("shutdown signal received")
 
-	// Graceful shutdown with timeout
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Graceful shutdown with 5-second timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Error().Err(err).Msg("server forced shutdown")
+		logger.Error().Err(err).Msg("server forced shutdown")
 	}
 
-	log.Info().Msg("server stopped")
+	logger.Info().Msg("server stopped")
 }
 
-// setupLogger configures zerolog output based on environment.
-func setupLogger(env string) {
+// setupLogger configures zerolog output based on environment and returns the logger instance.
+func setupLogger(env string) zerolog.Logger {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	if env == "development" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		log.Logger = logger
+		return logger
 	}
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	log.Logger = logger
+	return logger
 }
 
 // runMigrations runs database migrations from the db/migrations directory.
