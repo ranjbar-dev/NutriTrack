@@ -53,7 +53,13 @@ Plans:
   2. Nutritionist can add, edit, search, and soft-delete medications with form types (tablet, capsule, syrup, etc.)
   3. Super Admin can create/activate/deactivate nutritionist accounts, view their client lists (read-only), view platform statistics (total nutritionists, clients, food items, active plans), and edit/delete food and medication items created by any user with full audit trail
   4. Food list supports pagination (20 items/page), category filtering, active/inactive filtering, and audit tracking of who created each item
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [x] 02-01-PLAN.md — Food/medication schema, normalize_persian(), pg_trgm indexes
+- [x] 02-02-PLAN.md — Food CRUD backend (sqlc, repository, service, handler, routes)
+- [ ] 02-03-PLAN.md — Medication CRUD backend
+- [ ] 02-04-PLAN.md — Super Admin nutritionist management and platform stats
 **UI hint**: yes
 
 ### Phase 3: Diet Plan Engine
@@ -128,8 +134,8 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/6 | Planned | - |
-| 2. Core Data Domain | 0/? | Not started | - |
+| 1. Foundation & Infrastructure | 6/6 | Complete | 2026-04-19 |
+| 2. Core Data Domain | 2/4 | In progress | 2026-04-19 |
 | 3. Diet Plan Engine | 0/? | Not started | - |
 | 4. Client Tracking Suite | 0/? | Not started | - |
 | 5. Communication & Collaboration | 0/? | Not started | - |
@@ -138,4 +144,4 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 
 ---
 *Roadmap created: 2025-07-18*
-*Last updated: 2025-07-19*
+*Last updated: 2026-04-19*

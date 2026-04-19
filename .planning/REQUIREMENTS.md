@@ -24,16 +24,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Food Database
 
-- [ ] **FOOD-01**: Shared platform-wide food database accessible to Super Admin and all Nutritionists
-- [ ] **FOOD-02**: Food item CRUD with fields: name, categories, calories, protein, carbs, fat, fiber, sugar, sodium, measurement_unit, measurement_amount, description
+- [x] **FOOD-01**: Shared platform-wide food database accessible to Super Admin and all Nutritionists
+- [x] **FOOD-02**: Food item CRUD with fields: name, categories, calories, protein, carbs, fat, fiber, sugar, sodium, measurement_unit, measurement_amount, description
 - [ ] **FOOD-03**: Food categories (many-to-many): breakfast, lunch, dinner, snack, fruit, beverage, supplement, other
 - [ ] **FOOD-04**: 12 measurement units supported (gram, kg, tablespoon, teaspoon, cup, piece, slice, palm, matchbox, bowl, ml, liter)
-- [ ] **FOOD-05**: Persian full-text search on food name using pg_trgm with correct UTF-8 locale
-- [ ] **FOOD-06**: Persian character normalization (ی/ي, ک/ك) at storage and query boundaries
-- [ ] **FOOD-07**: Filter by category, active/inactive status
-- [ ] **FOOD-08**: Pagination with 20 items per page
-- [ ] **FOOD-09**: Soft delete via is_active flag
-- [ ] **FOOD-10**: Audit trail: created_by tracks who added each item
+- [x] **FOOD-05**: Persian full-text search on food name using pg_trgm with correct UTF-8 locale
+- [x] **FOOD-06**: Persian character normalization (ی/ي, ک/ك) at storage and query boundaries
+- [x] **FOOD-07**: Filter by category, active/inactive status
+- [x] **FOOD-08**: Pagination with 20 items per page
+- [x] **FOOD-09**: Soft delete via is_active flag
+- [x] **FOOD-10**: Audit trail: created_by tracks who added each item
 
 ### Medication Database
 
@@ -115,9 +115,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ADMIN-02**: Create new nutritionist: name, email, password
 - [ ] **ADMIN-03**: Activate/deactivate nutritionist accounts
 - [ ] **ADMIN-04**: View nutritionist's client list (read-only)
-- [ ] **ADMIN-05**: Full CRUD on food items including ability to edit/delete items created by others
+- [x] **ADMIN-05**: Full CRUD on food items including ability to edit/delete items created by others
 - [ ] **ADMIN-06**: Full CRUD on medications
-- [ ] **ADMIN-07**: View audit log of who created/modified food and medication items
+- [x] **ADMIN-07**: View audit log of who created/modified food and medication items
 - [ ] **ADMIN-08**: Platform statistics: total nutritionists, clients (active/inactive), food items, active diet plans
 
 ### Offline & Sync
@@ -245,16 +245,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-10 | Phase 1 | ✅ Complete |
 | AUTH-11 | Phase 1 | ✅ Complete |
 | AUTH-12 | Phase 1 | ✅ Complete |
-| FOOD-01 | Phase 2 | Pending |
-| FOOD-02 | Phase 2 | Pending |
+| FOOD-01 | Phase 2 | ✅ Complete |
+| FOOD-02 | Phase 2 | ✅ Complete |
 | FOOD-03 | Phase 2 | Pending |
 | FOOD-04 | Phase 2 | Pending |
-| FOOD-05 | Phase 2 | Pending |
-| FOOD-06 | Phase 2 | Pending |
-| FOOD-07 | Phase 2 | Pending |
-| FOOD-08 | Phase 2 | Pending |
-| FOOD-09 | Phase 2 | Pending |
-| FOOD-10 | Phase 2 | Pending |
+| FOOD-05 | Phase 2 | ✅ Complete |
+| FOOD-06 | Phase 2 | ✅ Complete |
+| FOOD-07 | Phase 2 | ✅ Complete |
+| FOOD-08 | Phase 2 | ✅ Complete |
+| FOOD-09 | Phase 2 | ✅ Complete |
+| FOOD-10 | Phase 2 | ✅ Complete |
 | MED-01 | Phase 2 | Pending |
 | MED-02 | Phase 2 | Pending |
 | MED-03 | Phase 2 | Pending |
@@ -312,9 +312,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADMIN-02 | Phase 2 | Pending |
 | ADMIN-03 | Phase 2 | Pending |
 | ADMIN-04 | Phase 2 | Pending |
-| ADMIN-05 | Phase 2 | Pending |
+| ADMIN-05 | Phase 2 | ✅ Complete |
 | ADMIN-06 | Phase 2 | Pending |
-| ADMIN-07 | Phase 2 | Pending |
+| ADMIN-07 | Phase 2 | ✅ Complete |
 | ADMIN-08 | Phase 2 | Pending |
 | OFFL-01 | Phase 6 | Pending |
 | OFFL-02 | Phase 6 | Pending |

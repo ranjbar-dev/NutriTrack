@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2025-07-18)
 
 **Core value:** Digitalize the nutritionist–client workflow in Iran — replacing WhatsApp + Excel + paper with a structured, offline-capable PWA
-**Current focus:** Phase 1: Foundation & Infrastructure
+**Current focus:** Phase 2: Core Data Domain
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation & Infrastructure)
-Plan: 6 of 6 in current phase — ALL PLANS COMPLETE
-Status: Phase Complete
-Last activity: 2026-04-19 — Completed 01-05 Frontend Auth Integration
+Phase: 2 of 7 (Core Data Domain)
+Plan: 2 of 4 in current phase
+Status: In Progress
+Last activity: 2026-04-19 — Completed 02-02 Food CRUD Backend
 
-Progress: [████░░░░░░] 17%
+Progress: [███░░░░░░░] 23%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 7.5 min
-- Total execution time: 0.75 hours
+- Total plans completed: 8
+- Average duration: 8.75 min
+- Total execution time: 1.17 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 6/6 | 45 min | 7.5 min |
+| 2 | 2/4 | 25 min | 12.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 13 min, 4 min, 4 min, 9 min, 7 min
+- Last 5 plans: 10 min, 15 min, 13 min, 4 min, 4 min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -65,6 +66,7 @@ Recent decisions affecting current work:
 - [01-05]: Unauthorized page uses auth layout with middleware:[] to avoid redirect loop
 - [01-06]: No version key in docker-compose (Docker Compose v2+ ignores it)
 - [01-06]: Frontend priority=1 in Traefik labels ensures /api/* matches first
+- [02-02]: Renamed food enums in migrations so sqlc could generate food models without colliding with the food_categories table name
 
 ### Pending Todos
 
@@ -72,7 +74,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 2]: Persian pg_trgm search needs early validation spike (correct UTF-8 locale in Docker)
 - [Phase 3]: Highest technical risk — design spike needed on batch loading queries and plan builder UI state management
 - [Phase 6]: iOS PWA storage eviction — test on real devices during Phase 6
 
@@ -85,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Completed 01-05 Frontend Auth Integration — Phase 1 all plans complete
-Resume file: None — phase transition needed
+Stopped at: Completed 02-02 Food CRUD Backend
+Resume file: .planning/phases/02-core-data-domain/02-03-PLAN.md
