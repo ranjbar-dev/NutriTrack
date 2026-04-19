@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ import (
 
 var (
 	ErrFoodDuplicate          = errors.New("غذا با این نام قبلاً ثبت شده است")
+	ErrFoodInvalidName        = errors.New("نام غذا الزامی است")
 	ErrFoodNotFound           = errors.New("غذا یافت نشد")
 	ErrFoodUnauthorizedEdit   = errors.New("شما مجوز ویرایش این غذا را ندارید")
 	ErrFoodUnauthorizedDelete = errors.New("شما مجوز حذف این غذا را ندارید")
@@ -40,9 +42,15 @@ func NewFoodService(foodRepo repository.FoodRepository, logger zerolog.Logger) *
 }
 
 func (s *FoodService) CreateFood(ctx context.Context, userID uuid.UUID, req dto.CreateFoodRequest) (*dto.FoodResponse, error) {
-	isDuplicate, err := s.foodRepo.CheckDuplicateName(ctx, req.Name, nil)
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, ErrFoodInvalidName
+	}
+	req.Name = name
+
+	isDuplicate, err := s.foodRepo.CheckDuplicateName(ctx, name, nil)
 	if err != nil {
-		s.logger.Error().Err(err).Str("name", req.Name).Msg("failed to check duplicate food name")
+		s.logger.Error().Err(err).Str("name", name).Msg("failed to check duplicate food name")
 		return nil, fmt.Errorf("check duplicate food name: %w", err)
 	}
 	if isDuplicate {
@@ -169,7 +177,13 @@ func (s *FoodService) UpdateFood(ctx context.Context, foodID, userID uuid.UUID, 
 		return nil, ErrFoodUnauthorizedEdit
 	}
 
-	isDuplicate, err := s.foodRepo.CheckDuplicateName(ctx, req.Name, &foodID)
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, ErrFoodInvalidName
+	}
+	req.Name = name
+
+	isDuplicate, err := s.foodRepo.CheckDuplicateName(ctx, name, &foodID)
 	if err != nil {
 		s.logger.Error().Err(err).Str("food_id", foodID.String()).Msg("failed to check duplicate food name for update")
 		return nil, fmt.Errorf("check duplicate food name: %w", err)
@@ -230,6 +244,13 @@ func (s *FoodService) DeleteFood(ctx context.Context, foodID, userID uuid.UUID, 
 	default:
 		return ErrFoodUnauthorizedDelete
 	}
+
+	s.logger.Info().
+		Str("food_id", foodID.String()).
+		Str("deleted_by", userID.String()).
+		Str("role", role).
+		Str("created_by", uuid.UUID(current.CreatedBy.Bytes).String()).
+		Msg("food deleted")
 
 	return nil
 }
