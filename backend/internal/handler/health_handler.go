@@ -5,17 +5,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ranjbar-dev/nutritrack/backend/internal/model/dto"
 )
-
-// HealthResponse represents the health check response body.
-type HealthResponse struct {
-	Status    string `json:"status"`
-	Timestamp string `json:"timestamp"`
-}
 
 // HealthCheck handles GET /api/health and returns the server status.
 func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, HealthResponse{
+	c.JSON(http.StatusOK, dto.HealthResponse{
 		Status:    "ok",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})

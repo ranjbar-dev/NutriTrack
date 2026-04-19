@@ -22,6 +22,7 @@ import (
 
 	"github.com/ranjbar-dev/nutritrack/backend/internal/config"
 	"github.com/ranjbar-dev/nutritrack/backend/internal/handler"
+	customvalidator "github.com/ranjbar-dev/nutritrack/backend/internal/validator"
 )
 
 func main() {
@@ -60,6 +61,11 @@ func main() {
 	// Run migrations
 	if err := runMigrations(cfg.DatabaseURL); err != nil {
 		log.Fatal().Err(err).Msg("failed to run migrations")
+	}
+
+	// Register custom validators (e.g. iranian_mobile)
+	if err := customvalidator.RegisterCustomValidators(); err != nil {
+		log.Fatal().Err(err).Msg("failed to register custom validators")
 	}
 
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
