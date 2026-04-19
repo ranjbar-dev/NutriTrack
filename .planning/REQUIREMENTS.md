@@ -148,11 +148,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI/UX & PWA
 
-- [ ] **UI-01**: Persian-only RTL layout using Tailwind CSS v4 logical properties (ms-, me-, ps-, pe-, text-start, text-end)
-- [ ] **UI-02**: Mobile-only viewport design (no desktop optimization)
-- [ ] **UI-03**: Vazirmatn font for all Persian text
-- [ ] **UI-04**: Shamsi/Jalali calendar for all date displays using jalaali-js
-- [ ] **UI-05**: Persian numeral display throughout the app
+- [x] **UI-01**: Persian-only RTL layout using Tailwind CSS v4 logical properties (ms-, me-, ps-, pe-, text-start, text-end)
+- [x] **UI-02**: Mobile-only viewport design (no desktop optimization)
+- [x] **UI-03**: Vazirmatn font for all Persian text
+- [x] **UI-04**: Shamsi/Jalali calendar for all date displays using jalaali-js
+- [x] **UI-05**: Persian numeral display throughout the app
 - [ ] **UI-06**: PWA manifest with install prompt
 - [ ] **UI-07**: Service worker with registerType: autoUpdate for stale cache prevention
 - [ ] **UI-08**: Initial load < 3 seconds on 3G
@@ -336,11 +336,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTIF-06 | Phase 6 | Pending |
 | NOTIF-07 | Phase 6 | Pending |
 | NOTIF-08 | Phase 6 | Pending |
-| UI-01 | Phase 1 | Pending |
-| UI-02 | Phase 1 | Pending |
-| UI-03 | Phase 1 | Pending |
-| UI-04 | Phase 1 | Pending |
-| UI-05 | Phase 1 | Pending |
+| UI-01 | Phase 1 | ✅ Complete |
+| UI-02 | Phase 1 | ✅ Complete |
+| UI-03 | Phase 1 | ✅ Complete |
+| UI-04 | Phase 1 | ✅ Complete |
+| UI-05 | Phase 1 | ✅ Complete |
 | UI-06 | Phase 6 | Pending |
 | UI-07 | Phase 6 | Pending |
 | UI-08 | Phase 7 | Pending |
