@@ -5,7 +5,7 @@ const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹
  * Used globally for all numeric display in the app.
  */
 export function toPersianDigits(value: string | number): string {
-  return String(value).replace(/[0-9]/g, (d) => persianDigits[parseInt(d)])
+  return String(value).replace(/[0-9]/g, (d) => persianDigits[parseInt(d)] ?? d)
 }
 
 /**
