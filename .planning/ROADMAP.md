@@ -58,8 +58,8 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Food/medication schema, normalize_persian(), pg_trgm indexes
 - [x] 02-02-PLAN.md — Food CRUD backend (sqlc, repository, service, handler, routes)
-- [ ] 02-03-PLAN.md — Medication CRUD backend
-- [ ] 02-04-PLAN.md — Super Admin nutritionist management and platform stats
+- [ ] 02-03-PLAN.md — Food CRUD frontend (nutritionist food management UI)
+- [x] 02-04-PLAN.md — Medication CRUD backend (sqlc, repository, service, handler, routes)
 **UI hint**: yes
 
 ### Phase 3: Diet Plan Engine
