@@ -58,7 +58,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Food/medication schema, normalize_persian(), pg_trgm indexes
 - [x] 02-02-PLAN.md — Food CRUD backend (sqlc, repository, service, handler, routes)
-- [ ] 02-03-PLAN.md — Food CRUD frontend (nutritionist food management UI)
+- [x] 02-03-PLAN.md — Food CRUD frontend (nutritionist food management UI)
 - [x] 02-04-PLAN.md — Medication CRUD backend (sqlc, repository, service, handler, routes)
 **UI hint**: yes
 
@@ -135,7 +135,7 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Infrastructure | 6/6 | Complete | 2026-04-19 |
-| 2. Core Data Domain | 2/4 | In progress | 2026-04-19 |
+| 2. Core Data Domain | 3/4 | In progress | 2026-04-19 |
 | 3. Diet Plan Engine | 0/? | Not started | - |
 | 4. Client Tracking Suite | 0/? | Not started | - |
 | 5. Communication & Collaboration | 0/? | Not started | - |

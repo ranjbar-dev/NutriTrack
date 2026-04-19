@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2025-07-18)
 Phase: 2 of 7 (Core Data Domain)
 Plan: 4 of 4 in current phase
 Status: Phase Complete
-Last activity: 2026-04-19 — Completed 02-04 Medication CRUD Backend
+Last activity: 2026-04-19 — Completed 02-03 Food Management Frontend
 
 Progress: [████░░░░░░] 28%
 
@@ -67,6 +67,8 @@ Recent decisions affecting current work:
 - [01-06]: No version key in docker-compose (Docker Compose v2+ ignores it)
 - [01-06]: Frontend priority=1 in Traefik labels ensures /api/* matches first
 - [02-02]: Renamed food enums in migrations so sqlc could generate food models without colliding with the food_categories table name
+- [02-03]: labelMap[key] ?? key fallback used for strict TypeScript index access in validation loop
+- [02-03]: draftReady ref gates localStorage watcher to prevent overwriting draft on initial form mount
 - [02-04]: Reused optionalText/optionalBool/formatTimestamp helpers from food_service.go — same package, no duplication needed
 - [02-04]: Duplicate check uses COALESCE pattern (same as food) to handle NULL exclude_id safely in SQL
 
@@ -88,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Completed 02-04 Medication CRUD Backend — Phase 02 complete
+Stopped at: Completed 02-03 Food Management Frontend
 Resume file: .planning/phases/03-nutrition-plan-engine/03-01-PLAN.md
