@@ -101,17 +101,20 @@ func main() {
 	otpRepo := repository.NewOTPRepository(pool)
 	tokenRepo := repository.NewTokenRepository(pool)
 	foodRepo := repository.NewFoodRepository(pool)
+	medRepo := repository.NewMedicationRepository(pool)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, otpRepo, tokenRepo, smsSender, jwtSecret, logger)
 	userService := service.NewUserService(userRepo, logger)
 	foodService := service.NewFoodService(foodRepo, logger)
+	medService := service.NewMedicationService(medRepo, logger)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	adminHandler := handler.NewAdminHandler(userService)
 	clientHandler := handler.NewClientHandler(userService)
 	foodHandler := handler.NewFoodHandler(foodService)
+	medHandler := handler.NewMedicationHandler(medService)
 
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
 	r := gin.New()
@@ -149,6 +152,16 @@ func main() {
 		foods.GET("/:id", foodHandler.Get)
 		foods.PUT("/:id", foodHandler.Update)
 		foods.DELETE("/:id", foodHandler.Delete)
+	}
+
+	meds := r.Group("/api/medications")
+	meds.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist", "super_admin"))
+	{
+		meds.GET("", medHandler.List)
+		meds.POST("", medHandler.Create)
+		meds.GET("/:id", medHandler.Get)
+		meds.PUT("/:id", medHandler.Update)
+		meds.DELETE("/:id", medHandler.Delete)
 	}
 
 	// Admin routes — super_admin only
