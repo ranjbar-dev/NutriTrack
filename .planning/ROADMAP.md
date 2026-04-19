@@ -72,7 +72,18 @@ Plans:
   3. Creating a new active plan auto-archives the previous one; the one-active-plan-per-client constraint holds at both application and database level; archived plans remain viewable for history
   4. Client can view their active diet plan on mobile with day navigation, meal options with food items and nutrition info, exercise recommendations, medication schedule, and water target
   5. Full diet plan aggregate loads in ≤500ms via batch queries (≤5 queries, no N+1) — validated with realistic data (7 days × 5 meals × 3 options × 4 items)
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — DB schema migration 000007, sqlc SQL queries (7 files), diet_plan_dto.go DTOs
+- [ ] 03-02-PLAN.md — DietPlanRepository: interface + CRUD methods + 2-phase batch aggregate (GetFullPlanAggregate, GetActivePlanForClient)
+- [ ] 03-03-PLAN.md — DietPlanService (business logic, ActivatePlan transaction), DietPlanHandler (~22 routes), main.go route wiring
+- [ ] 03-04-PLAN.md — Frontend: plan.types.ts, planBuilder store, clientPlan store, useNutritionComputed, 6 shared components (StatusBadge, Breadcrumb, NutritionBadges, WaterBadge, MedicationCard, ExerciseCard)
+- [ ] 03-05-PLAN.md — Nutritionist plan list, new plan form (Shamsi dates), plan overview (DayCards + ActivateModal), edit plan header
+- [ ] 03-06-PLAN.md — Nutritionist day view (MealCards + reorder), add meal form, MealCard component
+- [ ] 03-07-PLAN.md — Nutritionist meal view (OptionCard accordion, FoodItemRow, FoodPickerSheet bottom sheet)
+- [ ] 03-08-PLAN.md — Client plan view (DayTabBar, sticky navigation, read-only plan content, empty state)
+
 **UI hint**: yes
 
 ### Phase 4: Client Tracking Suite
@@ -136,7 +147,7 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 |-------|----------------|--------|-----------|
 | 1. Foundation & Infrastructure | 6/6 | Complete | 2026-04-19 |
 | 2. Core Data Domain | 4/4 | Complete | 2026-04-19 |
-| 3. Diet Plan Engine | 0/? | Not started | - |
+| 3. Diet Plan Engine | 0/8 | Not started | - |
 | 4. Client Tracking Suite | 0/? | Not started | - |
 | 5. Communication & Collaboration | 0/? | Not started | - |
 | 6. Offline & PWA | 0/? | Not started | - |
