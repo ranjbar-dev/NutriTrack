@@ -15,8 +15,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **AUTH-04**: Nutritionist accounts are created exclusively by Super Admin (no self-registration)
 - [ ] **AUTH-05**: Client receives OTP via SMS (Kavenegar) to registered mobile number for login
 - [ ] **AUTH-06**: OTP is 6 digits, valid for 2 minutes, max 3 attempts per code
-- [ ] **AUTH-07**: OTP rate limit: max 3 requests per phone per 10 minutes
-- [ ] **AUTH-08**: JWT access token (15 min) + refresh token (30 days) issued on successful auth
+- [x] **AUTH-07**: OTP rate limit: max 3 requests per phone per 10 minutes
+- [x] **AUTH-08**: JWT access token (15 min) + refresh token (30 days) issued on successful auth
 - [ ] **AUTH-09**: JWT refresh handles concurrent requests without mass logout (refresh queue pattern)
 - [ ] **AUTH-10**: Passwords hashed with bcrypt (cost factor 12)
 - [ ] **AUTH-11**: Row-level authorization: nutritionist can only access own clients' data (repository-level enforcement)
@@ -178,8 +178,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SEC-03**: SQL injection prevention via parameterized queries (sqlc)
 - [ ] **SEC-04**: File upload validation: type checking, size limits, magic byte verification, UUID filenames
 - [ ] **SEC-05**: Content-Disposition: attachment on file downloads to prevent content sniffing
-- [ ] **SEC-06**: CORS restricted to app domain only
-- [ ] **SEC-07**: OTP brute force protection (rate limiting + attempt limiting)
+- [x] **SEC-06**: CORS restricted to app domain only
+- [x] **SEC-07**: OTP brute force protection (rate limiting + attempt limiting)
 - [ ] **SEC-08**: Per-client file storage limits
 
 ## v2 Requirements
@@ -239,8 +239,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-04 | Phase 1 | Pending |
 | AUTH-05 | Phase 1 | Pending |
 | AUTH-06 | Phase 1 | Pending |
-| AUTH-07 | Phase 1 | Pending |
-| AUTH-08 | Phase 1 | Pending |
+| AUTH-07 | Phase 1 | ✅ Complete |
+| AUTH-08 | Phase 1 | ✅ Complete |
 | AUTH-09 | Phase 1 | Pending |
 | AUTH-10 | Phase 1 | Pending |
 | AUTH-11 | Phase 1 | Pending |
@@ -360,8 +360,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-03 | Phase 1 | ✅ Complete |
 | SEC-04 | Phase 5 | Pending |
 | SEC-05 | Phase 5 | Pending |
-| SEC-06 | Phase 1 | Pending |
-| SEC-07 | Phase 1 | Pending |
+| SEC-06 | Phase 1 | ✅ Complete |
+| SEC-07 | Phase 1 | ✅ Complete |
 | SEC-08 | Phase 5 | Pending |
 
 **Coverage:**
