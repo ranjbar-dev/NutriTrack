@@ -38,6 +38,8 @@ func (h *FoodHandler) Create(c *gin.Context) {
 	resp, err := h.foodService.CreateFood(c.Request.Context(), userID, req)
 	if err != nil {
 		switch {
+		case errors.Is(err, service.ErrFoodInvalidName):
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		case errors.Is(err, service.ErrFoodDuplicate):
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
 		default:
@@ -53,7 +55,7 @@ func (h *FoodHandler) Create(c *gin.Context) {
 func (h *FoodHandler) Get(c *gin.Context) {
 	foodID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "اطلاعات ورودی نامعتبر است"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "شناسه نامعتبر است"})
 		return
 	}
 
@@ -92,7 +94,7 @@ func (h *FoodHandler) List(c *gin.Context) {
 func (h *FoodHandler) Update(c *gin.Context) {
 	foodID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "اطلاعات ورودی نامعتبر است"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "شناسه نامعتبر است"})
 		return
 	}
 
@@ -113,6 +115,8 @@ func (h *FoodHandler) Update(c *gin.Context) {
 		switch {
 		case errors.Is(err, service.ErrFoodNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: err.Error()})
+		case errors.Is(err, service.ErrFoodInvalidName):
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		case errors.Is(err, service.ErrFoodUnauthorizedEdit):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: err.Error()})
 		case errors.Is(err, service.ErrFoodDuplicate):
@@ -130,7 +134,7 @@ func (h *FoodHandler) Update(c *gin.Context) {
 func (h *FoodHandler) Delete(c *gin.Context) {
 	foodID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "اطلاعات ورودی نامعتبر است"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "شناسه نامعتبر است"})
 		return
 	}
 
