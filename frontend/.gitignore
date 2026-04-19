@@ -1,0 +1,29 @@
+# Nuxt dev/build outputs
+.output
+.nuxt
+.data
+.nitro
+.cache
+
+# Node dependencies
+node_modules
+
+# Logs
+*.log*
+
+# Misc
+.DS_Store
+.fleet
+.idea
+*.sw?
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+
+# ESLint
+eslint.config.mjs
