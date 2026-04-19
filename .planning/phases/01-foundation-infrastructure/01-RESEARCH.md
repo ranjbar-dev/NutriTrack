@@ -1291,22 +1291,25 @@ func RateLimit(limiter *RateLimiter) gin.HandlerFunc {
 | A3 | Kavenegar REST API uses `/verify/lookup.json` URL pattern for template-based OTP | Code Examples | Wrong URL pattern means OTP delivery fails; verify with Kavenegar docs during implementation |
 | A4 | Vazirmatn npm package exports `vazirmatn-font-face.css` for import | Code Examples | Might be different path; check actual npm package contents |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Go Module Path**
+1. **Go Module Path** (RESOLVED)
    - What we know: STACK.md suggests `github.com/ranjbar-dev/nutritrack`; D-06 says monorepo with `backend/` subdir
    - What's unclear: Should the Go module be `github.com/ranjbar-dev/nutritrack/backend` or `github.com/ranjbar-dev/nutritrack`?
    - Recommendation: Use `github.com/ranjbar-dev/nutritrack/backend` since it's a subdirectory. Agent's discretion per CONTEXT.md.
+   - Resolution: Agent's discretion — decided during Plan 01 execution.
 
-2. **Refresh Token Rotation Strategy**
+2. **Refresh Token Rotation Strategy** (RESOLVED)
    - What we know: D-01 specifies refresh token in httpOnly cookie; PITFALLS.md recommends grace period for rotation
    - What's unclear: Full rotation (invalidate on use) vs. stateless (long-lived, no rotation)?
    - Recommendation: Use stateful rotation with `refresh_tokens` table + 30-second grace period for concurrent requests. Safer but adds DB query on every refresh.
+   - Resolution: Stateful rotation with family_id theft detection — implemented in Plan 04 auth_service.go.
 
-3. **Kavenegar API Details**
+3. **Kavenegar API Details** (RESOLVED)
    - What we know: REST API for Iranian SMS OTP delivery
    - What's unclear: Exact API URL pattern, template format, error codes
    - Recommendation: Use interface abstraction (D-04); implement mock first, real adapter later. Verify Kavenegar docs during implementation.
+   - Resolution: Interface abstraction (SMSSender) with MockSender in dev — implemented in Plan 03.
 
 ## Environment Availability
 
