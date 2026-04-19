@@ -9,18 +9,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication & Authorization
 
-- [ ] **AUTH-01**: Super Admin can log in with email and password
-- [ ] **AUTH-02**: Super Admin account is seeded via backend migration or CLI command (no self-registration)
-- [ ] **AUTH-03**: Nutritionist can log in with email and password
-- [ ] **AUTH-04**: Nutritionist accounts are created exclusively by Super Admin (no self-registration)
-- [ ] **AUTH-05**: Client receives OTP via SMS (Kavenegar) to registered mobile number for login
-- [ ] **AUTH-06**: OTP is 6 digits, valid for 2 minutes, max 3 attempts per code
+- [x] **AUTH-01**: Super Admin can log in with email and password
+- [x] **AUTH-02**: Super Admin account is seeded via backend migration or CLI command (no self-registration)
+- [x] **AUTH-03**: Nutritionist can log in with email and password
+- [x] **AUTH-04**: Nutritionist accounts are created exclusively by Super Admin (no self-registration)
+- [x] **AUTH-05**: Client receives OTP via SMS (Kavenegar) to registered mobile number for login
+- [x] **AUTH-06**: OTP is 6 digits, valid for 2 minutes, max 3 attempts per code
 - [x] **AUTH-07**: OTP rate limit: max 3 requests per phone per 10 minutes
 - [x] **AUTH-08**: JWT access token (15 min) + refresh token (30 days) issued on successful auth
 - [ ] **AUTH-09**: JWT refresh handles concurrent requests without mass logout (refresh queue pattern)
-- [ ] **AUTH-10**: Passwords hashed with bcrypt (cost factor 12)
-- [ ] **AUTH-11**: Row-level authorization: nutritionist can only access own clients' data (repository-level enforcement)
-- [ ] **AUTH-12**: Client cannot self-register — only nutritionist can register clients
+- [x] **AUTH-10**: Passwords hashed with bcrypt (cost factor 12)
+- [x] **AUTH-11**: Row-level authorization: nutritionist can only access own clients' data (repository-level enforcement)
+- [x] **AUTH-12**: Client cannot self-register — only nutritionist can register clients
 
 ### Food Database
 
@@ -101,7 +101,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Client Management
 
-- [ ] **CLNT-01**: Nutritionist can register client: full_name, mobile (unique Iranian format), date_of_birth, height_cm, gender, notes
+- [x] **CLNT-01**: Nutritionist can register client: full_name, mobile (unique Iranian format), date_of_birth, height_cm, gender, notes
 - [ ] **CLNT-02**: Client list view: name, mobile, status, current plan status, last activity, searchable by name/mobile
 - [ ] **CLNT-03**: Client list filterable by active/inactive, sortable by name or last activity
 - [ ] **CLNT-04**: Client profile view with personal info, current plan summary, and history tabs (weight, food, exercise, water, sleep, medication, lab results, archived plans)
@@ -174,7 +174,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Security
 
 - [ ] **SEC-01**: All traffic over HTTPS (TLS 1.2+)
-- [ ] **SEC-02**: Input validation and sanitization on all endpoints
+- [x] **SEC-02**: Input validation and sanitization on all endpoints
 - [x] **SEC-03**: SQL injection prevention via parameterized queries (sqlc)
 - [ ] **SEC-04**: File upload validation: type checking, size limits, magic byte verification, UUID filenames
 - [ ] **SEC-05**: Content-Disposition: attachment on file downloads to prevent content sniffing
@@ -233,18 +233,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
-| AUTH-06 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | ✅ Complete |
+| AUTH-02 | Phase 1 | ✅ Complete |
+| AUTH-03 | Phase 1 | ✅ Complete |
+| AUTH-04 | Phase 1 | ✅ Complete |
+| AUTH-05 | Phase 1 | ✅ Complete |
+| AUTH-06 | Phase 1 | ✅ Complete |
 | AUTH-07 | Phase 1 | ✅ Complete |
 | AUTH-08 | Phase 1 | ✅ Complete |
 | AUTH-09 | Phase 1 | Pending |
-| AUTH-10 | Phase 1 | Pending |
-| AUTH-11 | Phase 1 | Pending |
-| AUTH-12 | Phase 1 | Pending |
+| AUTH-10 | Phase 1 | ✅ Complete |
+| AUTH-11 | Phase 1 | ✅ Complete |
+| AUTH-12 | Phase 1 | ✅ Complete |
 | FOOD-01 | Phase 2 | Pending |
 | FOOD-02 | Phase 2 | Pending |
 | FOOD-03 | Phase 2 | Pending |
@@ -301,7 +301,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FREQ-02 | Phase 5 | Pending |
 | FREQ-03 | Phase 5 | Pending |
 | FREQ-04 | Phase 5 | Pending |
-| CLNT-01 | Phase 1 | Pending |
+| CLNT-01 | Phase 1 | ✅ Complete |
 | CLNT-02 | Phase 5 | Pending |
 | CLNT-03 | Phase 5 | Pending |
 | CLNT-04 | Phase 5 | Pending |
@@ -356,7 +356,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-10 | Phase 3 | Pending |
 | INFRA-11 | Phase 7 | Pending |
 | SEC-01 | Phase 1 | Pending |
-| SEC-02 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | ✅ Complete |
 | SEC-03 | Phase 1 | ✅ Complete |
 | SEC-04 | Phase 5 | Pending |
 | SEC-05 | Phase 5 | Pending |
