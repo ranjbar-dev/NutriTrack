@@ -162,9 +162,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFRA-01**: Docker + Docker Compose deployment on Hetzner
 - [ ] **INFRA-02**: Traefik reverse proxy with HTTPS (Let's Encrypt)
 - [ ] **INFRA-03**: GitLab CI/CD pipeline for automated testing and deployment
-- [ ] **INFRA-04**: Structured JSON logging to stdout, collected by Loki
+- [x] **INFRA-04**: Structured JSON logging to stdout, collected by Loki
 - [ ] **INFRA-05**: Grafana dashboards for monitoring
-- [ ] **INFRA-06**: Health check endpoint
+- [x] **INFRA-06**: Health check endpoint
 - [ ] **INFRA-07**: Daily automated PostgreSQL backups
 - [ ] **INFRA-08**: Weekly file storage backups
 - [ ] **INFRA-09**: API response time < 200ms for standard CRUD
@@ -175,7 +175,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **SEC-01**: All traffic over HTTPS (TLS 1.2+)
 - [ ] **SEC-02**: Input validation and sanitization on all endpoints
-- [ ] **SEC-03**: SQL injection prevention via parameterized queries (sqlc)
+- [x] **SEC-03**: SQL injection prevention via parameterized queries (sqlc)
 - [ ] **SEC-04**: File upload validation: type checking, size limits, magic byte verification, UUID filenames
 - [ ] **SEC-05**: Content-Disposition: attachment on file downloads to prevent content sniffing
 - [ ] **SEC-06**: CORS restricted to app domain only
@@ -347,9 +347,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Pending |
 | INFRA-03 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | ✅ Complete |
 | INFRA-05 | Phase 7 | Pending |
-| INFRA-06 | Phase 1 | Pending |
+| INFRA-06 | Phase 1 | ✅ Complete |
 | INFRA-07 | Phase 7 | Pending |
 | INFRA-08 | Phase 7 | Pending |
 | INFRA-09 | Phase 7 | Pending |
@@ -357,7 +357,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-11 | Phase 7 | Pending |
 | SEC-01 | Phase 1 | Pending |
 | SEC-02 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | ✅ Complete |
 | SEC-04 | Phase 5 | Pending |
 | SEC-05 | Phase 5 | Pending |
 | SEC-06 | Phase 1 | Pending |

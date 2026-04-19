@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 6 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Monorepo scaffold, Go backend bootstrap, DB migrations, sqlc setup
+- [x] 01-01-PLAN.md — Monorepo scaffold, Go backend bootstrap, DB migrations, sqlc setup
 - [ ] 01-02-PLAN.md — Nuxt 4 frontend, Tailwind v4 RTL, Vazirmatn, Persian utilities, layouts
 - [ ] 01-03-PLAN.md — JWT package, SMS sender, auth & infrastructure middleware suite
 - [ ] 01-04-PLAN.md — Auth services, handlers, router wiring, Super Admin seeder
