@@ -11,22 +11,34 @@ import (
 )
 
 type Querier interface {
+	AddFoodCategory(ctx context.Context, arg AddFoodCategoryParams) error
+	CheckDuplicateFoodName(ctx context.Context, arg CheckDuplicateFoodNameParams) (bool, error)
+	CountActiveFoods(ctx context.Context) (int64, error)
+	CountFoods(ctx context.Context, arg CountFoodsParams) (int64, error)
+	CreateFood(ctx context.Context, arg CreateFoodParams) (Food, error)
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteExpiredOTPs(ctx context.Context) error
+	DeleteFoodCategories(ctx context.Context, foodID pgtype.UUID) error
 	GetActiveOTPByMobile(ctx context.Context, mobile string) (OtpCode, error)
 	GetClientsByNutritionistID(ctx context.Context, nutritionistID pgtype.UUID) ([]User, error)
+	GetFoodByID(ctx context.Context, id pgtype.UUID) (GetFoodByIDRow, error)
+	GetFoodCategories(ctx context.Context, foodID pgtype.UUID) ([]string, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User, error)
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) error
+	ListFoods(ctx context.Context, arg ListFoodsParams) ([]ListFoodsRow, error)
 	MarkOTPVerified(ctx context.Context, id pgtype.UUID) error
 	RevokeRefreshToken(ctx context.Context, id pgtype.UUID) error
 	RevokeTokenFamily(ctx context.Context, familyID pgtype.UUID) error
 	RevokeUserTokens(ctx context.Context, userID pgtype.UUID) error
+	SoftDeleteFood(ctx context.Context, id pgtype.UUID) error
+	SoftDeleteFoodByOwner(ctx context.Context, arg SoftDeleteFoodByOwnerParams) error
+	UpdateFood(ctx context.Context, arg UpdateFoodParams) (Food, error)
 	UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error
 }
 

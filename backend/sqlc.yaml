@@ -12,3 +12,12 @@ sql:
         emit_prepared_queries: false
         emit_interface: true
         emit_empty_slices: true
+        overrides:
+          - db_type: "food_category"
+            go_type:
+              import: "github.com/ranjbar-dev/nutritrack/backend/internal/model"
+              type: "FoodCategory"
+          - db_type: "measurement_unit"
+            go_type:
+              import: "github.com/ranjbar-dev/nutritrack/backend/internal/model"
+              type: "MeasurementUnit"

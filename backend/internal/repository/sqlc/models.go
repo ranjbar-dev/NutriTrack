@@ -11,6 +11,54 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type FoodCategoryType string
+
+const (
+	FoodCategoryTypeBreakfast  FoodCategoryType = "breakfast"
+	FoodCategoryTypeLunch      FoodCategoryType = "lunch"
+	FoodCategoryTypeDinner     FoodCategoryType = "dinner"
+	FoodCategoryTypeSnack      FoodCategoryType = "snack"
+	FoodCategoryTypeFruit      FoodCategoryType = "fruit"
+	FoodCategoryTypeBeverage   FoodCategoryType = "beverage"
+	FoodCategoryTypeSupplement FoodCategoryType = "supplement"
+	FoodCategoryTypeOther      FoodCategoryType = "other"
+)
+
+func (e *FoodCategoryType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FoodCategoryType(s)
+	case string:
+		*e = FoodCategoryType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FoodCategoryType: %T", src)
+	}
+	return nil
+}
+
+type NullFoodCategoryType struct {
+	FoodCategoryType FoodCategoryType `json:"food_category_type"`
+	Valid            bool             `json:"valid"` // Valid is true if FoodCategoryType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFoodCategoryType) Scan(value interface{}) error {
+	if value == nil {
+		ns.FoodCategoryType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FoodCategoryType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFoodCategoryType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FoodCategoryType), nil
+}
+
 type GenderType string
 
 const (
@@ -51,6 +99,105 @@ func (ns NullGenderType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.GenderType), nil
+}
+
+type MeasurementUnitType string
+
+const (
+	MeasurementUnitTypeGram       MeasurementUnitType = "gram"
+	MeasurementUnitTypeKg         MeasurementUnitType = "kg"
+	MeasurementUnitTypeTablespoon MeasurementUnitType = "tablespoon"
+	MeasurementUnitTypeTeaspoon   MeasurementUnitType = "teaspoon"
+	MeasurementUnitTypeCup        MeasurementUnitType = "cup"
+	MeasurementUnitTypePiece      MeasurementUnitType = "piece"
+	MeasurementUnitTypeSlice      MeasurementUnitType = "slice"
+	MeasurementUnitTypePalm       MeasurementUnitType = "palm"
+	MeasurementUnitTypeMatchbox   MeasurementUnitType = "matchbox"
+	MeasurementUnitTypeBowl       MeasurementUnitType = "bowl"
+	MeasurementUnitTypeMl         MeasurementUnitType = "ml"
+	MeasurementUnitTypeLiter      MeasurementUnitType = "liter"
+)
+
+func (e *MeasurementUnitType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MeasurementUnitType(s)
+	case string:
+		*e = MeasurementUnitType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MeasurementUnitType: %T", src)
+	}
+	return nil
+}
+
+type NullMeasurementUnitType struct {
+	MeasurementUnitType MeasurementUnitType `json:"measurement_unit_type"`
+	Valid               bool                `json:"valid"` // Valid is true if MeasurementUnitType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMeasurementUnitType) Scan(value interface{}) error {
+	if value == nil {
+		ns.MeasurementUnitType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MeasurementUnitType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMeasurementUnitType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MeasurementUnitType), nil
+}
+
+type MedicationForm string
+
+const (
+	MedicationFormTablet    MedicationForm = "tablet"
+	MedicationFormCapsule   MedicationForm = "capsule"
+	MedicationFormSyrup     MedicationForm = "syrup"
+	MedicationFormInjection MedicationForm = "injection"
+	MedicationFormDrop      MedicationForm = "drop"
+	MedicationFormPowder    MedicationForm = "powder"
+	MedicationFormOther     MedicationForm = "other"
+)
+
+func (e *MedicationForm) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MedicationForm(s)
+	case string:
+		*e = MedicationForm(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MedicationForm: %T", src)
+	}
+	return nil
+}
+
+type NullMedicationForm struct {
+	MedicationForm MedicationForm `json:"medication_form"`
+	Valid          bool           `json:"valid"` // Valid is true if MedicationForm is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMedicationForm) Scan(value interface{}) error {
+	if value == nil {
+		ns.MedicationForm, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MedicationForm.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMedicationForm) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MedicationForm), nil
 }
 
 type UserRole string
@@ -94,6 +241,46 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.UserRole), nil
+}
+
+type Food struct {
+	ID                pgtype.UUID         `json:"id"`
+	Name              string              `json:"name"`
+	NameNormalized    string              `json:"name_normalized"`
+	Description       pgtype.Text         `json:"description"`
+	Calories          pgtype.Numeric      `json:"calories"`
+	ProteinG          pgtype.Numeric      `json:"protein_g"`
+	CarbsG            pgtype.Numeric      `json:"carbs_g"`
+	FatG              pgtype.Numeric      `json:"fat_g"`
+	FiberG            pgtype.Numeric      `json:"fiber_g"`
+	SugarG            pgtype.Numeric      `json:"sugar_g"`
+	SodiumMg          pgtype.Numeric      `json:"sodium_mg"`
+	MeasurementUnit   MeasurementUnitType `json:"measurement_unit"`
+	MeasurementAmount pgtype.Numeric      `json:"measurement_amount"`
+	IsActive          bool                `json:"is_active"`
+	CreatedBy         pgtype.UUID         `json:"created_by"`
+	CreatedAt         pgtype.Timestamptz  `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz  `json:"updated_at"`
+}
+
+type FoodCategory struct {
+	FoodID   pgtype.UUID      `json:"food_id"`
+	Category FoodCategoryType `json:"category"`
+}
+
+type Medication struct {
+	ID                    pgtype.UUID        `json:"id"`
+	Name                  string             `json:"name"`
+	NameNormalized        string             `json:"name_normalized"`
+	GenericName           pgtype.Text        `json:"generic_name"`
+	GenericNameNormalized pgtype.Text        `json:"generic_name_normalized"`
+	Form                  MedicationForm     `json:"form"`
+	DosageUnit            pgtype.Text        `json:"dosage_unit"`
+	Description           pgtype.Text        `json:"description"`
+	IsActive              bool               `json:"is_active"`
+	CreatedBy             pgtype.UUID        `json:"created_by"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OtpCode struct {
