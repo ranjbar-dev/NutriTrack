@@ -9,16 +9,15 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ranjbar-dev/nutritrack/backend/internal/model"
 )
 
 const addFoodCategory = `-- name: AddFoodCategory :exec
-INSERT INTO food_categories (food_id, category) VALUES ($1, $2::food_category) ON CONFLICT DO NOTHING
+INSERT INTO food_categories (food_id, category) VALUES ($1, $2::food_category_type) ON CONFLICT DO NOTHING
 `
 
 type AddFoodCategoryParams struct {
-	FoodID  pgtype.UUID        `json:"food_id"`
-	Column2 model.FoodCategory `json:"column_2"`
+	FoodID  pgtype.UUID      `json:"food_id"`
+	Column2 FoodCategoryType `json:"column_2"`
 }
 
 func (q *Queries) AddFoodCategory(ctx context.Context, arg AddFoodCategoryParams) error {

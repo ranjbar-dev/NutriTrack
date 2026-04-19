@@ -8,7 +8,7 @@ INSERT INTO foods (
 ) RETURNING *;
 
 -- name: AddFoodCategory :exec
-INSERT INTO food_categories (food_id, category) VALUES ($1, $2::food_category) ON CONFLICT DO NOTHING;
+INSERT INTO food_categories (food_id, category) VALUES ($1, $2::food_category_type) ON CONFLICT DO NOTHING;
 
 -- name: GetFoodByID :one
 SELECT f.*, u.full_name AS creator_name
