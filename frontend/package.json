@@ -25,7 +25,9 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.0.0",
+    "@vitejs/plugin-vue": "^6.0.6",
     "@vue/test-utils": "^2.4.0",
+    "happy-dom": "^20.9.0",
     "typescript": "^5.0.0",
     "vitest": "^3.0.0",
     "vue-tsc": "^3.2.7"
