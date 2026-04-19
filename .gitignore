@@ -1,0 +1,55 @@
+# ========================
+# Go
+# ========================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/backend/tmp/
+
+# ========================
+# Node / Frontend
+# ========================
+node_modules/
+.nuxt/
+.output/
+dist/
+.nitro/
+.cache/
+
+# ========================
+# Environment
+# ========================
+.env
+.env.local
+.env.*.local
+
+# ========================
+# IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========================
+# Docker volumes
+# ========================
+postgres-data/
+data/
+
+# ========================
+# OS
+# ========================
+*.log
+
+# ========================
+# NOTE: sqlc generated files (backend/internal/repository/sqlc/)
+# are intentionally NOT ignored — they are committed to the repo.
+# ========================
