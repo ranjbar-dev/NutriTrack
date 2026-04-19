@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **AUTH-06**: OTP is 6 digits, valid for 2 minutes, max 3 attempts per code
 - [x] **AUTH-07**: OTP rate limit: max 3 requests per phone per 10 minutes
 - [x] **AUTH-08**: JWT access token (15 min) + refresh token (30 days) issued on successful auth
-- [ ] **AUTH-09**: JWT refresh handles concurrent requests without mass logout (refresh queue pattern)
+- [x] **AUTH-09**: JWT refresh handles concurrent requests without mass logout (refresh queue pattern)
 - [x] **AUTH-10**: Passwords hashed with bcrypt (cost factor 12)
 - [x] **AUTH-11**: Row-level authorization: nutritionist can only access own clients' data (repository-level enforcement)
 - [x] **AUTH-12**: Client cannot self-register — only nutritionist can register clients
@@ -241,7 +241,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-06 | Phase 1 | ✅ Complete |
 | AUTH-07 | Phase 1 | ✅ Complete |
 | AUTH-08 | Phase 1 | ✅ Complete |
-| AUTH-09 | Phase 1 | Pending |
+| AUTH-09 | Phase 1 | ✅ Complete |
 | AUTH-10 | Phase 1 | ✅ Complete |
 | AUTH-11 | Phase 1 | ✅ Complete |
 | AUTH-12 | Phase 1 | ✅ Complete |

@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2025-07-18)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Infrastructure)
-Plan: 6 of 6 in current phase
-Status: Executing
-Last activity: 2026-04-19 — Completed 01-04 Go Auth Services, Handlers & Router Wiring
+Plan: 6 of 6 in current phase — ALL PLANS COMPLETE
+Status: Phase Complete
+Last activity: 2026-04-19 — Completed 01-05 Frontend Auth Integration
 
-Progress: [████░░░░░░] 14%
+Progress: [████░░░░░░] 17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 7.6 min
-- Total execution time: 0.63 hours
+- Total plans completed: 6
+- Average duration: 7.5 min
+- Total execution time: 0.75 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 5/6 | 38 min | 7.6 min |
+| 1 | 6/6 | 45 min | 7.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, 13 min, 4 min, 4 min, 9 min
+- Last 5 plans: 13 min, 4 min, 4 min, 9 min, 7 min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - [01-04]: Added GetRefreshTokenByHashAny sqlc query for replay detection (existing query blocked theft detection)
 - [01-04]: Recovery middleware created as separate file (not in 01-03 middleware suite)
 - [01-04]: AuthService.GetUserByID added to maintain layered arch (handlers never call repos directly)
+- [01-05]: Updated apiBase to include /api prefix to match backend route structure
+- [01-05]: Auth store normalizes both mobile and OTP code via toLatinDigits() for API calls
+- [01-05]: Unauthorized page uses auth layout with middleware:[] to avoid redirect loop
 - [01-06]: No version key in docker-compose (Docker Compose v2+ ignores it)
 - [01-06]: Frontend priority=1 in Traefik labels ensures /api/* matches first
 
@@ -82,5 +85,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Completed 01-04 Go Auth Services, Handlers & Router Wiring
-Resume file: .planning/phases/01-foundation-infrastructure/01-05-PLAN.md
+Stopped at: Completed 01-05 Frontend Auth Integration — Phase 1 all plans complete
+Resume file: None — phase transition needed

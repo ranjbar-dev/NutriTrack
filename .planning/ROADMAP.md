@@ -39,7 +39,7 @@ Plans:
 - [x] 01-02-PLAN.md — Nuxt 4 frontend, Tailwind v4 RTL, Vazirmatn, Persian utilities, layouts
 - [x] 01-03-PLAN.md — JWT package, SMS sender, auth & infrastructure middleware suite
 - [x] 01-04-PLAN.md — Auth services, handlers, router wiring, Super Admin seeder
-- [ ] 01-05-PLAN.md — Frontend auth store, login/OTP pages, route guards
+- [x] 01-05-PLAN.md — Frontend auth store, login/OTP pages, route guards
 - [x] 01-06-PLAN.md — Docker, Traefik, docker-compose, GitLab CI/CD
 
 **UI hint**: yes
