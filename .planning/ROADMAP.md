@@ -32,7 +32,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Client can request OTP via SMS, verify it, and access the client layout — with rate limiting enforced (max 3 requests per phone per 10 minutes, max 3 attempts per code)
   4. All pages render in Persian RTL layout with Vazirmatn font, Shamsi/Jalali dates, Persian numerals, and mobile-only viewport — JWT refresh handles concurrent requests without mass logout
   5. Application deploys via Docker Compose (Go API + PostgreSQL + Traefik HTTPS), health check returns OK, GitLab CI/CD pipeline runs green, structured JSON logs flow to stdout
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Monorepo scaffold, Go backend bootstrap, DB migrations, sqlc setup
+- [ ] 01-02-PLAN.md — Nuxt 4 frontend, Tailwind v4 RTL, Vazirmatn, Persian utilities, layouts
+- [ ] 01-03-PLAN.md — JWT package, SMS sender, auth & infrastructure middleware suite
+- [ ] 01-04-PLAN.md — Auth services, handlers, router wiring, Super Admin seeder
+- [ ] 01-05-PLAN.md — Frontend auth store, login/OTP pages, route guards
+- [ ] 01-06-PLAN.md — Docker, Traefik, docker-compose, GitLab CI/CD
+
 **UI hint**: yes
 
 ### Phase 2: Core Data Domain
@@ -119,7 +128,7 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/? | Not started | - |
+| 1. Foundation & Infrastructure | 0/6 | Planned | - |
 | 2. Core Data Domain | 0/? | Not started | - |
 | 3. Diet Plan Engine | 0/? | Not started | - |
 | 4. Client Tracking Suite | 0/? | Not started | - |
@@ -129,4 +138,4 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 
 ---
 *Roadmap created: 2025-07-18*
-*Last updated: 2025-07-18*
+*Last updated: 2025-07-19*
