@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2025-07-18)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Infrastructure)
-Plan: 3 of 6 in current phase
+Plan: 6 of 6 in current phase
 Status: Executing
-Last activity: 2026-04-19 — Completed 01-03 Go Auth Packages & Middleware Suite
+Last activity: 2026-04-19 — Completed 01-06 Docker, Traefik & GitLab CI/CD
 
-Progress: [███░░░░░░░] 8%
+Progress: [████░░░░░░] 14%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 8.3 min
-- Total execution time: 0.42 hours
+- Total plans completed: 4
+- Average duration: 7.3 min
+- Total execution time: 0.48 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 3/6 | 25 min | 8.3 min |
+| 1 | 4/6 | 29 min | 7.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, 13 min, 4 min
+- Last 5 plans: 8 min, 13 min, 4 min, 4 min
 - Trend: accelerating
 
 *Updated after each plan completion*
@@ -57,6 +57,8 @@ Recent decisions affecting current work:
 - [01-03]: JWT tokens signed with HMAC-SHA256 only; ParseToken validates signing method
 - [01-03]: Rate limiter peeks JSON body for mobile field without consuming it
 - [01-03]: Security headers middleware added (not in plan, added via Rule 2)
+- [01-06]: No version key in docker-compose (Docker Compose v2+ ignores it)
+- [01-06]: Frontend priority=1 in Traefik labels ensures /api/* matches first
 
 ### Pending Todos
 
@@ -77,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Completed 01-03 Go Auth Packages & Middleware Suite
+Stopped at: Completed 01-06 Docker, Traefik & GitLab CI/CD
 Resume file: .planning/phases/01-foundation-infrastructure/01-04-PLAN.md
