@@ -27,6 +27,7 @@
     "@nuxt/eslint": "^1.0.0",
     "@vue/test-utils": "^2.4.0",
     "typescript": "^5.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "vue-tsc": "^3.2.7"
   }
 }
