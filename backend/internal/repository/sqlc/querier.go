@@ -13,9 +13,12 @@ import (
 type Querier interface {
 	AddFoodCategory(ctx context.Context, arg AddFoodCategoryParams) error
 	CheckDuplicateFoodName(ctx context.Context, arg CheckDuplicateFoodNameParams) (bool, error)
+	CheckDuplicateMedicationName(ctx context.Context, arg CheckDuplicateMedicationNameParams) (bool, error)
 	CountActiveFoods(ctx context.Context) (int64, error)
 	CountFoods(ctx context.Context, arg CountFoodsParams) (int64, error)
+	CountMedications(ctx context.Context, arg CountMedicationsParams) (int64, error)
 	CreateFood(ctx context.Context, arg CreateFoodParams) (Food, error)
+	CreateMedication(ctx context.Context, arg CreateMedicationParams) (Medication, error)
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -25,6 +28,7 @@ type Querier interface {
 	GetClientsByNutritionistID(ctx context.Context, nutritionistID pgtype.UUID) ([]User, error)
 	GetFoodByID(ctx context.Context, id pgtype.UUID) (GetFoodByIDRow, error)
 	GetFoodCategories(ctx context.Context, foodID pgtype.UUID) ([]string, error)
+	GetMedicationByID(ctx context.Context, id pgtype.UUID) (GetMedicationByIDRow, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
@@ -32,13 +36,17 @@ type Querier interface {
 	GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User, error)
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) error
 	ListFoods(ctx context.Context, arg ListFoodsParams) ([]ListFoodsRow, error)
+	ListMedications(ctx context.Context, arg ListMedicationsParams) ([]ListMedicationsRow, error)
 	MarkOTPVerified(ctx context.Context, id pgtype.UUID) error
 	RevokeRefreshToken(ctx context.Context, id pgtype.UUID) error
 	RevokeTokenFamily(ctx context.Context, familyID pgtype.UUID) error
 	RevokeUserTokens(ctx context.Context, userID pgtype.UUID) error
 	SoftDeleteFood(ctx context.Context, id pgtype.UUID) error
 	SoftDeleteFoodByOwner(ctx context.Context, arg SoftDeleteFoodByOwnerParams) error
+	SoftDeleteMedication(ctx context.Context, id pgtype.UUID) error
+	SoftDeleteMedicationByOwner(ctx context.Context, arg SoftDeleteMedicationByOwnerParams) error
 	UpdateFood(ctx context.Context, arg UpdateFoodParams) (Food, error)
+	UpdateMedication(ctx context.Context, arg UpdateMedicationParams) (Medication, error)
 	UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error
 }
 
