@@ -32,7 +32,7 @@ type UpdateFoodRequest struct {
 
 type FoodListQueryParams struct {
 	Search   *string `form:"search"`
-	Category *string `form:"category"`
+	Category *string `form:"category" binding:"omitempty,oneof=breakfast lunch dinner snack fruit beverage supplement other"`
 	IsActive *bool   `form:"is_active"`
 	Page     int     `form:"page,default=1"`
 	Limit    int     `form:"limit,default=20"`
