@@ -233,27 +233,153 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 to AUTH-12 | Phase 1 | Pending |
-| FOOD-01 to FOOD-10 | Phase 2 | Pending |
-| MED-01 to MED-05 | Phase 2 | Pending |
-| DIET-01 to DIET-12 | Phase 3 | Pending |
-| TRACK-01 to TRACK-13 | Phase 4 | Pending |
-| LAB-01 to LAB-05 | Phase 4 | Pending |
-| MSG-01 to MSG-07 | Phase 5 | Pending |
-| FREQ-01 to FREQ-04 | Phase 5 | Pending |
-| CLNT-01 to CLNT-07 | Phase 1 | Pending |
-| ADMIN-01 to ADMIN-08 | Phase 1 | Pending |
-| OFFL-01 to OFFL-12 | Phase 6 | Pending |
-| NOTIF-01 to NOTIF-08 | Phase 5-6 | Pending |
-| UI-01 to UI-08 | Phase 1 | Pending |
-| INFRA-01 to INFRA-11 | Phase 1, 7 | Pending |
-| SEC-01 to SEC-08 | Phase 1, 7 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| AUTH-06 | Phase 1 | Pending |
+| AUTH-07 | Phase 1 | Pending |
+| AUTH-08 | Phase 1 | Pending |
+| AUTH-09 | Phase 1 | Pending |
+| AUTH-10 | Phase 1 | Pending |
+| AUTH-11 | Phase 1 | Pending |
+| AUTH-12 | Phase 1 | Pending |
+| FOOD-01 | Phase 2 | Pending |
+| FOOD-02 | Phase 2 | Pending |
+| FOOD-03 | Phase 2 | Pending |
+| FOOD-04 | Phase 2 | Pending |
+| FOOD-05 | Phase 2 | Pending |
+| FOOD-06 | Phase 2 | Pending |
+| FOOD-07 | Phase 2 | Pending |
+| FOOD-08 | Phase 2 | Pending |
+| FOOD-09 | Phase 2 | Pending |
+| FOOD-10 | Phase 2 | Pending |
+| MED-01 | Phase 2 | Pending |
+| MED-02 | Phase 2 | Pending |
+| MED-03 | Phase 2 | Pending |
+| MED-04 | Phase 2 | Pending |
+| MED-05 | Phase 2 | Pending |
+| DIET-01 | Phase 3 | Pending |
+| DIET-02 | Phase 3 | Pending |
+| DIET-03 | Phase 3 | Pending |
+| DIET-04 | Phase 3 | Pending |
+| DIET-05 | Phase 3 | Pending |
+| DIET-06 | Phase 3 | Pending |
+| DIET-07 | Phase 3 | Pending |
+| DIET-08 | Phase 3 | Pending |
+| DIET-09 | Phase 3 | Pending |
+| DIET-10 | Phase 3 | Pending |
+| DIET-11 | Phase 3 | Pending |
+| DIET-12 | Phase 3 | Pending |
+| TRACK-01 | Phase 4 | Pending |
+| TRACK-02 | Phase 4 | Pending |
+| TRACK-03 | Phase 4 | Pending |
+| TRACK-04 | Phase 4 | Pending |
+| TRACK-05 | Phase 4 | Pending |
+| TRACK-06 | Phase 4 | Pending |
+| TRACK-07 | Phase 4 | Pending |
+| TRACK-08 | Phase 4 | Pending |
+| TRACK-09 | Phase 4 | Pending |
+| TRACK-10 | Phase 4 | Pending |
+| TRACK-11 | Phase 4 | Pending |
+| TRACK-12 | Phase 4 | Pending |
+| TRACK-13 | Phase 4 | Pending |
+| LAB-01 | Phase 4 | Pending |
+| LAB-02 | Phase 4 | Pending |
+| LAB-03 | Phase 4 | Pending |
+| LAB-04 | Phase 4 | Pending |
+| LAB-05 | Phase 4 | Pending |
+| MSG-01 | Phase 5 | Pending |
+| MSG-02 | Phase 5 | Pending |
+| MSG-03 | Phase 5 | Pending |
+| MSG-04 | Phase 5 | Pending |
+| MSG-05 | Phase 5 | Pending |
+| MSG-06 | Phase 5 | Pending |
+| MSG-07 | Phase 5 | Pending |
+| FREQ-01 | Phase 5 | Pending |
+| FREQ-02 | Phase 5 | Pending |
+| FREQ-03 | Phase 5 | Pending |
+| FREQ-04 | Phase 5 | Pending |
+| CLNT-01 | Phase 1 | Pending |
+| CLNT-02 | Phase 5 | Pending |
+| CLNT-03 | Phase 5 | Pending |
+| CLNT-04 | Phase 5 | Pending |
+| CLNT-05 | Phase 5 | Pending |
+| CLNT-06 | Phase 5 | Pending |
+| CLNT-07 | Phase 5 | Pending |
+| ADMIN-01 | Phase 2 | Pending |
+| ADMIN-02 | Phase 2 | Pending |
+| ADMIN-03 | Phase 2 | Pending |
+| ADMIN-04 | Phase 2 | Pending |
+| ADMIN-05 | Phase 2 | Pending |
+| ADMIN-06 | Phase 2 | Pending |
+| ADMIN-07 | Phase 2 | Pending |
+| ADMIN-08 | Phase 2 | Pending |
+| OFFL-01 | Phase 6 | Pending |
+| OFFL-02 | Phase 6 | Pending |
+| OFFL-03 | Phase 6 | Pending |
+| OFFL-04 | Phase 6 | Pending |
+| OFFL-05 | Phase 6 | Pending |
+| OFFL-06 | Phase 6 | Pending |
+| OFFL-07 | Phase 6 | Pending |
+| OFFL-08 | Phase 6 | Pending |
+| OFFL-09 | Phase 6 | Pending |
+| OFFL-10 | Phase 6 | Pending |
+| OFFL-11 | Phase 6 | Pending |
+| OFFL-12 | Phase 6 | Pending |
+| NOTIF-01 | Phase 6 | Pending |
+| NOTIF-02 | Phase 6 | Pending |
+| NOTIF-03 | Phase 6 | Pending |
+| NOTIF-04 | Phase 6 | Pending |
+| NOTIF-05 | Phase 6 | Pending |
+| NOTIF-06 | Phase 6 | Pending |
+| NOTIF-07 | Phase 6 | Pending |
+| NOTIF-08 | Phase 6 | Pending |
+| UI-01 | Phase 1 | Pending |
+| UI-02 | Phase 1 | Pending |
+| UI-03 | Phase 1 | Pending |
+| UI-04 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Pending |
+| UI-06 | Phase 6 | Pending |
+| UI-07 | Phase 6 | Pending |
+| UI-08 | Phase 7 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| INFRA-05 | Phase 7 | Pending |
+| INFRA-06 | Phase 1 | Pending |
+| INFRA-07 | Phase 7 | Pending |
+| INFRA-08 | Phase 7 | Pending |
+| INFRA-09 | Phase 7 | Pending |
+| INFRA-10 | Phase 3 | Pending |
+| INFRA-11 | Phase 7 | Pending |
+| SEC-01 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | Pending |
+| SEC-04 | Phase 5 | Pending |
+| SEC-05 | Phase 5 | Pending |
+| SEC-06 | Phase 1 | Pending |
+| SEC-07 | Phase 1 | Pending |
+| SEC-08 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 103 total
-- Mapped to phases: 103
+- v1 requirements: 130 total (corrected from initial estimate of 103)
+- Mapped to phases: 130
 - Unmapped: 0 ✓
+
+**Per-phase distribution:**
+| Phase | Count | Categories |
+|-------|-------|------------|
+| Phase 1 | 28 | AUTH (12), CLNT (1), UI (5), INFRA (5), SEC (5) |
+| Phase 2 | 23 | FOOD (10), MED (5), ADMIN (8) |
+| Phase 3 | 13 | DIET (12), INFRA (1) |
+| Phase 4 | 18 | TRACK (13), LAB (5) |
+| Phase 5 | 20 | MSG (7), FREQ (4), CLNT (6), SEC (3) |
+| Phase 6 | 22 | OFFL (12), NOTIF (8), UI (2) |
+| Phase 7 | 6 | INFRA (5), UI (1) |
 
 ---
 *Requirements defined: 2025-07-18*
-*Last updated: 2025-07-18 after initial definition*
+*Last updated: 2025-07-18 after roadmap creation — full traceability mapped*
