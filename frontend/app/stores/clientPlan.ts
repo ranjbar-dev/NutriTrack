@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import dayjs from 'dayjs'
 import type { DietPlanListResponse, DietPlanResponse, DietPlanSummary, PlanDayResponse } from '~/types/plan.types'
+import { db } from '~/db'
 
 export const useClientPlanStore = defineStore('clientPlan', () => {
   const activePlan = ref<DietPlanResponse | null>(null)
@@ -10,6 +11,40 @@ export const useClientPlanStore = defineStore('clientPlan', () => {
   const error = ref<string | null>(null)
 
   async function fetchActivePlan() {
+    // D-06 Step 1: Read from IndexedDB cache first — unblock UI instantly
+    try {
+      const cached = await db.activePlan.get(1)
+      if (cached) {
+        activePlan.value = cached.data as DietPlanResponse
+        initActiveDay()
+      }
+      else {
+        // D-23: iOS eviction check — if we previously fetched but cache is empty
+        const lastFetchMeta = await db.syncMeta.get('plan_last_fetch')
+        if (lastFetchMeta) {
+          const fetchedAt = new Date(lastFetchMeta.value)
+          const oneHourAgo = new Date(Date.now() - 3600_000)
+          if (fetchedAt > oneHourAgo) {
+            // Storage was evicted — flag for OfflineBanner to show eviction notice
+            await db.uiState.put({ key: 'eviction_detected', value: 'true' })
+          }
+        }
+      }
+    }
+    catch {
+      // Dexie unavailable (SSR or DB error) — skip cache, go to network
+    }
+
+    // D-06 Step 2: If offline, stop here — cached data (or empty state) is the answer
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (!activePlan.value) {
+        error.value = 'داده‌ای در حافظه موجود نیست. پس از اتصال دوباره تلاش کنید.'
+      }
+      loading.value = false
+      return
+    }
+
+    // D-06 Step 3: Fetch fresh data from API and update cache
     loading.value = true
     error.value = null
     try {
@@ -17,15 +52,25 @@ export const useClientPlanStore = defineStore('clientPlan', () => {
       const data = await apiFetch<DietPlanResponse>('/clients/me/active-plan')
       activePlan.value = data
       initActiveDay()
+      // Persist fresh snapshot to Dexie (D-06)
+      await db.activePlan.put({
+        id: 1,
+        plan_id: data.id,
+        fetched_at: new Date().toISOString(),
+        updated_hint: (data as { updated_at?: string }).updated_at ?? null,
+        data,
+      })
+      await db.syncMeta.put({ key: 'plan_last_fetch', value: new Date().toISOString() })
+      // Clear any previous eviction flag
+      await db.uiState.delete('eviction_detected')
     }
     catch (e: unknown) {
       const err = e as { statusCode?: number; data?: { error?: string } }
-      if (err.statusCode === 404) {
-        activePlan.value = null
-      }
-      else {
+      if (err.statusCode === 404) activePlan.value = null
+      else if (!activePlan.value) {
         error.value = (err.data?.error) ?? 'خطا در بارگذاری برنامه'
       }
+      // If we have cached data, silently ignore online fetch failure
     }
     finally {
       loading.value = false
