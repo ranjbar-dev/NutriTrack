@@ -20,6 +20,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/api',
+      vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '',
     },
   },
 
@@ -28,7 +29,7 @@ export default defineNuxtConfig({
   // D-01: injectManifest strategy — custom SW, not zero-config preset
   pwa: {
     strategies: 'injectManifest',
-    srcDir: 'app/service-worker',
+    srcDir: 'service-worker',
     filename: 'sw.ts',
     registerType: 'autoUpdate',
 

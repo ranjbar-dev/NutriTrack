@@ -132,12 +132,16 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 // access_token: path=/api, maxAge=900 (15min), secure=true, httpOnly=true
 // refresh_token: path=/api/auth/refresh, maxAge=2592000 (30d), secure=true, httpOnly=true
 func setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("access_token", accessToken, 900, "/api", "", true, true)
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("refresh_token", refreshToken, 2592000, "/api/auth/refresh", "", true, true)
 }
 
 // clearAuthCookies removes auth cookies by setting maxAge to -1.
 func clearAuthCookies(c *gin.Context) {
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("access_token", "", -1, "/api", "", true, true)
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("refresh_token", "", -1, "/api/auth/refresh", "", true, true)
 }

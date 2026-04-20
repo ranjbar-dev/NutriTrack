@@ -2,6 +2,8 @@ module github.com/ranjbar-dev/nutritrack/backend
 
 go 1.25.0
 
+toolchain go1.25.9
+
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/gabriel-vasile/mimetype v1.4.13

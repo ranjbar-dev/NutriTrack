@@ -3,7 +3,7 @@
 /// <reference lib="webworker" />
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import { NetworkFirst, CacheFirst } from 'workbox-strategies'
+import { NetworkFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 declare let self: ServiceWorkerGlobalScope
@@ -44,39 +44,60 @@ self.addEventListener('sync', (event: SyncEvent) => {
   }
 })
 
-// D-18: Push notification display handler (Wave 6 replaces this stub with full parsing)
+interface PushPayload {
+  type: string
+  title: string
+  body: string
+  url?: string
+  icon?: string
+}
+
 self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return
-  let data: { title: string; body: string; action_url?: string; icon?: string } = {
-    title: 'نوتری‌ترک',
-    body: 'اعلان جدید',
-  }
+
+  let payload: PushPayload
   try {
-    data = event.data.json()
+    payload = event.data.json() as PushPayload
   }
-  catch { /* malformed push — use defaults */ }
+  catch {
+    payload = {
+      type: 'generic',
+      title: 'نوتری‌ترک',
+      body: 'اعلان جدید',
+    }
+  }
 
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || '/icons/icon-192.png',
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon ?? '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       dir: 'rtl',
       lang: 'fa',
-      data: { action_url: data.action_url || '/client/plan' },
+      tag: payload.type,
+      renotify: false,
+      data: {
+        url: payload.url ?? '/client',
+      },
     }),
   )
 })
 
-// Notification click — navigate to action_url
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
-  const actionUrl = (event.notification.data?.action_url as string) || '/client/plan'
+
+  const targetUrl = ((event.notification.data as { url?: string } | undefined)?.url) ?? '/client'
+
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const existing = clientList.find(c => c.url.includes(self.location.origin))
-      if (existing && 'navigate' in existing) return (existing as WindowClient).navigate(actionUrl)
-      return self.clients.openWindow(actionUrl)
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
+      const existing = clientList.find(client => 'focus' in client) as WindowClient | undefined
+
+      if (existing) {
+        await existing.focus()
+        return existing.navigate(targetUrl)
+      }
+
+      return self.clients.openWindow(targetUrl)
     }),
   )
 })

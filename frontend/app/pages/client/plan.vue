@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import jalaali from 'jalaali-js'
 import { useNutritionComputed } from '~/composables/useNutritionComputed'
+import { useNotificationPermission } from '~/composables/useNotificationPermission'
 import { useClientPlanStore } from '~/stores/clientPlan'
 
 definePageMeta({
@@ -11,6 +12,7 @@ definePageMeta({
 
 const store = useClientPlanStore()
 const { optionTotals } = useNutritionComputed()
+const { syncExistingSubscription } = useNotificationPermission()
 const activeTab = ref<'active' | 'history'>('active')
 const pageLoading = ref(true)
 
@@ -33,6 +35,11 @@ onMounted(async () => {
     store.fetchActivePlan(),
     store.fetchMyPlans(),
   ])
+
+  if (store.activePlan && typeof navigator !== 'undefined' && navigator.onLine) {
+    await syncExistingSubscription().catch(() => {})
+  }
+
   pageLoading.value = false
 })
 

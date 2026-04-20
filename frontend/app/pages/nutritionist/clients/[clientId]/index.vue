@@ -4,6 +4,7 @@ definePageMeta({ layout: 'nutritionist' })
 const route = useRoute()
 const router = useRouter()
 const clientStore = useClientManagementStore()
+const { formatShamsi } = useShamsiDate()
 const clientId = route.params.clientId as string
 
 const editMode = ref(false)
@@ -31,8 +32,9 @@ async function save() {
       height_cm: editHeight.value ?? undefined,
     })
     editMode.value = false
-  } catch (e: any) {
-    errorMsg.value = e?.data?.error ?? 'خطا در ذخیره‌سازی'
+  } catch (error: unknown) {
+    const err = error as { data?: { error?: string } }
+    errorMsg.value = err.data?.error ?? 'خطا در ذخیره‌سازی'
   } finally {
     saving.value = false
   }
@@ -53,11 +55,16 @@ const genderLabel: Record<string, string> = {
 <template>
   <div class="p-4 flex flex-col gap-4">
     <div class="flex items-center gap-2">
-      <button class="text-gray-400 hover:text-gray-700" @click="router.back()">←</button>
+      <button type="button" class="min-h-[44px] min-w-[44px] rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" @click="router.back()">←</button>
       <h1 class="text-xl font-bold text-gray-800">پروفایل مراجع</h1>
     </div>
 
-    <div v-if="clientStore.loading" class="text-center text-gray-400 py-8">در حال بارگذاری...</div>
+    <div v-if="clientStore.loading" class="space-y-3">
+      <div v-for="index in 3" :key="index" class="h-24 animate-pulse rounded-2xl bg-white shadow-sm" />
+    </div>
+    <div v-else-if="clientStore.error" class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+      {{ clientStore.error }}
+    </div>
 
     <template v-else-if="profile">
       <div class="bg-white rounded-xl p-4 shadow-sm flex flex-col gap-3">
@@ -82,7 +89,7 @@ const genderLabel: Record<string, string> = {
           </div>
           <div v-if="profile.date_of_birth">
             <p class="text-gray-400 text-xs">تاریخ تولد</p>
-            <p class="text-gray-800">{{ profile.date_of_birth }}</p>
+            <p class="text-gray-800">{{ formatShamsi(profile.date_of_birth) }}</p>
           </div>
           <div v-if="profile.height_cm">
             <p class="text-gray-400 text-xs">قد (سانتی‌متر)</p>
@@ -97,24 +104,24 @@ const genderLabel: Record<string, string> = {
         <template v-if="editMode">
           <div class="flex flex-col gap-2 border-t border-gray-100 pt-3">
             <label class="text-xs text-gray-500">تاریخ تولد (YYYY-MM-DD)</label>
-            <input v-model="editDob" type="text" placeholder="1370-01-01" class="rounded-lg border border-gray-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <input v-model="editDob" type="text" placeholder="1991-01-01" class="rounded-lg border border-gray-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
             <label class="text-xs text-gray-500">قد (سانتی‌متر)</label>
-            <input v-model.number="editHeight" type="number" placeholder="170" class="rounded-lg border border-gray-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <input v-model.number="editHeight" type="number" placeholder="170" class="rounded-lg border border-gray-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
             <p v-if="errorMsg" class="text-red-500 text-xs">{{ errorMsg }}</p>
             <div class="flex gap-2">
-              <button :disabled="saving" class="flex-1 bg-blue-500 text-white rounded-lg py-2 text-sm disabled:opacity-50" @click="save">ذخیره</button>
-              <button class="flex-1 border border-gray-200 rounded-lg py-2 text-sm text-gray-600" @click="editMode = false">انصراف</button>
+              <button type="button" :disabled="saving" class="flex-1 rounded-lg bg-blue-500 py-3 text-sm text-white disabled:opacity-50" @click="save">ذخیره</button>
+              <button type="button" class="flex-1 rounded-lg border border-gray-200 py-3 text-sm text-gray-600" @click="editMode = false">انصراف</button>
             </div>
           </div>
         </template>
-        <button v-else class="text-blue-500 text-sm text-start" @click="startEdit">ویرایش اطلاعات</button>
+        <button v-else type="button" class="min-h-[44px] text-start text-sm text-blue-500" @click="startEdit">ویرایش اطلاعات</button>
       </div>
 
       <!-- Quick actions -->
       <div class="grid grid-cols-2 gap-3">
         <NuxtLink
           :to="`/nutritionist/messages/${clientId}`"
-          class="bg-white rounded-xl p-4 shadow-sm text-center text-blue-600 text-sm font-medium"
+          class="rounded-xl bg-white p-4 text-center text-sm font-medium text-blue-600 shadow-sm"
         >
           💬 پیام‌ها
         </NuxtLink>
@@ -126,5 +133,12 @@ const genderLabel: Record<string, string> = {
         </NuxtLink>
       </div>
     </template>
+    <div v-else class="rounded-2xl bg-white px-6 py-10 text-center shadow-sm">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-2xl">
+        👤
+      </div>
+      <p class="mt-4 font-bold text-gray-800">اطلاعات مراجع در دسترس نیست</p>
+      <p class="mt-2 text-sm text-gray-500">لطفاً دوباره به فهرست مراجعین برگردید و تلاش مجدد کنید.</p>
+    </div>
   </div>
 </template>

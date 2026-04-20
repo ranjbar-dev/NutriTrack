@@ -40,7 +40,7 @@ watch([sortBy, activeFilter], () => load(1))
       <h1 class="text-xl font-bold text-gray-800">مراجعین</h1>
       <NuxtLink
         to="/nutritionist/clients/register"
-        class="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm"
+        class="min-h-[44px] rounded-xl bg-blue-500 px-4 py-3 text-sm text-white"
       >
         + ثبت مراجع
       </NuxtLink>
@@ -53,7 +53,7 @@ watch([sortBy, activeFilter], () => load(1))
         type="text"
         placeholder="جستجو بر اساس نام یا موبایل..."
         class="w-full rounded-lg border border-gray-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-      />
+      >
       <div class="flex gap-2">
         <select
           v-model="sortBy"
@@ -73,27 +73,38 @@ watch([sortBy, activeFilter], () => load(1))
       </div>
     </div>
 
-    <div v-if="clientStore.loading" class="text-center text-gray-400 text-sm py-8">در حال بارگذاری...</div>
-    <div v-else-if="clientStore.clients.length === 0" class="bg-white rounded-xl p-6 shadow-sm text-center text-gray-500 text-sm">
-      هیچ مراجعی یافت نشد.
+    <div v-if="clientStore.error" class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+      {{ clientStore.error }}
+    </div>
+    <div v-if="clientStore.loading" class="space-y-3">
+      <div v-for="index in 4" :key="index" class="h-20 animate-pulse rounded-2xl bg-white shadow-sm" />
+    </div>
+    <div v-else-if="clientStore.clients.length === 0" class="rounded-2xl bg-white px-6 py-10 text-center shadow-sm">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-2xl">
+        👥
+      </div>
+      <p class="mt-4 font-bold text-gray-800">مراجعی یافت نشد</p>
+      <p class="mt-2 text-sm text-gray-500">جستجو را تغییر دهید یا مراجع جدیدی ثبت کنید.</p>
     </div>
 
     <div
       v-for="client in clientStore.clients"
       :key="client.id"
-      class="bg-white rounded-xl p-4 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition"
+      class="cursor-pointer rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md"
       @click="router.push(`/nutritionist/clients/${client.id}`)"
     >
-      <div>
-        <p class="font-semibold text-gray-800">{{ client.full_name }}</p>
-        <p v-if="client.mobile" class="text-xs text-gray-400 mt-0.5">{{ client.mobile }}</p>
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="font-semibold text-gray-800">{{ client.full_name }}</p>
+          <p v-if="client.mobile" class="mt-1 text-xs text-gray-400">{{ client.mobile }}</p>
+        </div>
+        <span
+          class="rounded-full px-2 py-1 text-xs"
+          :class="client.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
+        >
+          {{ client.is_active ? 'فعال' : 'غیرفعال' }}
+        </span>
       </div>
-      <span
-        class="text-xs rounded-full px-2 py-0.5"
-        :class="client.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
-      >
-        {{ client.is_active ? 'فعال' : 'غیرفعال' }}
-      </span>
     </div>
 
     <!-- Pagination -->
@@ -101,7 +112,7 @@ watch([sortBy, activeFilter], () => load(1))
       <button
         v-for="page in Math.ceil(clientStore.total / 20)"
         :key="page"
-        class="w-8 h-8 rounded-lg text-sm"
+        class="min-h-[44px] min-w-[44px] rounded-xl text-sm"
         :class="page === clientStore.currentPage ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-700'"
         @click="load(page)"
       >

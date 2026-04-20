@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { useSyncManager } from '~/composables/useSyncManager'
-import { usePWA } from '~/composables/usePWA.client'
+import { useClientPWA } from '~/composables/useClientPWA.client'
 
-const { processQueue } = useSyncManager()
-
-const { canInstall, needsUpdate, promptInstall, applyUpdate } = usePWA()
+const { canInstall, needsUpdate, promptInstall, applyUpdate } = useClientPWA()
 
 const navItems = [
   { label: 'برنامه', icon: 'plan', to: '/client/plan' },
@@ -44,7 +41,7 @@ const navItems = [
       <span class="text-2xl">🔄</span>
       <div class="flex-1">
         <p class="text-sm font-bold">بروزرسانی جدید</p>
-        <p class="text-xs opacity-90">نسخه جدیدی در دسترس است</p>
+        <p class="text-xs opacity-90">نسخه جدیدی در دسترس است. برای تجربه بهتر بروزرسانی کنید.</p>
       </div>
       <button class="text-xs bg-white text-blue-700 px-3 py-1.5 rounded-lg font-medium" @click="applyUpdate">
         بروزرسانی

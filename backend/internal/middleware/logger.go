@@ -24,7 +24,7 @@ func Logger(logger zerolog.Logger) gin.HandlerFunc {
 			Str("method", c.Request.Method).
 			Str("path", c.Request.URL.Path).
 			Int("status", c.Writer.Status()).
-			Dur("duration_ms", duration).
+			Int64("duration_ms", duration.Milliseconds()).
 			Str("client_ip", c.ClientIP()).
 			Msg("request")
 	}

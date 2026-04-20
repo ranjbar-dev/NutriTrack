@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 let deferredPrompt: BeforeInstallPromptEvent | null = null
 let swRegistration: ServiceWorkerRegistration | null = null
@@ -8,13 +8,13 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-export function usePWA() {
+export function useClientPWA() {
   const canInstall = ref(false)
   const needsUpdate = ref(false)
 
-  function handleBeforeInstallPrompt(e: Event) {
-    e.preventDefault()
-    deferredPrompt = e as BeforeInstallPromptEvent
+  function handleBeforeInstallPrompt(event: Event) {
+    event.preventDefault()
+    deferredPrompt = event as BeforeInstallPromptEvent
     canInstall.value = true
   }
 
@@ -35,11 +35,11 @@ export function usePWA() {
 
   onMounted(() => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    navigator.serviceWorker?.ready.then((reg) => {
-      swRegistration = reg
-      if (reg.waiting) needsUpdate.value = true
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing
+    navigator.serviceWorker?.ready.then((registration) => {
+      swRegistration = registration
+      if (registration.waiting) needsUpdate.value = true
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing
         newWorker?.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             needsUpdate.value = true
