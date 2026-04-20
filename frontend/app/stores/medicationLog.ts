@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { MedicationLogEntry } from '~/types/tracking.types'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export interface MedicationChecklistItem {
   prescribedMedicationId: string
@@ -55,16 +56,15 @@ export const useMedicationLogStore = defineStore('medicationLog', () => {
     notes?: string
     is_self_reported: boolean
   }) {
-    const { apiFetch } = useApi()
-    const entry = await apiFetch<MedicationLogEntry>('/client/medication-logs', {
-      method: 'POST',
-      body: JSON.stringify({
-        local_id: crypto.randomUUID(),
-        date: new Date().toISOString().slice(0, 10),
-        ...payload,
-      }),
-    })
-    todayLogs.value.unshift(entry)
+    const { clientPost } = useOfflineApi()
+    const result = await clientPost<MedicationLogEntry>('/client/medication-logs', {
+      local_id: crypto.randomUUID(),
+      date: new Date().toISOString().slice(0, 10),
+      ...payload,
+    }, { entityType: 'medication_log' })
+    if (!('queued' in result)) {
+      todayLogs.value.unshift(result)
+    }
   }
 
   function $reset() {

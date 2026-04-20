@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { ExerciseLogEntry } from '~/types/tracking.types'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export const useExerciseLogStore = defineStore('exerciseLog', () => {
   const todayLogs = ref<ExerciseLogEntry[]>([])
@@ -24,16 +25,15 @@ export const useExerciseLogStore = defineStore('exerciseLog', () => {
   }
 
   async function logExercise(payload: { exercise_name: string; duration_minutes: number; calories_burned?: number; notes?: string }) {
-    const { apiFetch } = useApi()
-    const entry = await apiFetch<ExerciseLogEntry>('/client/exercise-logs', {
-      method: 'POST',
-      body: JSON.stringify({
-        local_id: crypto.randomUUID(),
-        date: new Date().toISOString().slice(0, 10),
-        ...payload,
-      }),
-    })
-    todayLogs.value.unshift(entry)
+    const { clientPost } = useOfflineApi()
+    const result = await clientPost<ExerciseLogEntry>('/client/exercise-logs', {
+      local_id: crypto.randomUUID(),
+      date: new Date().toISOString().slice(0, 10),
+      ...payload,
+    }, { entityType: 'exercise_log' })
+    if (!('queued' in result)) {
+      todayLogs.value.unshift(result)
+    }
   }
 
   function $reset() {

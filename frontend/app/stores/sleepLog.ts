@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { SleepLogEntry, UpsertSleepPayload } from '~/types/tracking.types'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export const useSleepLogStore = defineStore('sleepLog', () => {
   const todayLog = ref<SleepLogEntry | null>(null)
@@ -25,11 +26,11 @@ export const useSleepLogStore = defineStore('sleepLog', () => {
   }
 
   async function upsertSleep(payload: Omit<UpsertSleepPayload, 'local_id'>) {
-    const { apiFetch } = useApi()
-    todayLog.value = await apiFetch<SleepLogEntry>('/client/sleep-logs', {
-      method: 'POST',
-      body: JSON.stringify({ ...payload, local_id: crypto.randomUUID() }),
-    })
+    const { clientPost } = useOfflineApi()
+    const result = await clientPost<SleepLogEntry>('/client/sleep-logs', { ...payload, local_id: crypto.randomUUID() }, { entityType: 'sleep_log' })
+    if (!('queued' in result)) {
+      todayLog.value = result
+    }
   }
 
   function $reset() {

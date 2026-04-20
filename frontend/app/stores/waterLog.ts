@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { LogWaterPayload, WaterLogEntry } from '~/types/tracking.types'
 import { sumWaterAmounts } from '~/utils/tracking'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export const useWaterLogStore = defineStore('waterLog', () => {
   const logs = ref<WaterLogEntry[]>([])
@@ -27,18 +28,17 @@ export const useWaterLogStore = defineStore('waterLog', () => {
   }
 
   async function addWater(amountMl: number, loggedTime?: string) {
-    const { apiFetch } = useApi()
+    const { clientPost } = useOfflineApi()
     const payload: LogWaterPayload = {
       local_id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
       amount_ml: amountMl,
       ...(loggedTime ? { logged_time: loggedTime } : {}),
     }
-    const entry = await apiFetch<WaterLogEntry>('/client/water-logs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-    logs.value.push(entry)
+    const result = await clientPost<WaterLogEntry>('/client/water-logs', payload, { entityType: 'water_log' })
+    if (!('queued' in result)) {
+      logs.value.push(result)
+    }
   }
 
   function $reset() {

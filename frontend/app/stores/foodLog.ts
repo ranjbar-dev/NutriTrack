@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { FoodLogEntry, LogFoodPayload } from '~/types/tracking.types'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export const useFoodLogStore = defineStore('foodLog', () => {
   const todayLogs = ref<FoodLogEntry[]>([])
@@ -24,7 +25,7 @@ export const useFoodLogStore = defineStore('foodLog', () => {
   }
 
   async function logFood(mealId: string, selectedOptionId: string, notes?: string) {
-    const { apiFetch } = useApi()
+    const { clientPost } = useOfflineApi()
     const payload: LogFoodPayload = {
       local_id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
@@ -33,26 +34,24 @@ export const useFoodLogStore = defineStore('foodLog', () => {
       is_skipped: false,
       ...(notes ? { notes } : {}),
     }
-    const entry = await apiFetch<FoodLogEntry>('/client/food-logs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-    upsertLocal(entry)
+    const result = await clientPost<FoodLogEntry>('/client/food-logs', payload, { entityType: 'food_log' })
+    if (!('queued' in result)) {
+      upsertLocal(result)
+    }
   }
 
   async function skipMeal(mealId: string) {
-    const { apiFetch } = useApi()
+    const { clientPost } = useOfflineApi()
     const payload: LogFoodPayload = {
       local_id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
       meal_id: mealId,
       is_skipped: true,
     }
-    const entry = await apiFetch<FoodLogEntry>('/client/food-logs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-    upsertLocal(entry)
+    const result = await clientPost<FoodLogEntry>('/client/food-logs', payload, { entityType: 'food_log' })
+    if (!('queued' in result)) {
+      upsertLocal(result)
+    }
   }
 
   function upsertLocal(entry: FoodLogEntry) {

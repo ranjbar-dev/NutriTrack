@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { BodyMeasurementEntry, UpsertBodyMeasurementPayload } from '~/types/tracking.types'
+import { useOfflineApi } from '~/composables/useOfflineApi'
 
 export const useBodyMeasurementStore = defineStore('bodyMeasurement', () => {
   const history = ref<BodyMeasurementEntry[]>([])
@@ -37,17 +38,22 @@ export const useBodyMeasurementStore = defineStore('bodyMeasurement', () => {
   }
 
   async function logMeasurement(payload: Omit<UpsertBodyMeasurementPayload, 'local_id' | 'date'>, clientId?: string) {
-    const { apiFetch } = useApi()
     const body: UpsertBodyMeasurementPayload = {
       local_id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
       ...payload,
     }
-    const url = clientId ? `/nutritionist/clients/${clientId}/body-measurements` : '/client/body-measurements'
-    await apiFetch<BodyMeasurementEntry>(url, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    })
+    if (clientId) {
+      // Nutritionist path — online-only, not queued
+      const { apiFetch } = useApi()
+      const url = `/nutritionist/clients/${clientId}/body-measurements`
+      await apiFetch<BodyMeasurementEntry>(url, { method: 'POST', body: JSON.stringify(body) })
+    }
+    else {
+      // Client path — offline-capable
+      const { clientPost } = useOfflineApi()
+      await clientPost<BodyMeasurementEntry>('/client/body-measurements', body, { entityType: 'body_measurement' })
+    }
     await fetchHistory(clientId ?? lastClientId.value ?? undefined, lastFrom.value ?? undefined, lastTo.value ?? undefined)
   }
 
