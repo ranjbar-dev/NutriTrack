@@ -67,6 +67,41 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const getClientByIDForNutritionist = `-- name: GetClientByIDForNutritionist :one
+SELECT id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at
+FROM users
+WHERE id = $1
+  AND nutritionist_id = $2
+  AND role = 'client'
+`
+
+type GetClientByIDForNutritionistParams struct {
+	ID             pgtype.UUID `json:"id"`
+	NutritionistID pgtype.UUID `json:"nutritionist_id"`
+}
+
+func (q *Queries) GetClientByIDForNutritionist(ctx context.Context, arg GetClientByIDForNutritionistParams) (User, error) {
+	row := q.db.QueryRow(ctx, getClientByIDForNutritionist, arg.ID, arg.NutritionistID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Role,
+		&i.FullName,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Mobile,
+		&i.DateOfBirth,
+		&i.HeightCm,
+		&i.Gender,
+		&i.NutritionistID,
+		&i.IsActive,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getClientsByNutritionistID = `-- name: GetClientsByNutritionistID :many
 SELECT id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at FROM users
 WHERE nutritionist_id = $1 AND role = 'client'
@@ -189,57 +224,6 @@ func (q *Queries) GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User
 	return i, err
 }
 
-const updateUserActive = `-- name: UpdateUserActive :exec
-UPDATE users
-SET is_active = $2, updated_at = NOW()
-WHERE id = $1
-`
-
-type UpdateUserActiveParams struct {
-	ID       pgtype.UUID `json:"id"`
-	IsActive bool        `json:"is_active"`
-}
-
-func (q *Queries) UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error {
-	_, err := q.db.Exec(ctx, updateUserActive, arg.ID, arg.IsActive)
-	return err
-}
-
-const getClientByIDForNutritionist = `-- name: GetClientByIDForNutritionist :one
-SELECT id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at
-FROM users
-WHERE id = $1
-  AND nutritionist_id = $2
-  AND role = 'client'
-`
-
-type GetClientByIDForNutritionistParams struct {
-	ID             pgtype.UUID `json:"id"`
-	NutritionistID pgtype.UUID `json:"nutritionist_id"`
-}
-
-func (q *Queries) GetClientByIDForNutritionist(ctx context.Context, arg GetClientByIDForNutritionistParams) (User, error) {
-	row := q.db.QueryRow(ctx, getClientByIDForNutritionist, arg.ID, arg.NutritionistID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Role,
-		&i.FullName,
-		&i.Email,
-		&i.PasswordHash,
-		&i.Mobile,
-		&i.DateOfBirth,
-		&i.HeightCm,
-		&i.Gender,
-		&i.NutritionistID,
-		&i.IsActive,
-		&i.Notes,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const updateClientProfile = `-- name: UpdateClientProfile :one
 UPDATE users
 SET
@@ -279,3 +263,18 @@ func (q *Queries) UpdateClientProfile(ctx context.Context, arg UpdateClientProfi
 	return i, err
 }
 
+const updateUserActive = `-- name: UpdateUserActive :exec
+UPDATE users
+SET is_active = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserActiveParams struct {
+	ID       pgtype.UUID `json:"id"`
+	IsActive bool        `json:"is_active"`
+}
+
+func (q *Queries) UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error {
+	_, err := q.db.Exec(ctx, updateUserActive, arg.ID, arg.IsActive)
+	return err
+}

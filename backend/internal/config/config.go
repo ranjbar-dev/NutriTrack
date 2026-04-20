@@ -15,6 +15,11 @@ type Config struct {
 	UploadsDir  string // Base directory for uploaded files (default "./uploads")
 	SMSAPIKey   string // Kavenegar API key for OTP delivery
 	SMSTemplate string // Kavenegar verification template name
+
+	// VAPID keys for Web Push notifications (optional — push won't work without them)
+	VapidPublicKey  string
+	VapidPrivateKey string
+	VapidSubject    string
 }
 
 // Load reads configuration from environment variables and validates required fields.
@@ -28,6 +33,10 @@ func Load() (*Config, error) {
 		UploadsDir:  getEnv("UPLOADS_DIR", "./uploads"),
 		SMSAPIKey:   os.Getenv("SMS_API_KEY"),
 		SMSTemplate: os.Getenv("SMS_TEMPLATE"),
+
+		VapidPublicKey:  os.Getenv("VAPID_PUBLIC_KEY"),
+		VapidPrivateKey: os.Getenv("VAPID_PRIVATE_KEY"),
+		VapidSubject:    getEnv("VAPID_SUBJECT", "mailto:admin@nutritrack.app"),
 	}
 
 	if err := cfg.validate(); err != nil {

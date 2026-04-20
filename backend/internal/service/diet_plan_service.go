@@ -38,13 +38,14 @@ var (
 
 // DietPlanService handles diet plan business logic.
 type DietPlanService struct {
-	planRepo repository.DietPlanRepository
-	logger   zerolog.Logger
+	planRepo  repository.DietPlanRepository
+	logger    zerolog.Logger
+	notifSvc  NotificationService
 }
 
 // NewDietPlanService creates a new DietPlanService.
-func NewDietPlanService(planRepo repository.DietPlanRepository, logger zerolog.Logger) *DietPlanService {
-	return &DietPlanService{planRepo: planRepo, logger: logger}
+func NewDietPlanService(planRepo repository.DietPlanRepository, logger zerolog.Logger, notifSvc NotificationService) *DietPlanService {
+	return &DietPlanService{planRepo: planRepo, logger: logger, notifSvc: notifSvc}
 }
 
 // ─── Plan-level CRUD ──────────────────────────────────────────────────────────
@@ -265,6 +266,14 @@ func (s *DietPlanService) ActivatePlan(ctx context.Context, planID, nutritionist
 		Str("client_id", clientID.String()).
 		Str("nutritionist_id", nutritionistID.String()).
 		Msg("diet plan activated")
+
+	// D-18: fire-and-forget push to client
+	go s.notifSvc.SendToClient(context.Background(), clientID.String(), "plan_activated", dto.PushPayload{
+		Type:  "plan_activated",
+		Title: "برنامه جدید فعال شد",
+		Body:  "متخصص تغذیه شما برنامه غذایی جدیدی برای شما فعال کرد",
+		URL:   "/client/plan",
+	})
 
 	return nil
 }

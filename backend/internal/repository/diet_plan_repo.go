@@ -129,6 +129,28 @@ type aggMedRow struct {
 
 // ─── Interface ────────────────────────────────────────────────────────────────
 
+// ActivePlanSchedule holds schedule information for a single active plan (used by reminder scheduler).
+type ActivePlanSchedule struct {
+	ID              string
+	ClientID        string
+	MealTimes       []MealScheduleItem
+	MedicationTimes []MedScheduleItem
+}
+
+// MealScheduleItem is a meal with a scheduled time in HH:MM format.
+type MealScheduleItem struct {
+	ID   string
+	Name string
+	Time string // "HH:MM"
+}
+
+// MedScheduleItem is a medication with a scheduled time in HH:MM format.
+type MedScheduleItem struct {
+	ID   string
+	Name string
+	Time string // "HH:MM"
+}
+
 // DietPlanRepository defines all operations for the diet plan aggregate and sub-entities.
 type DietPlanRepository interface {
 	// Plan-level CRUD
@@ -186,6 +208,9 @@ type DietPlanRepository interface {
 	// Batch aggregate (raw pgx — 2-phase, no N+1)
 	GetFullPlanAggregate(ctx context.Context, planID uuid.UUID) (*dto.DietPlanResponse, error)
 	GetActivePlanForClient(ctx context.Context, clientID uuid.UUID) (*dto.DietPlanResponse, error)
+
+	// Reminder scheduler: returns active plans with their meal/medication schedules
+	ListActivePlansWithSchedule(ctx context.Context) ([]ActivePlanSchedule, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -967,4 +992,115 @@ func repoNumericFromFloat64(value float64) (pgtype.Numeric, error) {
 		return pgtype.Numeric{}, err
 	}
 	return numeric, nil
+}
+
+// ─── ListActivePlansWithSchedule ─────────────────────────────────────────────
+
+const sqlListActivePlanIDs = `
+SELECT id, client_id FROM diet_plans WHERE status = 'active'`
+
+const sqlMealsForPlan = `
+SELECT m.id, m.title, m.scheduled_time
+FROM meals m
+JOIN plan_days pd ON pd.id = m.day_id
+WHERE pd.plan_id = $1
+  AND m.scheduled_time IS NOT NULL`
+
+const sqlMedsForPlan = `
+SELECT pm.id, med.name, pm.times
+FROM plan_medications pm
+JOIN medications med ON med.id = pm.medication_id
+WHERE pm.plan_id = $1`
+
+// pgTimeToHHMM converts a pgtype.Time (microseconds since midnight) to "HH:MM".
+func pgTimeToHHMM(t pgtype.Time) string {
+if !t.Valid {
+return ""
+}
+totalSec := t.Microseconds / 1_000_000
+hours := totalSec / 3600
+minutes := (totalSec % 3600) / 60
+return fmt.Sprintf("%02d:%02d", hours, minutes)
+}
+
+// ListActivePlansWithSchedule returns all active diet plans with their meal and medication schedules.
+func (r *dietPlanRepository) ListActivePlansWithSchedule(ctx context.Context) ([]ActivePlanSchedule, error) {
+type planRow struct {
+ID       pgtype.UUID
+ClientID pgtype.UUID
+}
+
+rows, err := r.pool.Query(ctx, sqlListActivePlanIDs)
+if err != nil {
+return nil, fmt.Errorf("list active plans: %w", err)
+}
+var planRows []planRow
+for rows.Next() {
+var p planRow
+if scanErr := rows.Scan(&p.ID, &p.ClientID); scanErr != nil {
+rows.Close()
+return nil, scanErr
+}
+planRows = append(planRows, p)
+}
+rows.Close()
+if err := rows.Err(); err != nil {
+return nil, err
+}
+
+result := make([]ActivePlanSchedule, 0, len(planRows))
+for _, p := range planRows {
+schedule := ActivePlanSchedule{
+ID:              uuid.UUID(p.ID.Bytes).String(),
+ClientID:        uuid.UUID(p.ClientID.Bytes).String(),
+MealTimes:       []MealScheduleItem{},
+MedicationTimes: []MedScheduleItem{},
+}
+
+mealRows, mErr := r.pool.Query(ctx, sqlMealsForPlan, p.ID)
+if mErr == nil {
+for mealRows.Next() {
+var mealID pgtype.UUID
+var title string
+var st pgtype.Time
+if sErr := mealRows.Scan(&mealID, &title, &st); sErr == nil && st.Valid {
+schedule.MealTimes = append(schedule.MealTimes, MealScheduleItem{
+ID:   uuid.UUID(mealID.Bytes).String(),
+Name: title,
+Time: pgTimeToHHMM(st),
+})
+}
+}
+mealRows.Close()
+}
+
+medRows, medErr := r.pool.Query(ctx, sqlMedsForPlan, p.ID)
+if medErr == nil {
+for medRows.Next() {
+var medID pgtype.UUID
+var medName string
+var timesJSON []byte
+if sErr := medRows.Scan(&medID, &medName, &timesJSON); sErr == nil {
+var times []string
+if json.Unmarshal(timesJSON, &times) == nil {
+for _, t := range times {
+if t == "" {
+continue
+}
+schedule.MedicationTimes = append(schedule.MedicationTimes, MedScheduleItem{
+ID:   uuid.UUID(medID.Bytes).String(),
+Name: medName,
+Time: t,
+})
+}
+}
+}
+}
+medRows.Close()
+}
+
+result = append(result, schedule)
+}
+
+return result, nil
 }

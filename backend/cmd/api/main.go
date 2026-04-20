@@ -105,15 +105,17 @@ func main() {
 	planRepo := repository.NewDietPlanRepository(pool)
 	trackingRepo := repository.NewTrackingRepository(pool)
 	commRepo := repository.NewCommunicationRepository(pool)
+	notifRepo := repository.NewPushRepo(pool)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, otpRepo, tokenRepo, smsSender, jwtSecret, logger)
 	userService := service.NewUserService(userRepo, logger)
 	foodService := service.NewFoodService(foodRepo, logger)
 	medService := service.NewMedicationService(medRepo, logger)
-	planService := service.NewDietPlanService(planRepo, logger)
+	notifSvc := service.NewNotificationService(notifRepo, *cfg, logger)
+	planService := service.NewDietPlanService(planRepo, logger, notifSvc)
 	trackingService := service.NewTrackingService(trackingRepo, cfg.UploadsDir, logger)
-	commService := service.NewCommunicationService(commRepo, userRepo, cfg.UploadsDir, logger)
+	commService := service.NewCommunicationService(commRepo, userRepo, cfg.UploadsDir, logger, notifSvc)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -124,6 +126,7 @@ func main() {
 	planHandler := handler.NewDietPlanHandler(planService)
 	trackingHandler := handler.NewTrackingHandler(trackingService, cfg.UploadsDir)
 	commHandler := handler.NewCommunicationHandler(commService, cfg.UploadsDir)
+	pushHandler := handler.NewPushHandler(notifSvc)
 
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
 	r := gin.New()
@@ -283,6 +286,11 @@ func main() {
 		client.GET("/lab-results", trackingHandler.ListLabResults)
 		client.POST("/food-requests", commHandler.ClientCreateFoodRequest)
 		client.GET("/food-requests", commHandler.ClientListFoodRequests)
+		// Push notification endpoints
+		client.POST("/push/subscribe", pushHandler.Subscribe)
+		client.DELETE("/push/subscribe", pushHandler.Unsubscribe)
+		client.GET("/push/preferences", pushHandler.GetPreferences)
+		client.PATCH("/push/preferences", pushHandler.UpdatePreferences)
 	}
 
 	// Messaging routes (shared — both client and nutritionist)
@@ -306,6 +314,11 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	// Start reminder scheduler in background
+	schedulerCtx, cancelScheduler := context.WithCancel(context.Background())
+	defer cancelScheduler()
+	go service.StartReminderScheduler(schedulerCtx, planRepo, notifRepo, notifSvc, logger)
 
 	// Start server in a goroutine
 	go func() {

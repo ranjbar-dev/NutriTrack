@@ -32,10 +32,11 @@ type CommunicationService struct {
 	userRepo   repository.UserRepository
 	uploadsDir string
 	logger     zerolog.Logger
+	notifSvc   NotificationService
 }
 
-func NewCommunicationService(repo repository.CommunicationRepository, userRepo repository.UserRepository, uploadsDir string, logger zerolog.Logger) *CommunicationService {
-	return &CommunicationService{repo: repo, userRepo: userRepo, uploadsDir: uploadsDir, logger: logger}
+func NewCommunicationService(repo repository.CommunicationRepository, userRepo repository.UserRepository, uploadsDir string, logger zerolog.Logger, notifSvc NotificationService) *CommunicationService {
+	return &CommunicationService{repo: repo, userRepo: userRepo, uploadsDir: uploadsDir, logger: logger, notifSvc: notifSvc}
 }
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
@@ -102,7 +103,31 @@ func (s *CommunicationService) SendMessageTo(ctx context.Context, senderID, rece
 		attachmentName = &filename
 	}
 
-	return s.repo.CreateMessage(ctx, senderID, receiverID, content, attachmentType, attachmentPath, attachmentName)
+	msg, err := s.repo.CreateMessage(ctx, senderID, receiverID, content, attachmentType, attachmentPath, attachmentName)
+	if err != nil {
+		return nil, err
+	}
+
+	// D-18: fire-and-forget push notification to receiver
+	go s.notifSvc.SendToClient(context.Background(), receiverID.String(), "new_message", dto.PushPayload{
+		Type:  "new_message",
+		Title: "پیام جدید",
+		Body:  truncateMsgContent(content, 80),
+		URL:   "/client/messages",
+	})
+
+	return msg, nil
+}
+
+// truncateMsgContent returns a truncated preview of message content.
+func truncateMsgContent(s *string, n int) string {
+	if s == nil {
+		return "پیوست"
+	}
+	if len(*s) <= n {
+		return *s
+	}
+	return (*s)[:n] + "..."
 }
 
 func (s *CommunicationService) GetMessages(ctx context.Context, requestorID, partnerID uuid.UUID, limit, offset int32) ([]dto.MessageResponse, error) {

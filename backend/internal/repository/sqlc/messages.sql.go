@@ -11,6 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countUnreadMessages = `-- name: CountUnreadMessages :one
+SELECT COUNT(*)::integer
+FROM messages
+WHERE receiver_id = $1
+  AND read_at IS NULL
+`
+
+func (q *Queries) CountUnreadMessages(ctx context.Context, receiverID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countUnreadMessages, receiverID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createMessage = `-- name: CreateMessage :one
 INSERT INTO messages (sender_id, receiver_id, content, attachment_type, attachment_path, attachment_name)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -50,6 +64,29 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const getMessageByID = `-- name: GetMessageByID :one
+SELECT id, sender_id, receiver_id, content, attachment_type, attachment_path, attachment_name, sent_at, read_at
+FROM messages
+WHERE id = $1
+`
+
+func (q *Queries) GetMessageByID(ctx context.Context, id pgtype.UUID) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageByID, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.SenderID,
+		&i.ReceiverID,
+		&i.Content,
+		&i.AttachmentType,
+		&i.AttachmentPath,
+		&i.AttachmentName,
+		&i.SentAt,
+		&i.ReadAt,
+	)
+	return i, err
+}
+
 const listMessages = `-- name: ListMessages :many
 SELECT id, sender_id, receiver_id, content, attachment_type, attachment_path, attachment_name, sent_at, read_at
 FROM messages
@@ -60,14 +97,19 @@ LIMIT $3 OFFSET $4
 `
 
 type ListMessagesParams struct {
-	UserA  pgtype.UUID `json:"user_a"`
-	UserB  pgtype.UUID `json:"user_b"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
+	SenderID   pgtype.UUID `json:"sender_id"`
+	ReceiverID pgtype.UUID `json:"receiver_id"`
+	Limit      int32       `json:"limit"`
+	Offset     int32       `json:"offset"`
 }
 
 func (q *Queries) ListMessages(ctx context.Context, arg ListMessagesParams) ([]Message, error) {
-	rows, err := q.db.Query(ctx, listMessages, arg.UserA, arg.UserB, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listMessages,
+		arg.SenderID,
+		arg.ReceiverID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +147,13 @@ ORDER BY sent_at ASC
 `
 
 type ListMessagesSinceParams struct {
-	UserA pgtype.UUID        `json:"user_a"`
-	UserB pgtype.UUID        `json:"user_b"`
-	Since pgtype.Timestamptz `json:"since"`
+	SenderID   pgtype.UUID        `json:"sender_id"`
+	ReceiverID pgtype.UUID        `json:"receiver_id"`
+	SentAt     pgtype.Timestamptz `json:"sent_at"`
 }
 
 func (q *Queries) ListMessagesSince(ctx context.Context, arg ListMessagesSinceParams) ([]Message, error) {
-	rows, err := q.db.Query(ctx, listMessagesSince, arg.UserA, arg.UserB, arg.Since)
+	rows, err := q.db.Query(ctx, listMessagesSince, arg.SenderID, arg.ReceiverID, arg.SentAt)
 	if err != nil {
 		return nil, err
 	}
@@ -156,41 +198,4 @@ type MarkMessagesReadParams struct {
 func (q *Queries) MarkMessagesRead(ctx context.Context, arg MarkMessagesReadParams) error {
 	_, err := q.db.Exec(ctx, markMessagesRead, arg.ReceiverID, arg.SenderID)
 	return err
-}
-
-const countUnreadMessages = `-- name: CountUnreadMessages :one
-SELECT COUNT(*)::integer
-FROM messages
-WHERE receiver_id = $1
-  AND read_at IS NULL
-`
-
-func (q *Queries) CountUnreadMessages(ctx context.Context, receiverID pgtype.UUID) (int32, error) {
-	row := q.db.QueryRow(ctx, countUnreadMessages, receiverID)
-	var count int32
-	err := row.Scan(&count)
-	return count, err
-}
-
-const getMessageByID = `-- name: GetMessageByID :one
-SELECT id, sender_id, receiver_id, content, attachment_type, attachment_path, attachment_name, sent_at, read_at
-FROM messages
-WHERE id = $1
-`
-
-func (q *Queries) GetMessageByID(ctx context.Context, id pgtype.UUID) (Message, error) {
-	row := q.db.QueryRow(ctx, getMessageByID, id)
-	var i Message
-	err := row.Scan(
-		&i.ID,
-		&i.SenderID,
-		&i.ReceiverID,
-		&i.Content,
-		&i.AttachmentType,
-		&i.AttachmentPath,
-		&i.AttachmentName,
-		&i.SentAt,
-		&i.ReadAt,
-	)
-	return i, err
 }

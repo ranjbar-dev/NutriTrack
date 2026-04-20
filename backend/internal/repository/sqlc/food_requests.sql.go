@@ -11,6 +11,35 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const approveFoodRequest = `-- name: ApproveFoodRequest :one
+UPDATE food_requests
+SET status = 'approved', reviewed_by = $2, updated_at = NOW()
+WHERE id = $1 AND status = 'pending'
+RETURNING id, food_name, description, status, rejection_reason, requested_by, reviewed_by, created_at, updated_at
+`
+
+type ApproveFoodRequestParams struct {
+	ID         pgtype.UUID `json:"id"`
+	ReviewedBy pgtype.UUID `json:"reviewed_by"`
+}
+
+func (q *Queries) ApproveFoodRequest(ctx context.Context, arg ApproveFoodRequestParams) (FoodRequest, error) {
+	row := q.db.QueryRow(ctx, approveFoodRequest, arg.ID, arg.ReviewedBy)
+	var i FoodRequest
+	err := row.Scan(
+		&i.ID,
+		&i.FoodName,
+		&i.Description,
+		&i.Status,
+		&i.RejectionReason,
+		&i.RequestedBy,
+		&i.ReviewedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createFoodRequest = `-- name: CreateFoodRequest :one
 INSERT INTO food_requests (food_name, description, requested_by)
 VALUES ($1, $2, $3)
@@ -25,6 +54,29 @@ type CreateFoodRequestParams struct {
 
 func (q *Queries) CreateFoodRequest(ctx context.Context, arg CreateFoodRequestParams) (FoodRequest, error) {
 	row := q.db.QueryRow(ctx, createFoodRequest, arg.FoodName, arg.Description, arg.RequestedBy)
+	var i FoodRequest
+	err := row.Scan(
+		&i.ID,
+		&i.FoodName,
+		&i.Description,
+		&i.Status,
+		&i.RejectionReason,
+		&i.RequestedBy,
+		&i.ReviewedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getFoodRequestByID = `-- name: GetFoodRequestByID :one
+SELECT id, food_name, description, status, rejection_reason, requested_by, reviewed_by, created_at, updated_at
+FROM food_requests
+WHERE id = $1
+`
+
+func (q *Queries) GetFoodRequestByID(ctx context.Context, id pgtype.UUID) (FoodRequest, error) {
+	row := q.db.QueryRow(ctx, getFoodRequestByID, id)
 	var i FoodRequest
 	err := row.Scan(
 		&i.ID,
@@ -113,58 +165,6 @@ func (q *Queries) ListPendingFoodRequestsForNutritionist(ctx context.Context, nu
 		return nil, err
 	}
 	return items, nil
-}
-
-const getFoodRequestByID = `-- name: GetFoodRequestByID :one
-SELECT id, food_name, description, status, rejection_reason, requested_by, reviewed_by, created_at, updated_at
-FROM food_requests
-WHERE id = $1
-`
-
-func (q *Queries) GetFoodRequestByID(ctx context.Context, id pgtype.UUID) (FoodRequest, error) {
-	row := q.db.QueryRow(ctx, getFoodRequestByID, id)
-	var i FoodRequest
-	err := row.Scan(
-		&i.ID,
-		&i.FoodName,
-		&i.Description,
-		&i.Status,
-		&i.RejectionReason,
-		&i.RequestedBy,
-		&i.ReviewedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const approveFoodRequest = `-- name: ApproveFoodRequest :one
-UPDATE food_requests
-SET status = 'approved', reviewed_by = $2, updated_at = NOW()
-WHERE id = $1 AND status = 'pending'
-RETURNING id, food_name, description, status, rejection_reason, requested_by, reviewed_by, created_at, updated_at
-`
-
-type ApproveFoodRequestParams struct {
-	ID         pgtype.UUID `json:"id"`
-	ReviewedBy pgtype.UUID `json:"reviewed_by"`
-}
-
-func (q *Queries) ApproveFoodRequest(ctx context.Context, arg ApproveFoodRequestParams) (FoodRequest, error) {
-	row := q.db.QueryRow(ctx, approveFoodRequest, arg.ID, arg.ReviewedBy)
-	var i FoodRequest
-	err := row.Scan(
-		&i.ID,
-		&i.FoodName,
-		&i.Description,
-		&i.Status,
-		&i.RejectionReason,
-		&i.RequestedBy,
-		&i.ReviewedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const rejectFoodRequest = `-- name: RejectFoodRequest :one

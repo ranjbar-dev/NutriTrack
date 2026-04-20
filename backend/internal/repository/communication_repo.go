@@ -57,10 +57,10 @@ func (r *communicationRepository) CreateMessage(ctx context.Context, senderID, r
 
 func (r *communicationRepository) ListMessages(ctx context.Context, userA, userB uuid.UUID, limit, offset int32) ([]dto.MessageResponse, error) {
 	msgs, err := r.q.ListMessages(ctx, sqlc.ListMessagesParams{
-		UserA:  pgtype.UUID{Bytes: userA, Valid: true},
-		UserB:  pgtype.UUID{Bytes: userB, Valid: true},
-		Limit:  limit,
-		Offset: offset,
+		SenderID:   pgtype.UUID{Bytes: userA, Valid: true},
+		ReceiverID: pgtype.UUID{Bytes: userB, Valid: true},
+		Limit:      limit,
+		Offset:     offset,
 	})
 	if err != nil {
 		return nil, err
@@ -74,9 +74,9 @@ func (r *communicationRepository) ListMessages(ctx context.Context, userA, userB
 
 func (r *communicationRepository) ListMessagesSince(ctx context.Context, userA, userB uuid.UUID, since time.Time) ([]dto.MessageResponse, error) {
 	msgs, err := r.q.ListMessagesSince(ctx, sqlc.ListMessagesSinceParams{
-		UserA: pgtype.UUID{Bytes: userA, Valid: true},
-		UserB: pgtype.UUID{Bytes: userB, Valid: true},
-		Since: pgtype.Timestamptz{Time: since, Valid: true},
+		SenderID:   pgtype.UUID{Bytes: userA, Valid: true},
+		ReceiverID: pgtype.UUID{Bytes: userB, Valid: true},
+		SentAt:     pgtype.Timestamptz{Time: since, Valid: true},
 	})
 	if err != nil {
 		return nil, err
