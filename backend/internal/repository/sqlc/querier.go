@@ -23,17 +23,21 @@ type Querier interface {
 	CountMyPlans(ctx context.Context, clientID pgtype.UUID) (int64, error)
 	CountPlanDays(ctx context.Context, planID pgtype.UUID) (int64, error)
 	CreateDietPlan(ctx context.Context, arg CreateDietPlanParams) (DietPlan, error)
+	CreateExerciseLog(ctx context.Context, arg CreateExerciseLogParams) (ExerciseLog, error)
 	CreateFood(ctx context.Context, arg CreateFoodParams) (Food, error)
+	CreateLabResult(ctx context.Context, arg CreateLabResultParams) (LabResult, error)
 	CreateMeal(ctx context.Context, arg CreateMealParams) (Meal, error)
 	CreateMealOption(ctx context.Context, arg CreateMealOptionParams) (MealOption, error)
 	CreateMealOptionItem(ctx context.Context, arg CreateMealOptionItemParams) (MealOptionItem, error)
 	CreateMedication(ctx context.Context, arg CreateMedicationParams) (Medication, error)
+	CreateMedicationLog(ctx context.Context, arg CreateMedicationLogParams) (MedicationLog, error)
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreatePlanDay(ctx context.Context, arg CreatePlanDayParams) (PlanDay, error)
 	CreatePlanExercise(ctx context.Context, arg CreatePlanExerciseParams) (PlanExercise, error)
 	CreatePlanMedication(ctx context.Context, arg CreatePlanMedicationParams) (PlanMedication, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateWaterLog(ctx context.Context, arg CreateWaterLogParams) (WaterLog, error)
 	DeleteDietPlan(ctx context.Context, arg DeleteDietPlanParams) error
 	DeleteExpiredOTPs(ctx context.Context) error
 	DeleteFoodCategories(ctx context.Context, foodID pgtype.UUID) error
@@ -45,33 +49,53 @@ type Querier interface {
 	DeletePlanMedication(ctx context.Context, arg DeletePlanMedicationParams) error
 	GetActiveOTPByMobile(ctx context.Context, mobile string) (OtpCode, error)
 	GetActivePlanIDForClient(ctx context.Context, clientID pgtype.UUID) (pgtype.UUID, error)
+	GetBodyMeasurementByDate(ctx context.Context, arg GetBodyMeasurementByDateParams) (BodyMeasurement, error)
 	GetClientsByNutritionistID(ctx context.Context, nutritionistID pgtype.UUID) ([]User, error)
 	GetDietPlanByID(ctx context.Context, arg GetDietPlanByIDParams) (DietPlan, error)
 	GetDietPlanByIDForClient(ctx context.Context, arg GetDietPlanByIDForClientParams) (DietPlan, error)
 	GetDietPlanStatus(ctx context.Context, id pgtype.UUID) (DietPlanStatus, error)
+	GetExerciseLogByLocalID(ctx context.Context, arg GetExerciseLogByLocalIDParams) (ExerciseLog, error)
 	GetFoodByID(ctx context.Context, id pgtype.UUID) (GetFoodByIDRow, error)
 	GetFoodCategories(ctx context.Context, foodID pgtype.UUID) ([]string, error)
+	GetFoodLogByLocalID(ctx context.Context, arg GetFoodLogByLocalIDParams) (FoodLog, error)
+	GetLabResultForNutritionist(ctx context.Context, arg GetLabResultForNutritionistParams) (LabResult, error)
 	GetMealByID(ctx context.Context, arg GetMealByIDParams) (Meal, error)
 	GetMealOptionByID(ctx context.Context, arg GetMealOptionByIDParams) (MealOption, error)
 	GetMealOptionItemByID(ctx context.Context, arg GetMealOptionItemByIDParams) (MealOptionItem, error)
 	GetMedicationByID(ctx context.Context, id pgtype.UUID) (GetMedicationByIDRow, error)
+	GetMedicationLogByLocalID(ctx context.Context, arg GetMedicationLogByLocalIDParams) (MedicationLog, error)
 	GetNextOptionNumber(ctx context.Context, mealID pgtype.UUID) (int32, error)
 	GetPlanDayByID(ctx context.Context, arg GetPlanDayByIDParams) (PlanDay, error)
 	GetPlanExerciseByID(ctx context.Context, arg GetPlanExerciseByIDParams) (PlanExercise, error)
 	GetPlanMedicationByID(ctx context.Context, arg GetPlanMedicationByIDParams) (PlanMedication, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetRefreshTokenByHashAny(ctx context.Context, tokenHash string) (RefreshToken, error)
+	GetSleepLogByDate(ctx context.Context, arg GetSleepLogByDateParams) (SleepLog, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByMobile(ctx context.Context, mobile pgtype.Text) (User, error)
+	GetWaterLogByLocalID(ctx context.Context, arg GetWaterLogByLocalIDParams) (WaterLog, error)
+	GetWeightHistory(ctx context.Context, clientID pgtype.UUID) ([]GetWeightHistoryRow, error)
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) error
+	ListBodyMeasurementsForNutritionist(ctx context.Context, arg ListBodyMeasurementsForNutritionistParams) ([]BodyMeasurement, error)
 	ListClientPlans(ctx context.Context, arg ListClientPlansParams) ([]DietPlan, error)
+	ListExerciseLogsByDate(ctx context.Context, arg ListExerciseLogsByDateParams) ([]ExerciseLog, error)
+	ListExerciseLogsForNutritionist(ctx context.Context, arg ListExerciseLogsForNutritionistParams) ([]ExerciseLog, error)
+	ListFoodLogsByDate(ctx context.Context, arg ListFoodLogsByDateParams) ([]FoodLog, error)
+	ListFoodLogsForNutritionist(ctx context.Context, arg ListFoodLogsForNutritionistParams) ([]FoodLog, error)
 	ListFoods(ctx context.Context, arg ListFoodsParams) ([]ListFoodsRow, error)
+	ListLabResultsByClient(ctx context.Context, clientID pgtype.UUID) ([]LabResult, error)
+	ListLabResultsForNutritionist(ctx context.Context, arg ListLabResultsForNutritionistParams) ([]LabResult, error)
 	ListMealOptions(ctx context.Context, mealID pgtype.UUID) ([]MealOption, error)
 	ListMeals(ctx context.Context, dayID pgtype.UUID) ([]Meal, error)
+	ListMedicationLogsByDate(ctx context.Context, arg ListMedicationLogsByDateParams) ([]MedicationLog, error)
+	ListMedicationLogsForNutritionist(ctx context.Context, arg ListMedicationLogsForNutritionistParams) ([]MedicationLog, error)
 	ListMedications(ctx context.Context, arg ListMedicationsParams) ([]ListMedicationsRow, error)
 	ListMyPlans(ctx context.Context, arg ListMyPlansParams) ([]DietPlan, error)
 	ListPlanDays(ctx context.Context, planID pgtype.UUID) ([]PlanDay, error)
+	ListSleepLogsForNutritionist(ctx context.Context, arg ListSleepLogsForNutritionistParams) ([]SleepLog, error)
+	ListWaterLogsByDate(ctx context.Context, arg ListWaterLogsByDateParams) ([]WaterLog, error)
+	ListWaterLogsForNutritionist(ctx context.Context, arg ListWaterLogsForNutritionistParams) ([]WaterLog, error)
 	MarkOTPVerified(ctx context.Context, id pgtype.UUID) error
 	ReorderMeal(ctx context.Context, arg ReorderMealParams) error
 	RevokeRefreshToken(ctx context.Context, id pgtype.UUID) error
@@ -81,6 +105,7 @@ type Querier interface {
 	SoftDeleteFoodByOwner(ctx context.Context, arg SoftDeleteFoodByOwnerParams) error
 	SoftDeleteMedication(ctx context.Context, id pgtype.UUID) error
 	SoftDeleteMedicationByOwner(ctx context.Context, arg SoftDeleteMedicationByOwnerParams) error
+	SumWaterByDate(ctx context.Context, arg SumWaterByDateParams) (int64, error)
 	UpdateDietPlanHeader(ctx context.Context, arg UpdateDietPlanHeaderParams) (DietPlan, error)
 	UpdateFood(ctx context.Context, arg UpdateFoodParams) (Food, error)
 	UpdateMeal(ctx context.Context, arg UpdateMealParams) (Meal, error)
@@ -90,6 +115,9 @@ type Querier interface {
 	UpdatePlanExercise(ctx context.Context, arg UpdatePlanExerciseParams) (PlanExercise, error)
 	UpdatePlanMedication(ctx context.Context, arg UpdatePlanMedicationParams) (PlanMedication, error)
 	UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) error
+	UpsertBodyMeasurement(ctx context.Context, arg UpsertBodyMeasurementParams) (BodyMeasurement, error)
+	UpsertFoodLog(ctx context.Context, arg UpsertFoodLogParams) (FoodLog, error)
+	UpsertSleepLog(ctx context.Context, arg UpsertSleepLogParams) (SleepLog, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -144,6 +144,52 @@ func (ns NullGenderType) Value() (driver.Value, error) {
 	return string(ns.GenderType), nil
 }
 
+type LabResultType string
+
+const (
+	LabResultTypeBloodTest LabResultType = "blood_test"
+	LabResultTypeUrineTest LabResultType = "urine_test"
+	LabResultTypeThyroid   LabResultType = "thyroid"
+	LabResultTypeHormone   LabResultType = "hormone"
+	LabResultTypeAllergy   LabResultType = "allergy"
+	LabResultTypeOther     LabResultType = "other"
+)
+
+func (e *LabResultType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LabResultType(s)
+	case string:
+		*e = LabResultType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LabResultType: %T", src)
+	}
+	return nil
+}
+
+type NullLabResultType struct {
+	LabResultType LabResultType `json:"lab_result_type"`
+	Valid         bool          `json:"valid"` // Valid is true if LabResultType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLabResultType) Scan(value interface{}) error {
+	if value == nil {
+		ns.LabResultType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LabResultType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLabResultType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LabResultType), nil
+}
+
 type MeasurementUnitType string
 
 const (
@@ -243,6 +289,49 @@ func (ns NullMedicationForm) Value() (driver.Value, error) {
 	return string(ns.MedicationForm), nil
 }
 
+type SleepQuality string
+
+const (
+	SleepQualityGood SleepQuality = "good"
+	SleepQualityFair SleepQuality = "fair"
+	SleepQualityPoor SleepQuality = "poor"
+)
+
+func (e *SleepQuality) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SleepQuality(s)
+	case string:
+		*e = SleepQuality(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SleepQuality: %T", src)
+	}
+	return nil
+}
+
+type NullSleepQuality struct {
+	SleepQuality SleepQuality `json:"sleep_quality"`
+	Valid        bool         `json:"valid"` // Valid is true if SleepQuality is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSleepQuality) Scan(value interface{}) error {
+	if value == nil {
+		ns.SleepQuality, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SleepQuality.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSleepQuality) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SleepQuality), nil
+}
+
 type UserRole string
 
 const (
@@ -286,6 +375,23 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 	return string(ns.UserRole), nil
 }
 
+type BodyMeasurement struct {
+	ID         pgtype.UUID        `json:"id"`
+	ClientID   pgtype.UUID        `json:"client_id"`
+	LocalID    pgtype.UUID        `json:"local_id"`
+	Date       pgtype.Date        `json:"date"`
+	WeightKg   pgtype.Numeric     `json:"weight_kg"`
+	WaistCm    pgtype.Numeric     `json:"waist_cm"`
+	HipCm      pgtype.Numeric     `json:"hip_cm"`
+	AbdomenCm  pgtype.Numeric     `json:"abdomen_cm"`
+	ThighCm    pgtype.Numeric     `json:"thigh_cm"`
+	ChestCm    pgtype.Numeric     `json:"chest_cm"`
+	WristCm    pgtype.Numeric     `json:"wrist_cm"`
+	RecordedBy pgtype.UUID        `json:"recorded_by"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
 type DietPlan struct {
 	ID                 pgtype.UUID        `json:"id"`
 	ClientID           pgtype.UUID        `json:"client_id"`
@@ -297,6 +403,18 @@ type DietPlan struct {
 	Status             DietPlanStatus     `json:"status"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ExerciseLog struct {
+	ID              pgtype.UUID        `json:"id"`
+	ClientID        pgtype.UUID        `json:"client_id"`
+	LocalID         pgtype.UUID        `json:"local_id"`
+	Date            pgtype.Date        `json:"date"`
+	ExerciseName    string             `json:"exercise_name"`
+	DurationMinutes int32              `json:"duration_minutes"`
+	CaloriesBurned  pgtype.Int4        `json:"calories_burned"`
+	Notes           pgtype.Text        `json:"notes"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type Food struct {
@@ -322,6 +440,34 @@ type Food struct {
 type FoodCategory struct {
 	FoodID   pgtype.UUID      `json:"food_id"`
 	Category FoodCategoryType `json:"category"`
+}
+
+type FoodLog struct {
+	ID               pgtype.UUID        `json:"id"`
+	ClientID         pgtype.UUID        `json:"client_id"`
+	LocalID          pgtype.UUID        `json:"local_id"`
+	Date             pgtype.Date        `json:"date"`
+	MealID           pgtype.UUID        `json:"meal_id"`
+	SelectedOptionID pgtype.UUID        `json:"selected_option_id"`
+	IsSkipped        bool               `json:"is_skipped"`
+	Notes            pgtype.Text        `json:"notes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type LabResult struct {
+	ID               pgtype.UUID        `json:"id"`
+	ClientID         pgtype.UUID        `json:"client_id"`
+	UploadedBy       pgtype.UUID        `json:"uploaded_by"`
+	Title            string             `json:"title"`
+	LabType          LabResultType      `json:"lab_type"`
+	TestDate         pgtype.Date        `json:"test_date"`
+	FilePath         pgtype.Text        `json:"file_path"`
+	ExternalLink     pgtype.Text        `json:"external_link"`
+	OriginalFilename pgtype.Text        `json:"original_filename"`
+	MimeType         pgtype.Text        `json:"mime_type"`
+	FileSizeBytes    pgtype.Int8        `json:"file_size_bytes"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }
 
 type Meal struct {
@@ -365,6 +511,20 @@ type Medication struct {
 	CreatedBy             pgtype.UUID        `json:"created_by"`
 	CreatedAt             pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+type MedicationLog struct {
+	ID                     pgtype.UUID        `json:"id"`
+	ClientID               pgtype.UUID        `json:"client_id"`
+	LocalID                pgtype.UUID        `json:"local_id"`
+	Date                   pgtype.Date        `json:"date"`
+	PrescribedMedicationID pgtype.UUID        `json:"prescribed_medication_id"`
+	MedicationName         string             `json:"medication_name"`
+	Dosage                 pgtype.Text        `json:"dosage"`
+	TakenAt                pgtype.Time        `json:"taken_at"`
+	Notes                  pgtype.Text        `json:"notes"`
+	IsSelfReported         bool               `json:"is_self_reported"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 }
 
 type OtpCode struct {
@@ -421,6 +581,19 @@ type RefreshToken struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type SleepLog struct {
+	ID        pgtype.UUID        `json:"id"`
+	ClientID  pgtype.UUID        `json:"client_id"`
+	LocalID   pgtype.UUID        `json:"local_id"`
+	Date      pgtype.Date        `json:"date"`
+	SleepTime pgtype.Time        `json:"sleep_time"`
+	WakeTime  pgtype.Time        `json:"wake_time"`
+	Quality   SleepQuality       `json:"quality"`
+	Notes     pgtype.Text        `json:"notes"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type User struct {
 	ID             pgtype.UUID        `json:"id"`
 	Role           UserRole           `json:"role"`
@@ -436,4 +609,14 @@ type User struct {
 	Notes          pgtype.Text        `json:"notes"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type WaterLog struct {
+	ID         pgtype.UUID        `json:"id"`
+	ClientID   pgtype.UUID        `json:"client_id"`
+	LocalID    pgtype.UUID        `json:"local_id"`
+	Date       pgtype.Date        `json:"date"`
+	AmountMl   int32              `json:"amount_ml"`
+	LoggedTime pgtype.Time        `json:"logged_time"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
