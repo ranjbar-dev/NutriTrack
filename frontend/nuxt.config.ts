@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
 
   css: [
-    '~/assets/css/main.css',
+    './app/assets/css/main.css',
     'vazirmatn/Vazirmatn-Variable-font-face.css',
   ],
 
@@ -21,6 +21,12 @@ export default defineNuxtConfig({
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/api',
       vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '',
+    },
+  },
+
+  postcss: {
+    plugins: {
+      '@tailwindcss/postcss': {},
     },
   },
 

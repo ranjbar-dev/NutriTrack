@@ -5,18 +5,41 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     volumes:
-      - .\backend\uploads:/data/uploads
+      - ./backend/uploads:/data/uploads
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    entrypoint: ["/seed"]
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: dev
+    volumes:
+      - ./frontend:/build
+      - frontend_node_modules:/build/node_modules
     env_file: .env
+    environment:
+      - PORT=3000
     ports:
       - "3000:3000"
 
@@ -39,3 +62,4 @@ services:
 
 volumes:
   pgdata_dev:
+  frontend_node_modules:

@@ -4,12 +4,19 @@ FROM node:22-alpine AS builder
 WORKDIR /build
 
 # Cache dependency installs
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json* ./
+RUN npm install
 
 # Build Nuxt application
 COPY . .
 RUN npm run build
+
+
+FROM builder AS dev
+
+WORKDIR /build
+
+CMD ["npm", "run", "dev"]
 
 # ── Stage 2: Run ──
 FROM node:22-alpine
