@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2025-07-18)
 ## Current Position
 
 Phase: 6 of 7 (Offline & PWA)
-Plan: Not started
-Status: Ready for planning
-Last activity: 2026-04-20 — Completed Phase 5 Communication & Collaboration; messaging, food requests, and client management fully implemented
+Plan: 4 of 7 (06-04 next)
+Status: In Progress
+Last activity: 2026-04-20 — Completed 06-03 offline write pipeline (useOfflineApi, useSyncQueueStore, useSyncManager)
 
-Progress: [█████████░] 71%
+Progress: [█████████░] 74%
 
 ## Performance Metrics
 
@@ -74,6 +74,9 @@ Recent decisions affecting current work:
 - [02-03]: draftReady ref gates localStorage watcher to prevent overwriting draft on initial form mount
 - [02-04]: Reused optionalText/optionalBool/formatTimestamp helpers from food_service.go — same package, no duplication needed
 - [02-04]: Duplicate check uses COALESCE pattern (same as food) to handle NULL exclude_id safely in SQL
+- [06-03]: isTransportError detects TypeError (fetch fails) vs statusCode (server error) for queue routing
+- [06-03]: Background Sync registration is best-effort (Chromium only) with 30s interval fallback
+- [06-03]: #app alias + fake-indexeddb setupFiles added to vitest.config.ts for test env compatibility
 
 ### Pending Todos
 
@@ -92,5 +95,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-20
-Stopped at: Completed Phase 5 Communication & Collaboration — all backend + frontend implemented and committed
-Resume file: .planning/phases/06-offline-pwa/
+Stopped at: Completed 06-03 — useOfflineApi + useSyncQueueStore + useSyncManager offline write pipeline committed
+Resume file: .planning/phases/06-offline-pwa/06-04-PLAN.md
