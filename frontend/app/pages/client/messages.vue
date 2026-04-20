@@ -50,15 +50,16 @@ async function send() {
 
   sending.value = true
   errorMsg.value = null
-  const msg = await messageStore.sendMessage(
+  await messageStore.sendMessage(
     partnerId.value,
     newContent.value.trim() || undefined,
     selectedFile.value ?? undefined,
   )
-  if (msg) {
+  if (!messageStore.error) {
     newContent.value = ''
     selectedFile.value = null
-  } else {
+  }
+  else {
     errorMsg.value = messageStore.error
   }
   sending.value = false
