@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation & Infrastructure** - Auth for all 3 roles, RTL/Persian base, Docker deployment, CI/CD pipeline
 - [ ] **Phase 2: Core Data Domain** - Shared food & medication databases, Super Admin panel with platform management
-- [ ] **Phase 3: Diet Plan Engine** - Nested plan builder (Plan→Days→Meals→Options→Items), nutritional computation, client plan view
+- [x] **Phase 3: Diet Plan Engine** - Nested plan builder (Plan→Days→Meals→Options→Items), nutritional computation, client plan view
 - [ ] **Phase 4: Client Tracking Suite** - Six tracking dimensions (food, water, sleep, exercise, medication, body) + lab results
 - [ ] **Phase 5: Communication & Collaboration** - Messaging, food requests, lab results, client management dashboard
 - [ ] **Phase 6: Offline & PWA** - Service worker, IndexedDB sync queue, push notifications, PWA install
@@ -75,16 +75,16 @@ Plans:
 **Plans**: 10 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — DB schema migration 000007, sqlc SQL queries (7 files), diet_plan_dto.go DTOs
-- [ ] 03-02-PLAN.md — DietPlanRepository: interface + CRUD methods + 2-phase batch aggregate (GetFullPlanAggregate, GetActivePlanForClient)
-- [ ] 03-03-PLAN.md — DietPlanService (business logic, ActivatePlan transaction), DietPlanHandler (~22 routes), main.go route wiring
-- [ ] 03-04-PLAN.md — Frontend: plan.types.ts, planBuilder store, clientPlan store, useNutritionComputed, 6 shared components (StatusBadge, Breadcrumb, NutritionBadges, WaterBadge, MedicationCard, ExerciseCard)
-- [ ] 03-05-PLAN.md — Nutritionist plan list, new plan form (Shamsi dates), plan overview (DayCards + ActivateModal), edit plan header
-- [ ] 03-06-PLAN.md — Nutritionist day view (MealCards + reorder), add meal form, MealCard component
-- [ ] 03-07-PLAN.md — Nutritionist meal view (OptionCard accordion, FoodItemRow, FoodPickerSheet bottom sheet)
-- [ ] 03-08-PLAN.md — Client plan view (DayTabBar, sticky navigation, read-only plan content, empty state)
-- [ ] 03-09-PLAN.md — Wave 0 test infrastructure (service, repo, and frontend test stubs for Validation Architecture)
-- [ ] 03-10-PLAN.md — Client archived plan history tab + GET /api/clients/me/plans endpoint
+- [x] 03-01-PLAN.md — DB schema migration 000007, sqlc SQL queries (7 files), diet_plan_dto.go DTOs
+- [x] 03-02-PLAN.md — DietPlanRepository: interface + CRUD methods + 2-phase batch aggregate (GetFullPlanAggregate, GetActivePlanForClient)
+- [x] 03-03-PLAN.md — DietPlanService (business logic, ActivatePlan transaction), DietPlanHandler (~22 routes), main.go route wiring
+- [x] 03-04-PLAN.md — Frontend: plan.types.ts, planBuilder store, clientPlan store, useNutritionComputed, 6 shared components (StatusBadge, Breadcrumb, NutritionBadges, WaterBadge, MedicationCard, ExerciseCard)
+- [x] 03-05-PLAN.md — Nutritionist plan list, new plan form (Shamsi dates), plan overview (DayCards + ActivateModal), edit plan header
+- [x] 03-06-PLAN.md — Nutritionist day view (MealCards + reorder), add meal form, MealCard component
+- [x] 03-07-PLAN.md — Nutritionist meal view (OptionCard accordion, FoodItemRow, FoodPickerSheet bottom sheet)
+- [x] 03-08-PLAN.md — Client plan view (DayTabBar, sticky navigation, read-only plan content, empty state)
+- [x] 03-09-PLAN.md — Wave 0 test infrastructure (service, repo, and frontend test stubs for Validation Architecture)
+- [x] 03-10-PLAN.md — Client archived plan history tab + GET /api/clients/me/plans endpoint
 
 **UI hint**: yes
 
@@ -98,7 +98,19 @@ Plans:
   3. Client can upload lab results (PDF/JPG/PNG up to 10MB, or link) with title and type; nutritionist can view and download all client lab results
   4. Client daily dashboard shows today's summary across all tracking types with quick-log actions; nutritionist can view all client tracking data with date range filtering
   5. All tracking entries support local_id (UUID) for offline sync deduplication — POSTing the same local_id twice returns the existing record (idempotent upsert infrastructure for Phase 6)
-**Plans**: TBD
+**Plans**: 9 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — DB migration 000008 (7 tracking tables + 2 enums), sqlc query files, tracking_dto.go
+- [ ] 04-02-PLAN.md — TrackingRepository interface + pgxpool implementation (all 7 domains)
+- [ ] 04-03-PLAN.md — TrackingService (MIME-validated lab upload), TrackingHandler (~26 routes), config + main.go wiring
+- [ ] 04-04-PLAN.md — tracking.types.ts contracts, useTrackingStore, DailyDashboard.vue, tracking/index.vue
+- [ ] 04-05-PLAN.md — Client food / water / sleep stores + UI pages (FoodLogMealCard, WaterProgressBar)
+- [ ] 04-06-PLAN.md — Client exercise + medication stores + UI (MedicationChecklistItem, prescribed checklist)
+- [ ] 04-07-PLAN.md — chart.js + vue-chartjs install, body measurements store, WeightChart, BodyMeasurementForm, body.vue
+- [ ] 04-08-PLAN.md — Lab results client upload (multipart) + nutritionist download (blob, Content-Disposition)
+- [ ] 04-09-PLAN.md — Nutritionist tracking views for all 6 domains (tabs, date-range filter, WeightChart reuse)
+
 **UI hint**: yes
 
 ### Phase 5: Communication & Collaboration
@@ -149,8 +161,8 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 |-------|----------------|--------|-----------|
 | 1. Foundation & Infrastructure | 6/6 | Complete | 2026-04-19 |
 | 2. Core Data Domain | 4/4 | Complete | 2026-04-19 |
-| 3. Diet Plan Engine | 0/10 | Not started | - |
-| 4. Client Tracking Suite | 0/? | Not started | - |
+| 3. Diet Plan Engine | 10/10 | Complete | 2026-04-19 |
+| 4. Client Tracking Suite | 0/9 | Not started | - |
 | 5. Communication & Collaboration | 0/? | Not started | - |
 | 6. Offline & PWA | 0/? | Not started | - |
 | 7. Hardening & Launch | 0/? | Not started | - |
