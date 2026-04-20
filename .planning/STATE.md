@@ -10,7 +10,7 @@ See: .planning/PROJECT.md (updated 2025-07-18)
 ## Current Position
 
 Phase: 6 of 7 (Offline & PWA)
-Plan: 4 of 7 (06-04 next)
+Plan: 6 of 7 (06-06 next)
 Status: In Progress
 Last activity: 2026-04-20 — Completed 06-03 offline write pipeline (useOfflineApi, useSyncQueueStore, useSyncManager)
 
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - [06-03]: isTransportError detects TypeError (fetch fails) vs statusCode (server error) for queue routing
 - [06-03]: Background Sync registration is best-effort (Chromium only) with 30s interval fallback
 - [06-03]: #app alias + fake-indexeddb setupFiles added to vitest.config.ts for test env compatibility
+- [06-05]: sendMessage return type changed to Promise<void>; local echo pushes directly to messages array
+- [06-05]: hook callback cast `as never` matches syncQueue.ts callHook pattern for Nuxt strict hook typing
 
 ### Pending Todos
 
@@ -95,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-20
-Stopped at: Completed 06-03 — useOfflineApi + useSyncQueueStore + useSyncManager offline write pipeline committed
-Resume file: .planning/phases/06-offline-pwa/06-04-PLAN.md
+Stopped at: Completed 06-05 — message store cache-first reads (D-07) + offline send queue (D-08) + offline tests
+Resume file: .planning/phases/06-offline-pwa/06-06-PLAN.md
