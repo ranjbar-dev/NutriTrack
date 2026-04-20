@@ -151,9 +151,9 @@ Plans:
 - [x] 06-01-PLAN.md — PWA shell, @vite-pwa/nuxt install, injectManifest strategy, sw.ts skeleton, Persian manifest, icons
 - [x] 06-02-PLAN.md — Dexie NutriTrackDB schema (6 tables), clientPlan cache-first reads, OfflineBanner, iOS eviction detection
 - [x] 06-03-PLAN.md — useOfflineApi composable, useSyncQueueStore (Pinia), useSyncManager with Background Sync + polling
-- [ ] 06-04-PLAN.md — All 7 tracking stores wired to useOfflineApi.clientPost, ClientSyncStatus component, client.vue layout
-- [ ] 06-05-PLAN.md — Offline message cache-first reads + sendMessage local echo + Blob attachment queue, offline tests
-- [ ] 06-06-PLAN.md — Backend: push migration, push_repo, NotificationService, reminder scheduler with dedup, push routes
+- [x] 06-04-PLAN.md — All 7 tracking stores wired to useOfflineApi.clientPost, ClientSyncStatus component, client.vue layout
+- [x] 06-05-PLAN.md — Offline message cache-first reads + sendMessage local echo + Blob attachment queue, offline tests
+- [x] 06-06-PLAN.md — Backend: push migration, push_repo, NotificationService, reminder scheduler with dedup, push routes
 - [ ] 06-07-PLAN.md — sw.ts full push handler, useNotificationPermission, notificationPrefs store, settings page
 
 **UI hint**: yes
@@ -183,7 +183,7 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 | 3. Diet Plan Engine | 10/10 | Complete | 2026-04-19 |
 | 4. Client Tracking Suite | 9/9 | Complete | 2026-04-20 |
 | 5. Communication & Collaboration | 7/7 | Complete | 2026-04-20 |
-| 6. Offline & PWA | 3/7 | In Progress | - |
+| 6. Offline & PWA | 6/7 | In Progress|  |
 | 7. Hardening & Launch | 0/? | Not started | - |
 
 ---
