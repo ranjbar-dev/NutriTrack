@@ -60,13 +60,20 @@ func (h *DietPlanHandler) GetPlanAggregate(c *gin.Context) {
 		return
 	}
 
-	nutritionistID, err := uuid.Parse(c.GetString("user_id"))
+	userID, err := uuid.Parse(c.GetString("user_id"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "توکن نامعتبر است"})
 		return
 	}
 
-	resp, err := h.planService.GetPlanAggregate(c.Request.Context(), planID, nutritionistID)
+	role := c.GetString("role")
+
+	var resp *dto.DietPlanResponse
+	if role == "client" {
+		resp, err = h.planService.GetPlanAggregateForClient(c.Request.Context(), planID, userID)
+	} else {
+		resp, err = h.planService.GetPlanAggregate(c.Request.Context(), planID, userID)
+	}
 	if err != nil {
 		h.handlePlanError(c, err)
 		return
@@ -843,6 +850,26 @@ func (h *DietPlanHandler) GetActivePlan(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "خطا در دریافت برنامه"})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ListMyPlans handles GET /api/clients/me/plans (client role only).
+func (h *DietPlanHandler) ListMyPlans(c *gin.Context) {
+	clientID, err := uuid.Parse(c.GetString("user_id"))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "توکن نامعتبر است"})
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	resp, err := h.planService.ListMyPlans(c.Request.Context(), clientID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "خطا در دریافت تاریخچه برنامه‌ها"})
 		return
 	}
 

@@ -28,3 +28,21 @@ ORDER BY created_at DESC;
 UPDATE users
 SET is_active = $2, updated_at = NOW()
 WHERE id = $1;
+
+-- name: GetClientByIDForNutritionist :one
+SELECT id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at
+FROM users
+WHERE id = $1
+  AND nutritionist_id = $2
+  AND role = 'client';
+
+-- name: UpdateClientProfile :one
+UPDATE users
+SET
+  date_of_birth = COALESCE($2, date_of_birth),
+  height_cm = COALESCE($3, height_cm),
+  updated_at = NOW()
+WHERE id = $1
+  AND role = 'client'
+RETURNING id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at;
+

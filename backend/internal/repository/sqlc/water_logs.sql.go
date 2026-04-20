@@ -12,8 +12,11 @@ import (
 )
 
 const createWaterLog = `-- name: CreateWaterLog :one
-INSERT INTO water_logs (id, client_id, local_id, date, amount_ml, logged_time)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+INSERT INTO water_logs (
+    id, client_id, local_id, date, amount_ml, logged_time
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5
+)
 ON CONFLICT (local_id) DO NOTHING
 RETURNING id, client_id, local_id, date, amount_ml, logged_time, created_at
 `
@@ -48,7 +51,9 @@ func (q *Queries) CreateWaterLog(ctx context.Context, arg CreateWaterLogParams) 
 }
 
 const getWaterLogByLocalID = `-- name: GetWaterLogByLocalID :one
-SELECT id, client_id, local_id, date, amount_ml, logged_time, created_at FROM water_logs WHERE local_id = $1 AND client_id = $2
+SELECT id, client_id, local_id, date, amount_ml, logged_time, created_at FROM water_logs
+WHERE local_id = $1
+  AND client_id = $2
 `
 
 type GetWaterLogByLocalIDParams struct {
@@ -72,7 +77,10 @@ func (q *Queries) GetWaterLogByLocalID(ctx context.Context, arg GetWaterLogByLoc
 }
 
 const listWaterLogsByDate = `-- name: ListWaterLogsByDate :many
-SELECT id, client_id, local_id, date, amount_ml, logged_time, created_at FROM water_logs WHERE client_id = $1 AND date = $2 ORDER BY logged_time ASC NULLS LAST
+SELECT id, client_id, local_id, date, amount_ml, logged_time, created_at FROM water_logs
+WHERE client_id = $1
+  AND date = $2
+ORDER BY logged_time ASC, created_at ASC
 `
 
 type ListWaterLogsByDateParams struct {
@@ -108,26 +116,71 @@ func (q *Queries) ListWaterLogsByDate(ctx context.Context, arg ListWaterLogsByDa
 	return items, nil
 }
 
+const listWaterLogsByDateRange = `-- name: ListWaterLogsByDateRange :many
+SELECT id, client_id, local_id, date, amount_ml, logged_time, created_at FROM water_logs
+WHERE client_id = $1
+  AND date BETWEEN $2 AND $3
+ORDER BY date DESC, logged_time DESC, created_at DESC
+`
+
+type ListWaterLogsByDateRangeParams struct {
+	ClientID pgtype.UUID `json:"client_id"`
+	Date     pgtype.Date `json:"date"`
+	Date_2   pgtype.Date `json:"date_2"`
+}
+
+func (q *Queries) ListWaterLogsByDateRange(ctx context.Context, arg ListWaterLogsByDateRangeParams) ([]WaterLog, error) {
+	rows, err := q.db.Query(ctx, listWaterLogsByDateRange, arg.ClientID, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WaterLog{}
+	for rows.Next() {
+		var i WaterLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.LocalID,
+			&i.Date,
+			&i.AmountMl,
+			&i.LoggedTime,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWaterLogsForNutritionist = `-- name: ListWaterLogsForNutritionist :many
-SELECT wl.id, wl.client_id, wl.local_id, wl.date, wl.amount_ml, wl.logged_time, wl.created_at FROM water_logs wl
-JOIN users u ON u.id = wl.client_id AND u.nutritionist_id = $1
-WHERE wl.client_id = $2 AND wl.date BETWEEN $3 AND $4
-ORDER BY wl.date DESC, wl.logged_time DESC
+SELECT wl.id, wl.client_id, wl.local_id, wl.date, wl.amount_ml, wl.logged_time, wl.created_at
+FROM water_logs wl
+JOIN users u
+  ON u.id = wl.client_id
+ AND u.nutritionist_id = $1
+WHERE wl.client_id = $2
+  AND wl.date BETWEEN $3 AND $4
+ORDER BY wl.date DESC, wl.logged_time DESC, wl.created_at DESC
 `
 
 type ListWaterLogsForNutritionistParams struct {
 	NutritionistID pgtype.UUID `json:"nutritionist_id"`
 	ClientID       pgtype.UUID `json:"client_id"`
-	FromDate       pgtype.Date `json:"from_date"`
-	ToDate         pgtype.Date `json:"to_date"`
+	Date           pgtype.Date `json:"date"`
+	Date_2         pgtype.Date `json:"date_2"`
 }
 
 func (q *Queries) ListWaterLogsForNutritionist(ctx context.Context, arg ListWaterLogsForNutritionistParams) ([]WaterLog, error) {
 	rows, err := q.db.Query(ctx, listWaterLogsForNutritionist,
 		arg.NutritionistID,
 		arg.ClientID,
-		arg.FromDate,
-		arg.ToDate,
+		arg.Date,
+		arg.Date_2,
 	)
 	if err != nil {
 		return nil, err
@@ -157,7 +210,9 @@ func (q *Queries) ListWaterLogsForNutritionist(ctx context.Context, arg ListWate
 
 const sumWaterByDate = `-- name: SumWaterByDate :one
 SELECT COALESCE(SUM(amount_ml), 0)::bigint AS total_ml
-FROM water_logs WHERE client_id = $1 AND date = $2
+FROM water_logs
+WHERE client_id = $1
+  AND date = $2
 `
 
 type SumWaterByDateParams struct {

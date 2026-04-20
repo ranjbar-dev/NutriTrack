@@ -29,13 +29,15 @@ export function useApi() {
   ): Promise<T> {
     const url = `${config.public.apiBase}${endpoint}`
 
+    const headers = new Headers(options.headers)
+    if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+
     const response = await fetch(url, {
       ...options,
       credentials: 'include', // CRITICAL: sends httpOnly cookies (D-01, Pitfall 4)
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     })
 
     // On 401, attempt silent token refresh (skip if already refreshing endpoint)

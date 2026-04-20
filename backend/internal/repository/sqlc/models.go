@@ -54,6 +54,49 @@ func (ns NullDietPlanStatus) Value() (driver.Value, error) {
 	return string(ns.DietPlanStatus), nil
 }
 
+type FoodRequestStatus string
+
+const (
+	FoodRequestStatusPending  FoodRequestStatus = "pending"
+	FoodRequestStatusApproved FoodRequestStatus = "approved"
+	FoodRequestStatusRejected FoodRequestStatus = "rejected"
+)
+
+func (e *FoodRequestStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FoodRequestStatus(s)
+	case string:
+		*e = FoodRequestStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FoodRequestStatus: %T", src)
+	}
+	return nil
+}
+
+type NullFoodRequestStatus struct {
+	FoodRequestStatus FoodRequestStatus `json:"food_request_status"`
+	Valid             bool              `json:"valid"` // Valid is true if FoodRequestStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFoodRequestStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.FoodRequestStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FoodRequestStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFoodRequestStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FoodRequestStatus), nil
+}
+
 type FoodCategoryType string
 
 const (
@@ -458,6 +501,7 @@ type FoodLog struct {
 type LabResult struct {
 	ID               pgtype.UUID        `json:"id"`
 	ClientID         pgtype.UUID        `json:"client_id"`
+	LocalID          pgtype.UUID        `json:"local_id"`
 	UploadedBy       pgtype.UUID        `json:"uploaded_by"`
 	Title            string             `json:"title"`
 	LabType          LabResultType      `json:"lab_type"`
@@ -619,4 +663,28 @@ type WaterLog struct {
 	AmountMl   int32              `json:"amount_ml"`
 	LoggedTime pgtype.Time        `json:"logged_time"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type Message struct {
+	ID             pgtype.UUID        `json:"id"`
+	SenderID       pgtype.UUID        `json:"sender_id"`
+	ReceiverID     pgtype.UUID        `json:"receiver_id"`
+	Content        pgtype.Text        `json:"content"`
+	AttachmentType pgtype.Text        `json:"attachment_type"`
+	AttachmentPath pgtype.Text        `json:"attachment_path"`
+	AttachmentName pgtype.Text        `json:"attachment_name"`
+	SentAt         pgtype.Timestamptz `json:"sent_at"`
+	ReadAt         pgtype.Timestamptz `json:"read_at"`
+}
+
+type FoodRequest struct {
+	ID              pgtype.UUID        `json:"id"`
+	FoodName        string             `json:"food_name"`
+	Description     pgtype.Text        `json:"description"`
+	Status          FoodRequestStatus  `json:"status"`
+	RejectionReason pgtype.Text        `json:"rejection_reason"`
+	RequestedBy     pgtype.UUID        `json:"requested_by"`
+	ReviewedBy      pgtype.UUID        `json:"reviewed_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }

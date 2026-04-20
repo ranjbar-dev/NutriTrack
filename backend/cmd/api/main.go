@@ -103,6 +103,8 @@ func main() {
 	foodRepo := repository.NewFoodRepository(pool)
 	medRepo := repository.NewMedicationRepository(pool)
 	planRepo := repository.NewDietPlanRepository(pool)
+	trackingRepo := repository.NewTrackingRepository(pool)
+	commRepo := repository.NewCommunicationRepository(pool)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, otpRepo, tokenRepo, smsSender, jwtSecret, logger)
@@ -110,6 +112,8 @@ func main() {
 	foodService := service.NewFoodService(foodRepo, logger)
 	medService := service.NewMedicationService(medRepo, logger)
 	planService := service.NewDietPlanService(planRepo, logger)
+	trackingService := service.NewTrackingService(trackingRepo, cfg.UploadsDir, logger)
+	commService := service.NewCommunicationService(commRepo, userRepo, cfg.UploadsDir, logger)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -118,6 +122,8 @@ func main() {
 	foodHandler := handler.NewFoodHandler(foodService)
 	medHandler := handler.NewMedicationHandler(medService)
 	planHandler := handler.NewDietPlanHandler(planService)
+	trackingHandler := handler.NewTrackingHandler(trackingService, cfg.UploadsDir)
+	commHandler := handler.NewCommunicationHandler(commService, cfg.UploadsDir)
 
 	// Create Gin engine — use gin.New() not gin.Default() per D-07
 	r := gin.New()
@@ -179,6 +185,24 @@ func main() {
 	nutri.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist"))
 	{
 		nutri.POST("/clients", clientHandler.RegisterClient)
+		nutri.GET("/clients", clientHandler.NutriListClients)
+		nutri.GET("/clients/:clientId", clientHandler.NutriGetClientProfile)
+		nutri.PATCH("/clients/:clientId/activate", clientHandler.NutriActivateClient)
+		nutri.PATCH("/clients/:clientId/deactivate", clientHandler.NutriDeactivateClient)
+		nutri.PATCH("/clients/:clientId/profile", clientHandler.NutriUpdateClientProfile)
+		nutri.GET("/clients/:clientId/tracking/food", trackingHandler.NutriListFoodLogs)
+		nutri.GET("/clients/:clientId/tracking/water", trackingHandler.NutriListWaterLogs)
+		nutri.GET("/clients/:clientId/tracking/sleep", trackingHandler.NutriListSleepLogs)
+		nutri.GET("/clients/:clientId/tracking/exercise", trackingHandler.NutriListExerciseLogs)
+		nutri.GET("/clients/:clientId/tracking/medication", trackingHandler.NutriListMedicationLogs)
+		nutri.GET("/clients/:clientId/tracking/body", trackingHandler.NutriListBodyMeasurements)
+		nutri.GET("/clients/:clientId/tracking/body/weight-history", trackingHandler.NutriGetWeightHistory)
+		nutri.POST("/clients/:clientId/body-measurements", trackingHandler.NutriUpsertBodyMeasurement)
+		nutri.GET("/clients/:clientId/lab-results", trackingHandler.NutriListLabResults)
+		nutri.GET("/clients/:clientId/lab-results/:labId/download", trackingHandler.NutriDownloadLabResult)
+		nutri.GET("/food-requests", commHandler.NutriListFoodRequests)
+		nutri.PATCH("/food-requests/:requestId/approve", commHandler.NutriApproveFoodRequest)
+		nutri.PATCH("/food-requests/:requestId/reject", commHandler.NutriRejectFoodRequest)
 	}
 
 	// Client plan list: GET /api/clients/:clientId/plans (nutritionist or super_admin)
@@ -188,12 +212,18 @@ func main() {
 		nutriClientRoutes.GET("/:clientId/plans", planHandler.ListClientPlans)
 	}
 
+	// Shared read route for full plan aggregate (nutritionist/super_admin/client)
+	dietPlanRead := r.Group("/api/diet-plans")
+	dietPlanRead.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist", "super_admin", "client"))
+	{
+		dietPlanRead.GET("/:id", planHandler.GetPlanAggregate)
+	}
+
 	// Diet plan CRUD + sub-resources (nutritionist or super_admin)
 	dietPlans := r.Group("/api/diet-plans")
 	dietPlans.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("nutritionist", "super_admin"))
 	{
 		dietPlans.POST("", planHandler.CreatePlan)
-		dietPlans.GET("/:id", planHandler.GetPlanAggregate)
 		dietPlans.PATCH("/:id", planHandler.UpdatePlanHeader)
 		dietPlans.PATCH("/:id/activate", planHandler.ActivatePlan)
 		dietPlans.DELETE("/:id", planHandler.DeletePlan)
@@ -228,13 +258,44 @@ func main() {
 	clientGroup.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("client"))
 	{
 		clientGroup.GET("/me/active-plan", planHandler.GetActivePlan)
+		clientGroup.GET("/me/plans", planHandler.ListMyPlans)
 	}
 
-	// Client routes (placeholder for future phases)
 	client := r.Group("/api/client")
 	client.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("client"))
 	{
-		// Routes added in Phase 2+
+		client.GET("/tracking/daily", trackingHandler.GetDailyDashboard)
+		client.POST("/food-logs", trackingHandler.LogFood)
+		client.GET("/food-logs", trackingHandler.ListFoodLogs)
+		client.POST("/water-logs", trackingHandler.LogWater)
+		client.GET("/water-logs", trackingHandler.ListWaterLogs)
+		client.POST("/sleep-logs", trackingHandler.UpsertSleep)
+		client.GET("/sleep-logs", trackingHandler.GetSleepLog)
+		client.POST("/exercise-logs", trackingHandler.LogExercise)
+		client.GET("/exercise-logs", trackingHandler.ListExerciseLogs)
+		client.POST("/medication-logs", trackingHandler.LogMedication)
+		client.GET("/medication-logs", trackingHandler.ListMedicationLogs)
+		client.POST("/body-measurements", trackingHandler.UpsertBodyMeasurement)
+		client.GET("/body-measurements", trackingHandler.GetBodyMeasurement)
+		client.GET("/body-measurements/history", trackingHandler.GetMeasurementHistory)
+		client.GET("/body-measurements/weight-history", trackingHandler.GetWeightHistory)
+		client.POST("/lab-results", trackingHandler.UploadLabResult)
+		client.GET("/lab-results", trackingHandler.ListLabResults)
+		client.POST("/food-requests", commHandler.ClientCreateFoodRequest)
+		client.GET("/food-requests", commHandler.ClientListFoodRequests)
+	}
+
+	// Messaging routes (shared — both client and nutritionist)
+	// IMPORTANT: specific paths registered BEFORE wildcard /:partnerId
+	msgs := r.Group("/api/messages")
+	msgs.Use(middleware.Auth(jwtSecret), middleware.RoleGuard("client", "nutritionist"))
+	{
+		msgs.GET("/unread-count", commHandler.GetUnreadCount)
+		msgs.GET("/attachment/:messageId", commHandler.DownloadAttachment)
+		msgs.POST("", commHandler.SendMessage)
+		msgs.GET("/:partnerId", commHandler.ListMessages)
+		msgs.GET("/:partnerId/poll", commHandler.PollNewMessages)
+		msgs.PATCH("/:partnerId/read", commHandler.MarkRead)
 	}
 
 	// Create HTTP server

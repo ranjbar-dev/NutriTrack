@@ -12,8 +12,11 @@ import (
 )
 
 const createExerciseLog = `-- name: CreateExerciseLog :one
-INSERT INTO exercise_logs (id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
+INSERT INTO exercise_logs (
+    id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7
+)
 ON CONFLICT (local_id) DO NOTHING
 RETURNING id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at
 `
@@ -54,7 +57,9 @@ func (q *Queries) CreateExerciseLog(ctx context.Context, arg CreateExerciseLogPa
 }
 
 const getExerciseLogByLocalID = `-- name: GetExerciseLogByLocalID :one
-SELECT id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at FROM exercise_logs WHERE local_id = $1 AND client_id = $2
+SELECT id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at FROM exercise_logs
+WHERE local_id = $1
+  AND client_id = $2
 `
 
 type GetExerciseLogByLocalIDParams struct {
@@ -80,7 +85,10 @@ func (q *Queries) GetExerciseLogByLocalID(ctx context.Context, arg GetExerciseLo
 }
 
 const listExerciseLogsByDate = `-- name: ListExerciseLogsByDate :many
-SELECT id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at FROM exercise_logs WHERE client_id = $1 AND date = $2 ORDER BY created_at ASC
+SELECT id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at FROM exercise_logs
+WHERE client_id = $1
+  AND date = $2
+ORDER BY created_at DESC
 `
 
 type ListExerciseLogsByDateParams struct {
@@ -118,26 +126,73 @@ func (q *Queries) ListExerciseLogsByDate(ctx context.Context, arg ListExerciseLo
 	return items, nil
 }
 
+const listExerciseLogsByDateRange = `-- name: ListExerciseLogsByDateRange :many
+SELECT id, client_id, local_id, date, exercise_name, duration_minutes, calories_burned, notes, created_at FROM exercise_logs
+WHERE client_id = $1
+  AND date BETWEEN $2 AND $3
+ORDER BY date DESC, created_at DESC
+`
+
+type ListExerciseLogsByDateRangeParams struct {
+	ClientID pgtype.UUID `json:"client_id"`
+	Date     pgtype.Date `json:"date"`
+	Date_2   pgtype.Date `json:"date_2"`
+}
+
+func (q *Queries) ListExerciseLogsByDateRange(ctx context.Context, arg ListExerciseLogsByDateRangeParams) ([]ExerciseLog, error) {
+	rows, err := q.db.Query(ctx, listExerciseLogsByDateRange, arg.ClientID, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ExerciseLog{}
+	for rows.Next() {
+		var i ExerciseLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.LocalID,
+			&i.Date,
+			&i.ExerciseName,
+			&i.DurationMinutes,
+			&i.CaloriesBurned,
+			&i.Notes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listExerciseLogsForNutritionist = `-- name: ListExerciseLogsForNutritionist :many
-SELECT el.id, el.client_id, el.local_id, el.date, el.exercise_name, el.duration_minutes, el.calories_burned, el.notes, el.created_at FROM exercise_logs el
-JOIN users u ON u.id = el.client_id AND u.nutritionist_id = $1
-WHERE el.client_id = $2 AND el.date BETWEEN $3 AND $4
+SELECT el.id, el.client_id, el.local_id, el.date, el.exercise_name, el.duration_minutes, el.calories_burned, el.notes, el.created_at
+FROM exercise_logs el
+JOIN users u
+  ON u.id = el.client_id
+ AND u.nutritionist_id = $1
+WHERE el.client_id = $2
+  AND el.date BETWEEN $3 AND $4
 ORDER BY el.date DESC, el.created_at DESC
 `
 
 type ListExerciseLogsForNutritionistParams struct {
 	NutritionistID pgtype.UUID `json:"nutritionist_id"`
 	ClientID       pgtype.UUID `json:"client_id"`
-	FromDate       pgtype.Date `json:"from_date"`
-	ToDate         pgtype.Date `json:"to_date"`
+	Date           pgtype.Date `json:"date"`
+	Date_2         pgtype.Date `json:"date_2"`
 }
 
 func (q *Queries) ListExerciseLogsForNutritionist(ctx context.Context, arg ListExerciseLogsForNutritionistParams) ([]ExerciseLog, error) {
 	rows, err := q.db.Query(ctx, listExerciseLogsForNutritionist,
 		arg.NutritionistID,
 		arg.ClientID,
-		arg.FromDate,
-		arg.ToDate,
+		arg.Date,
+		arg.Date_2,
 	)
 	if err != nil {
 		return nil, err

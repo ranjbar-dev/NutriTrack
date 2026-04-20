@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2025-07-18)
 
 **Core value:** Digitalize the nutritionist–client workflow in Iran — replacing WhatsApp + Excel + paper with a structured, offline-capable PWA
-**Current focus:** Phase 2: Core Data Domain
+**Current focus:** Phase 6: Offline & PWA
 
 ## Current Position
 
-Phase: 2 of 7 (Core Data Domain)
-Plan: 4 of 4 in current phase
-Status: Phase Complete
-Last activity: 2026-04-19 — Completed 02-03 Food Management Frontend
+Phase: 6 of 7 (Offline & PWA)
+Plan: Not started
+Status: Ready for planning
+Last activity: 2026-04-20 — Completed Phase 5 Communication & Collaboration; messaging, food requests, and client management fully implemented
 
-Progress: [████░░░░░░] 28%
+Progress: [█████████░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 8.4 min
-- Total execution time: 1.40 hours
+- Total plans completed: 29
+- Average duration: retroactively reconciled
+- Total execution time: retroactively reconciled
 
 **By Phase:**
 
@@ -29,10 +29,13 @@ Progress: [████░░░░░░] 28%
 |-------|-------|-------|----------|
 | 1 | 6/6 | 45 min | 7.5 min |
 | 2 | 4/4 | 37 min | 9.25 min |
+| 3 | 10/10 | completed | n/a |
+| 4 | 9/9 | completed | n/a |
+| 5 | 7/7 | completed | n/a |
 
 **Recent Trend:**
-- Last 5 plans: 15 min, 13 min, 4 min, 4 min, 12 min
-- Trend: stable
+- Recent completion: Phase 5 completed — messaging, food requests, client management dashboard
+- Trend: ready to begin Phase 6 planning
 
 *Updated after each plan completion*
 
@@ -78,7 +81,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 3]: Highest technical risk — design spike needed on batch loading queries and plan builder UI state management
 - [Phase 6]: iOS PWA storage eviction — test on real devices during Phase 6
 
 ## Deferred Items
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19
-Stopped at: Completed 02-03 Food Management Frontend
-Resume file: .planning/phases/03-nutrition-plan-engine/03-01-PLAN.md
+Last session: 2026-04-20
+Stopped at: Completed Phase 5 Communication & Collaboration — all backend + frontend implemented and committed
+Resume file: .planning/phases/06-offline-pwa/

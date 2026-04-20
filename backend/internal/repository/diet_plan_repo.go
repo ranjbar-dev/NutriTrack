@@ -134,6 +134,7 @@ type DietPlanRepository interface {
 	// Plan-level CRUD
 	CreatePlan(ctx context.Context, params sqlc.CreateDietPlanParams) (*sqlc.DietPlan, error)
 	GetPlanByID(ctx context.Context, planID, nutritionistID uuid.UUID) (*sqlc.DietPlan, error)
+	GetPlanByIDForClient(ctx context.Context, planID, clientID uuid.UUID) (*sqlc.DietPlan, error)
 	ListClientPlans(ctx context.Context, params sqlc.ListClientPlansParams) ([]sqlc.DietPlan, error)
 	CountClientPlans(ctx context.Context, params sqlc.CountClientPlansParams) (int64, error)
 	ListMyPlans(ctx context.Context, params sqlc.ListMyPlansParams) ([]sqlc.DietPlan, error)
@@ -214,6 +215,17 @@ func (r *dietPlanRepository) GetPlanByID(ctx context.Context, planID, nutritioni
 	plan, err := r.q.GetDietPlanByID(ctx, sqlc.GetDietPlanByIDParams{
 		ID:             pgtype.UUID{Bytes: planID, Valid: true},
 		NutritionistID: pgtype.UUID{Bytes: nutritionistID, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}
+
+func (r *dietPlanRepository) GetPlanByIDForClient(ctx context.Context, planID, clientID uuid.UUID) (*sqlc.DietPlan, error) {
+	plan, err := r.q.GetDietPlanByIDForClient(ctx, sqlc.GetDietPlanByIDForClientParams{
+		ID:       pgtype.UUID{Bytes: planID, Valid: true},
+		ClientID: pgtype.UUID{Bytes: clientID, Valid: true},
 	})
 	if err != nil {
 		return nil, err

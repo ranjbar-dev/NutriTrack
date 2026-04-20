@@ -12,7 +12,9 @@ import (
 )
 
 const getFoodLogByLocalID = `-- name: GetFoodLogByLocalID :one
-SELECT id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at FROM food_logs WHERE local_id = $1 AND client_id = $2
+SELECT id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at FROM food_logs
+WHERE local_id = $1
+  AND client_id = $2
 `
 
 type GetFoodLogByLocalIDParams struct {
@@ -39,7 +41,10 @@ func (q *Queries) GetFoodLogByLocalID(ctx context.Context, arg GetFoodLogByLocal
 }
 
 const listFoodLogsByDate = `-- name: ListFoodLogsByDate :many
-SELECT id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at FROM food_logs WHERE client_id = $1 AND date = $2 ORDER BY created_at ASC
+SELECT id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at FROM food_logs
+WHERE client_id = $1
+  AND date = $2
+ORDER BY created_at ASC
 `
 
 type ListFoodLogsByDateParams struct {
@@ -78,26 +83,74 @@ func (q *Queries) ListFoodLogsByDate(ctx context.Context, arg ListFoodLogsByDate
 	return items, nil
 }
 
+const listFoodLogsByDateRange = `-- name: ListFoodLogsByDateRange :many
+SELECT id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at FROM food_logs
+WHERE client_id = $1
+  AND date BETWEEN $2 AND $3
+ORDER BY date DESC, created_at DESC
+`
+
+type ListFoodLogsByDateRangeParams struct {
+	ClientID pgtype.UUID `json:"client_id"`
+	Date     pgtype.Date `json:"date"`
+	Date_2   pgtype.Date `json:"date_2"`
+}
+
+func (q *Queries) ListFoodLogsByDateRange(ctx context.Context, arg ListFoodLogsByDateRangeParams) ([]FoodLog, error) {
+	rows, err := q.db.Query(ctx, listFoodLogsByDateRange, arg.ClientID, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FoodLog{}
+	for rows.Next() {
+		var i FoodLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.LocalID,
+			&i.Date,
+			&i.MealID,
+			&i.SelectedOptionID,
+			&i.IsSkipped,
+			&i.Notes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFoodLogsForNutritionist = `-- name: ListFoodLogsForNutritionist :many
-SELECT fl.id, fl.client_id, fl.local_id, fl.date, fl.meal_id, fl.selected_option_id, fl.is_skipped, fl.notes, fl.created_at, fl.updated_at FROM food_logs fl
-JOIN users u ON u.id = fl.client_id AND u.nutritionist_id = $1
-WHERE fl.client_id = $2 AND fl.date BETWEEN $3 AND $4
+SELECT fl.id, fl.client_id, fl.local_id, fl.date, fl.meal_id, fl.selected_option_id, fl.is_skipped, fl.notes, fl.created_at, fl.updated_at
+FROM food_logs fl
+JOIN users u
+  ON u.id = fl.client_id
+ AND u.nutritionist_id = $1
+WHERE fl.client_id = $2
+  AND fl.date BETWEEN $3 AND $4
 ORDER BY fl.date DESC, fl.created_at DESC
 `
 
 type ListFoodLogsForNutritionistParams struct {
 	NutritionistID pgtype.UUID `json:"nutritionist_id"`
 	ClientID       pgtype.UUID `json:"client_id"`
-	FromDate       pgtype.Date `json:"from_date"`
-	ToDate         pgtype.Date `json:"to_date"`
+	Date           pgtype.Date `json:"date"`
+	Date_2         pgtype.Date `json:"date_2"`
 }
 
 func (q *Queries) ListFoodLogsForNutritionist(ctx context.Context, arg ListFoodLogsForNutritionistParams) ([]FoodLog, error) {
 	rows, err := q.db.Query(ctx, listFoodLogsForNutritionist,
 		arg.NutritionistID,
 		arg.ClientID,
-		arg.FromDate,
-		arg.ToDate,
+		arg.Date,
+		arg.Date_2,
 	)
 	if err != nil {
 		return nil, err
@@ -129,13 +182,17 @@ func (q *Queries) ListFoodLogsForNutritionist(ctx context.Context, arg ListFoodL
 }
 
 const upsertFoodLog = `-- name: UpsertFoodLog :one
-INSERT INTO food_logs (id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (client_id, date, meal_id) DO UPDATE SET
+INSERT INTO food_logs (
+    id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7
+)
+ON CONFLICT (client_id, date, meal_id)
+DO UPDATE SET
     selected_option_id = EXCLUDED.selected_option_id,
-    is_skipped         = EXCLUDED.is_skipped,
-    notes              = EXCLUDED.notes,
-    updated_at         = NOW()
+    is_skipped = EXCLUDED.is_skipped,
+    notes = EXCLUDED.notes,
+    updated_at = NOW()
 RETURNING id, client_id, local_id, date, meal_id, selected_option_id, is_skipped, notes, created_at, updated_at
 `
 

@@ -105,6 +105,24 @@ func (s *DietPlanService) GetPlanAggregate(ctx context.Context, planID, nutritio
 	return result, nil
 }
 
+// GetPlanAggregateForClient returns a non-draft plan aggregate owned by the authenticated client.
+func (s *DietPlanService) GetPlanAggregateForClient(ctx context.Context, planID, clientID uuid.UUID) (*dto.DietPlanResponse, error) {
+	_, err := s.planRepo.GetPlanByIDForClient(ctx, planID, clientID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrPlanNotFound
+		}
+		return nil, fmt.Errorf("get client plan by id: %w", err)
+	}
+
+	result, err := s.planRepo.GetFullPlanAggregate(ctx, planID)
+	if err != nil {
+		s.logger.Error().Err(err).Str("plan_id", planID.String()).Msg("failed to get client plan aggregate")
+		return nil, fmt.Errorf("get client plan aggregate: %w", err)
+	}
+	return result, nil
+}
+
 // ListClientPlans returns a paginated list of plans for a client.
 func (s *DietPlanService) ListClientPlans(ctx context.Context, clientID, nutritionistID uuid.UUID, page, limit int) (*dto.DietPlanListResponse, error) {
 	if page < 1 {
@@ -328,6 +346,55 @@ func (s *DietPlanService) GetActivePlanForClient(ctx context.Context, clientID u
 		return nil, fmt.Errorf("get active plan: %w", err)
 	}
 	return result, nil
+}
+
+// ListMyPlans returns all non-draft plans for the authenticated client.
+func (s *DietPlanService) ListMyPlans(ctx context.Context, clientID uuid.UUID, page, limit int) (*dto.DietPlanListResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset := int32((page - 1) * limit)
+
+	plans, err := s.planRepo.ListMyPlans(ctx, sqlc.ListMyPlansParams{
+		ClientID:  pgtype.UUID{Bytes: clientID, Valid: true},
+		OffsetVal: offset,
+		LimitVal:  int32(limit),
+	})
+	if err != nil {
+		s.logger.Error().Err(err).Str("client_id", clientID.String()).Msg("failed to list client plan history")
+		return nil, fmt.Errorf("list my plans: %w", err)
+	}
+
+	total, err := s.planRepo.CountMyPlans(ctx, clientID)
+	if err != nil {
+		s.logger.Error().Err(err).Str("client_id", clientID.String()).Msg("failed to count client plan history")
+		return nil, fmt.Errorf("count my plans: %w", err)
+	}
+
+	data := make([]dto.DietPlanSummaryResponse, 0, len(plans))
+	for _, p := range plans {
+		planUUID := uuid.UUID(p.ID.Bytes)
+		dayCount, err := s.planRepo.CountPlanDays(ctx, planUUID)
+		if err != nil {
+			s.logger.Error().Err(err).Str("plan_id", planUUID.String()).Msg("failed to count client plan days")
+			return nil, fmt.Errorf("count plan days: %w", err)
+		}
+		data = append(data, planToSummary(&p, dayCount))
+	}
+
+	return &dto.DietPlanListResponse{
+		Data:    data,
+		Total:   total,
+		Page:    page,
+		Limit:   limit,
+		HasMore: int64(page*limit) < total,
+	}, nil
 }
 
 // ─── Day CRUD ─────────────────────────────────────────────────────────────────

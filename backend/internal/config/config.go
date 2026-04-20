@@ -12,6 +12,7 @@ type Config struct {
 	JWTSecret   string // JWT signing secret, min 32 chars (required)
 	Environment string // "development" or "production" (default "development")
 	FrontendURL string // Frontend URL for CORS (default "http://localhost:3000")
+	UploadsDir  string // Base directory for uploaded files (default "./uploads")
 	SMSAPIKey   string // Kavenegar API key for OTP delivery
 	SMSTemplate string // Kavenegar verification template name
 }
@@ -24,6 +25,7 @@ func Load() (*Config, error) {
 		JWTSecret:   os.Getenv("JWT_SECRET"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+		UploadsDir:  getEnv("UPLOADS_DIR", "./uploads"),
 		SMSAPIKey:   os.Getenv("SMS_API_KEY"),
 		SMSTemplate: os.Getenv("SMS_TEMPLATE"),
 	}

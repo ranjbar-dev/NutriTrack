@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Foundation & Infrastructure** - Auth for all 3 roles, RTL/Persian base, Docker deployment, CI/CD pipeline
 - [ ] **Phase 2: Core Data Domain** - Shared food & medication databases, Super Admin panel with platform management
 - [x] **Phase 3: Diet Plan Engine** - Nested plan builder (Plan→Days→Meals→Options→Items), nutritional computation, client plan view
-- [ ] **Phase 4: Client Tracking Suite** - Six tracking dimensions (food, water, sleep, exercise, medication, body) + lab results
-- [ ] **Phase 5: Communication & Collaboration** - Messaging, food requests, lab results, client management dashboard
+- [x] **Phase 4: Client Tracking Suite** - Six tracking dimensions (food, water, sleep, exercise, medication, body) + lab results
+- [x] **Phase 5: Communication & Collaboration** - Messaging, food requests, lab results, client management dashboard
 - [ ] **Phase 6: Offline & PWA** - Service worker, IndexedDB sync queue, push notifications, PWA install
 - [ ] **Phase 7: Hardening & Launch** - Security audit, performance validation, monitoring, backups, production deployment
 
@@ -101,15 +101,15 @@ Plans:
 **Plans**: 9 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — DB migration 000008 (7 tracking tables + 2 enums), sqlc query files, tracking_dto.go
-- [ ] 04-02-PLAN.md — TrackingRepository interface + pgxpool implementation (all 7 domains)
-- [ ] 04-03-PLAN.md — TrackingService (MIME-validated lab upload), TrackingHandler (~26 routes), config + main.go wiring
-- [ ] 04-04-PLAN.md — tracking.types.ts contracts, useTrackingStore, DailyDashboard.vue, tracking/index.vue
-- [ ] 04-05-PLAN.md — Client food / water / sleep stores + UI pages (FoodLogMealCard, WaterProgressBar)
-- [ ] 04-06-PLAN.md — Client exercise + medication stores + UI (MedicationChecklistItem, prescribed checklist)
-- [ ] 04-07-PLAN.md — chart.js + vue-chartjs install, body measurements store, WeightChart, BodyMeasurementForm, body.vue
-- [ ] 04-08-PLAN.md — Lab results client upload (multipart) + nutritionist download (blob, Content-Disposition)
-- [ ] 04-09-PLAN.md — Nutritionist tracking views for all 6 domains (tabs, date-range filter, WeightChart reuse)
+- [x] 04-01-PLAN.md — DB migration 000008 (7 tracking tables + 2 enums), sqlc query files, tracking_dto.go
+- [x] 04-02-PLAN.md — TrackingRepository interface + pgxpool implementation (all 7 domains)
+- [x] 04-03-PLAN.md — TrackingService (MIME-validated lab upload), TrackingHandler (~26 routes), config + main.go wiring
+- [x] 04-04-PLAN.md — tracking.types.ts contracts, useTrackingStore, DailyDashboard.vue, tracking/index.vue
+- [x] 04-05-PLAN.md — Client food / water / sleep stores + UI pages (FoodLogMealCard, WaterProgressBar)
+- [x] 04-06-PLAN.md — Client exercise + medication stores + UI (MedicationChecklistItem, prescribed checklist)
+- [x] 04-07-PLAN.md — chart.js + vue-chartjs install, body measurements store, WeightChart, BodyMeasurementForm, body.vue
+- [x] 04-08-PLAN.md — Lab results client upload (multipart) + nutritionist download (blob, Content-Disposition)
+- [x] 04-09-PLAN.md — Nutritionist tracking views for all 6 domains (tabs, date-range filter, WeightChart reuse)
 
 **UI hint**: yes
 
@@ -123,8 +123,17 @@ Plans:
   3. Nutritionist client list shows name, mobile, status, plan status, last activity — searchable by name/mobile, filterable by active/inactive, sortable; client profile shows personal info, current plan summary, and history tabs (all tracking data from Phase 4, archived plans)
   4. Quick actions from client profile work: create new diet plan, send message, activate/deactivate client; height and date of birth editable only by nutritionist
   5. File uploads validated via magic byte verification, size limits enforced, UUID filenames used, Content-Disposition: attachment on downloads, per-client storage limits enforced
-**Plans**: TBD
+**Plans**: 7 plans
 **UI hint**: yes
+
+Plans:
+- [x] 05-01-PLAN.md — DB migration 000009 (messages + food_requests tables), SQL queries, sqlc Go files
+- [x] 05-02-PLAN.md — sqlc models.go + querier.go updates (14 new method signatures)
+- [x] 05-03-PLAN.md — communication_dto.go, communication_repo.go, communication_service.go, user_repo.go updates
+- [x] 05-04-PLAN.md — user_service.go client management methods, client_handler.go full rewrite
+- [x] 05-05-PLAN.md — communication_handler.go, main.go route wiring (all 11 new routes)
+- [x] 05-06-PLAN.md — Frontend types (3), Pinia stores (3), useMessagePolling composable
+- [x] 05-07-PLAN.md — Frontend pages (7): messages, food-requests, nutritionist messaging, client management
 
 ### Phase 6: Offline & PWA
 **Goal**: Clients can view diet plans and log all tracking data while offline with automatic sync on reconnect, and receive push notification reminders for meals, medications, and messages
@@ -162,11 +171,11 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 | 1. Foundation & Infrastructure | 6/6 | Complete | 2026-04-19 |
 | 2. Core Data Domain | 4/4 | Complete | 2026-04-19 |
 | 3. Diet Plan Engine | 10/10 | Complete | 2026-04-19 |
-| 4. Client Tracking Suite | 0/9 | Not started | - |
-| 5. Communication & Collaboration | 0/? | Not started | - |
+| 4. Client Tracking Suite | 9/9 | Complete | 2026-04-20 |
+| 5. Communication & Collaboration | 7/7 | Complete | 2026-04-20 |
 | 6. Offline & PWA | 0/? | Not started | - |
 | 7. Hardening & Launch | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2025-07-18*
-*Last updated: 2026-04-19*
+*Last updated: 2026-04-20 (Phase 5 complete)*

@@ -15,13 +15,16 @@
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/postcss": "^4.0.0",
+    "chart.js": "^4.5.1",
     "dayjs": "^1.11.20",
+    "eslint": "^9.39.4",
     "jalaali-js": "^1.2.7",
     "nuxt": "^4.0.0",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.0.0",
     "vazirmatn": "^33.0.3",
     "vue": "latest",
+    "vue-chartjs": "^5.3.3",
     "vue-router": "latest"
   },
   "devDependencies": {

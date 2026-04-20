@@ -12,8 +12,11 @@ import (
 )
 
 const createMedicationLog = `-- name: CreateMedicationLog :one
-INSERT INTO medication_logs (id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO medication_logs (
+    id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
 ON CONFLICT (local_id) DO NOTHING
 RETURNING id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at
 `
@@ -60,7 +63,9 @@ func (q *Queries) CreateMedicationLog(ctx context.Context, arg CreateMedicationL
 }
 
 const getMedicationLogByLocalID = `-- name: GetMedicationLogByLocalID :one
-SELECT id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at FROM medication_logs WHERE local_id = $1 AND client_id = $2
+SELECT id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at FROM medication_logs
+WHERE local_id = $1
+  AND client_id = $2
 `
 
 type GetMedicationLogByLocalIDParams struct {
@@ -88,7 +93,10 @@ func (q *Queries) GetMedicationLogByLocalID(ctx context.Context, arg GetMedicati
 }
 
 const listMedicationLogsByDate = `-- name: ListMedicationLogsByDate :many
-SELECT id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at FROM medication_logs WHERE client_id = $1 AND date = $2 ORDER BY taken_at ASC
+SELECT id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at FROM medication_logs
+WHERE client_id = $1
+  AND date = $2
+ORDER BY taken_at ASC, created_at ASC
 `
 
 type ListMedicationLogsByDateParams struct {
@@ -128,26 +136,75 @@ func (q *Queries) ListMedicationLogsByDate(ctx context.Context, arg ListMedicati
 	return items, nil
 }
 
+const listMedicationLogsByDateRange = `-- name: ListMedicationLogsByDateRange :many
+SELECT id, client_id, local_id, date, prescribed_medication_id, medication_name, dosage, taken_at, notes, is_self_reported, created_at FROM medication_logs
+WHERE client_id = $1
+  AND date BETWEEN $2 AND $3
+ORDER BY date DESC, taken_at DESC, created_at DESC
+`
+
+type ListMedicationLogsByDateRangeParams struct {
+	ClientID pgtype.UUID `json:"client_id"`
+	Date     pgtype.Date `json:"date"`
+	Date_2   pgtype.Date `json:"date_2"`
+}
+
+func (q *Queries) ListMedicationLogsByDateRange(ctx context.Context, arg ListMedicationLogsByDateRangeParams) ([]MedicationLog, error) {
+	rows, err := q.db.Query(ctx, listMedicationLogsByDateRange, arg.ClientID, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MedicationLog{}
+	for rows.Next() {
+		var i MedicationLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.LocalID,
+			&i.Date,
+			&i.PrescribedMedicationID,
+			&i.MedicationName,
+			&i.Dosage,
+			&i.TakenAt,
+			&i.Notes,
+			&i.IsSelfReported,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMedicationLogsForNutritionist = `-- name: ListMedicationLogsForNutritionist :many
-SELECT ml.id, ml.client_id, ml.local_id, ml.date, ml.prescribed_medication_id, ml.medication_name, ml.dosage, ml.taken_at, ml.notes, ml.is_self_reported, ml.created_at FROM medication_logs ml
-JOIN users u ON u.id = ml.client_id AND u.nutritionist_id = $1
-WHERE ml.client_id = $2 AND ml.date BETWEEN $3 AND $4
-ORDER BY ml.date DESC, ml.taken_at DESC
+SELECT ml.id, ml.client_id, ml.local_id, ml.date, ml.prescribed_medication_id, ml.medication_name, ml.dosage, ml.taken_at, ml.notes, ml.is_self_reported, ml.created_at
+FROM medication_logs ml
+JOIN users u
+  ON u.id = ml.client_id
+ AND u.nutritionist_id = $1
+WHERE ml.client_id = $2
+  AND ml.date BETWEEN $3 AND $4
+ORDER BY ml.date DESC, ml.taken_at DESC, ml.created_at DESC
 `
 
 type ListMedicationLogsForNutritionistParams struct {
 	NutritionistID pgtype.UUID `json:"nutritionist_id"`
 	ClientID       pgtype.UUID `json:"client_id"`
-	FromDate       pgtype.Date `json:"from_date"`
-	ToDate         pgtype.Date `json:"to_date"`
+	Date           pgtype.Date `json:"date"`
+	Date_2         pgtype.Date `json:"date_2"`
 }
 
 func (q *Queries) ListMedicationLogsForNutritionist(ctx context.Context, arg ListMedicationLogsForNutritionistParams) ([]MedicationLog, error) {
 	rows, err := q.db.Query(ctx, listMedicationLogsForNutritionist,
 		arg.NutritionistID,
 		arg.ClientID,
-		arg.FromDate,
-		arg.ToDate,
+		arg.Date,
+		arg.Date_2,
 	)
 	if err != nil {
 		return nil, err

@@ -12,7 +12,9 @@ import (
 )
 
 const getSleepLogByDate = `-- name: GetSleepLogByDate :one
-SELECT id, client_id, local_id, date, sleep_time, wake_time, quality, notes, created_at, updated_at FROM sleep_logs WHERE client_id = $1 AND date = $2
+SELECT id, client_id, local_id, date, sleep_time, wake_time, quality, notes, created_at, updated_at FROM sleep_logs
+WHERE client_id = $1
+  AND date = $2
 `
 
 type GetSleepLogByDateParams struct {
@@ -38,26 +40,103 @@ func (q *Queries) GetSleepLogByDate(ctx context.Context, arg GetSleepLogByDatePa
 	return i, err
 }
 
+const getSleepLogByLocalID = `-- name: GetSleepLogByLocalID :one
+SELECT id, client_id, local_id, date, sleep_time, wake_time, quality, notes, created_at, updated_at FROM sleep_logs
+WHERE local_id = $1
+  AND client_id = $2
+`
+
+type GetSleepLogByLocalIDParams struct {
+	LocalID  pgtype.UUID `json:"local_id"`
+	ClientID pgtype.UUID `json:"client_id"`
+}
+
+func (q *Queries) GetSleepLogByLocalID(ctx context.Context, arg GetSleepLogByLocalIDParams) (SleepLog, error) {
+	row := q.db.QueryRow(ctx, getSleepLogByLocalID, arg.LocalID, arg.ClientID)
+	var i SleepLog
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.LocalID,
+		&i.Date,
+		&i.SleepTime,
+		&i.WakeTime,
+		&i.Quality,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listSleepLogsByDateRange = `-- name: ListSleepLogsByDateRange :many
+SELECT id, client_id, local_id, date, sleep_time, wake_time, quality, notes, created_at, updated_at FROM sleep_logs
+WHERE client_id = $1
+  AND date BETWEEN $2 AND $3
+ORDER BY date DESC
+`
+
+type ListSleepLogsByDateRangeParams struct {
+	ClientID pgtype.UUID `json:"client_id"`
+	Date     pgtype.Date `json:"date"`
+	Date_2   pgtype.Date `json:"date_2"`
+}
+
+func (q *Queries) ListSleepLogsByDateRange(ctx context.Context, arg ListSleepLogsByDateRangeParams) ([]SleepLog, error) {
+	rows, err := q.db.Query(ctx, listSleepLogsByDateRange, arg.ClientID, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SleepLog{}
+	for rows.Next() {
+		var i SleepLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClientID,
+			&i.LocalID,
+			&i.Date,
+			&i.SleepTime,
+			&i.WakeTime,
+			&i.Quality,
+			&i.Notes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSleepLogsForNutritionist = `-- name: ListSleepLogsForNutritionist :many
-SELECT sl.id, sl.client_id, sl.local_id, sl.date, sl.sleep_time, sl.wake_time, sl.quality, sl.notes, sl.created_at, sl.updated_at FROM sleep_logs sl
-JOIN users u ON u.id = sl.client_id AND u.nutritionist_id = $1
-WHERE sl.client_id = $2 AND sl.date BETWEEN $3 AND $4
+SELECT sl.id, sl.client_id, sl.local_id, sl.date, sl.sleep_time, sl.wake_time, sl.quality, sl.notes, sl.created_at, sl.updated_at
+FROM sleep_logs sl
+JOIN users u
+  ON u.id = sl.client_id
+ AND u.nutritionist_id = $1
+WHERE sl.client_id = $2
+  AND sl.date BETWEEN $3 AND $4
 ORDER BY sl.date DESC
 `
 
 type ListSleepLogsForNutritionistParams struct {
 	NutritionistID pgtype.UUID `json:"nutritionist_id"`
 	ClientID       pgtype.UUID `json:"client_id"`
-	FromDate       pgtype.Date `json:"from_date"`
-	ToDate         pgtype.Date `json:"to_date"`
+	Date           pgtype.Date `json:"date"`
+	Date_2         pgtype.Date `json:"date_2"`
 }
 
 func (q *Queries) ListSleepLogsForNutritionist(ctx context.Context, arg ListSleepLogsForNutritionistParams) ([]SleepLog, error) {
 	rows, err := q.db.Query(ctx, listSleepLogsForNutritionist,
 		arg.NutritionistID,
 		arg.ClientID,
-		arg.FromDate,
-		arg.ToDate,
+		arg.Date,
+		arg.Date_2,
 	)
 	if err != nil {
 		return nil, err
@@ -89,13 +168,17 @@ func (q *Queries) ListSleepLogsForNutritionist(ctx context.Context, arg ListSlee
 }
 
 const upsertSleepLog = `-- name: UpsertSleepLog :one
-INSERT INTO sleep_logs (id, client_id, local_id, date, sleep_time, wake_time, quality, notes)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (client_id, date) DO UPDATE SET
+INSERT INTO sleep_logs (
+    id, client_id, local_id, date, sleep_time, wake_time, quality, notes
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7
+)
+ON CONFLICT (client_id, date)
+DO UPDATE SET
     sleep_time = EXCLUDED.sleep_time,
-    wake_time  = EXCLUDED.wake_time,
-    quality    = EXCLUDED.quality,
-    notes      = EXCLUDED.notes,
+    wake_time = EXCLUDED.wake_time,
+    quality = EXCLUDED.quality,
+    notes = EXCLUDED.notes,
     updated_at = NOW()
 RETURNING id, client_id, local_id, date, sleep_time, wake_time, quality, notes, created_at, updated_at
 `

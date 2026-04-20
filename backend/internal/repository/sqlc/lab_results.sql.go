@@ -12,13 +12,18 @@ import (
 )
 
 const createLabResult = `-- name: CreateLabResult :one
-INSERT INTO lab_results (id, client_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, client_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at
+INSERT INTO lab_results (
+    id, client_id, local_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes
+) VALUES (
+    gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+)
+ON CONFLICT (local_id) DO NOTHING
+RETURNING id, client_id, local_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at
 `
 
 type CreateLabResultParams struct {
 	ClientID         pgtype.UUID   `json:"client_id"`
+	LocalID          pgtype.UUID   `json:"local_id"`
 	UploadedBy       pgtype.UUID   `json:"uploaded_by"`
 	Title            string        `json:"title"`
 	LabType          LabResultType `json:"lab_type"`
@@ -33,6 +38,7 @@ type CreateLabResultParams struct {
 func (q *Queries) CreateLabResult(ctx context.Context, arg CreateLabResultParams) (LabResult, error) {
 	row := q.db.QueryRow(ctx, createLabResult,
 		arg.ClientID,
+		arg.LocalID,
 		arg.UploadedBy,
 		arg.Title,
 		arg.LabType,
@@ -47,6 +53,71 @@ func (q *Queries) CreateLabResult(ctx context.Context, arg CreateLabResultParams
 	err := row.Scan(
 		&i.ID,
 		&i.ClientID,
+		&i.LocalID,
+		&i.UploadedBy,
+		&i.Title,
+		&i.LabType,
+		&i.TestDate,
+		&i.FilePath,
+		&i.ExternalLink,
+		&i.OriginalFilename,
+		&i.MimeType,
+		&i.FileSizeBytes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getLabResultByID = `-- name: GetLabResultByID :one
+SELECT id, client_id, local_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at FROM lab_results
+WHERE id = $1
+  AND client_id = $2
+`
+
+type GetLabResultByIDParams struct {
+	ID       pgtype.UUID `json:"id"`
+	ClientID pgtype.UUID `json:"client_id"`
+}
+
+func (q *Queries) GetLabResultByID(ctx context.Context, arg GetLabResultByIDParams) (LabResult, error) {
+	row := q.db.QueryRow(ctx, getLabResultByID, arg.ID, arg.ClientID)
+	var i LabResult
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.LocalID,
+		&i.UploadedBy,
+		&i.Title,
+		&i.LabType,
+		&i.TestDate,
+		&i.FilePath,
+		&i.ExternalLink,
+		&i.OriginalFilename,
+		&i.MimeType,
+		&i.FileSizeBytes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getLabResultByLocalID = `-- name: GetLabResultByLocalID :one
+SELECT id, client_id, local_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at FROM lab_results
+WHERE local_id = $1
+  AND client_id = $2
+`
+
+type GetLabResultByLocalIDParams struct {
+	LocalID  pgtype.UUID `json:"local_id"`
+	ClientID pgtype.UUID `json:"client_id"`
+}
+
+func (q *Queries) GetLabResultByLocalID(ctx context.Context, arg GetLabResultByLocalIDParams) (LabResult, error) {
+	row := q.db.QueryRow(ctx, getLabResultByLocalID, arg.LocalID, arg.ClientID)
+	var i LabResult
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.LocalID,
 		&i.UploadedBy,
 		&i.Title,
 		&i.LabType,
@@ -62,9 +133,13 @@ func (q *Queries) CreateLabResult(ctx context.Context, arg CreateLabResultParams
 }
 
 const getLabResultForNutritionist = `-- name: GetLabResultForNutritionist :one
-SELECT lr.id, lr.client_id, lr.uploaded_by, lr.title, lr.lab_type, lr.test_date, lr.file_path, lr.external_link, lr.original_filename, lr.mime_type, lr.file_size_bytes, lr.created_at FROM lab_results lr
-JOIN users u ON u.id = lr.client_id AND u.nutritionist_id = $1
-WHERE lr.id = $2 AND lr.client_id = $3
+SELECT lr.id, lr.client_id, lr.local_id, lr.uploaded_by, lr.title, lr.lab_type, lr.test_date, lr.file_path, lr.external_link, lr.original_filename, lr.mime_type, lr.file_size_bytes, lr.created_at
+FROM lab_results lr
+JOIN users u
+  ON u.id = lr.client_id
+ AND u.nutritionist_id = $1
+WHERE lr.id = $2
+  AND lr.client_id = $3
 `
 
 type GetLabResultForNutritionistParams struct {
@@ -79,6 +154,7 @@ func (q *Queries) GetLabResultForNutritionist(ctx context.Context, arg GetLabRes
 	err := row.Scan(
 		&i.ID,
 		&i.ClientID,
+		&i.LocalID,
 		&i.UploadedBy,
 		&i.Title,
 		&i.LabType,
@@ -94,7 +170,9 @@ func (q *Queries) GetLabResultForNutritionist(ctx context.Context, arg GetLabRes
 }
 
 const listLabResultsByClient = `-- name: ListLabResultsByClient :many
-SELECT id, client_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at FROM lab_results WHERE client_id = $1 ORDER BY test_date DESC, created_at DESC
+SELECT id, client_id, local_id, uploaded_by, title, lab_type, test_date, file_path, external_link, original_filename, mime_type, file_size_bytes, created_at FROM lab_results
+WHERE client_id = $1
+ORDER BY test_date DESC, created_at DESC
 `
 
 func (q *Queries) ListLabResultsByClient(ctx context.Context, clientID pgtype.UUID) ([]LabResult, error) {
@@ -109,6 +187,7 @@ func (q *Queries) ListLabResultsByClient(ctx context.Context, clientID pgtype.UU
 		if err := rows.Scan(
 			&i.ID,
 			&i.ClientID,
+			&i.LocalID,
 			&i.UploadedBy,
 			&i.Title,
 			&i.LabType,
@@ -131,8 +210,11 @@ func (q *Queries) ListLabResultsByClient(ctx context.Context, clientID pgtype.UU
 }
 
 const listLabResultsForNutritionist = `-- name: ListLabResultsForNutritionist :many
-SELECT lr.id, lr.client_id, lr.uploaded_by, lr.title, lr.lab_type, lr.test_date, lr.file_path, lr.external_link, lr.original_filename, lr.mime_type, lr.file_size_bytes, lr.created_at FROM lab_results lr
-JOIN users u ON u.id = lr.client_id AND u.nutritionist_id = $1
+SELECT lr.id, lr.client_id, lr.local_id, lr.uploaded_by, lr.title, lr.lab_type, lr.test_date, lr.file_path, lr.external_link, lr.original_filename, lr.mime_type, lr.file_size_bytes, lr.created_at
+FROM lab_results lr
+JOIN users u
+  ON u.id = lr.client_id
+ AND u.nutritionist_id = $1
 WHERE lr.client_id = $2
 ORDER BY lr.test_date DESC, lr.created_at DESC
 `
@@ -154,6 +236,7 @@ func (q *Queries) ListLabResultsForNutritionist(ctx context.Context, arg ListLab
 		if err := rows.Scan(
 			&i.ID,
 			&i.ClientID,
+			&i.LocalID,
 			&i.UploadedBy,
 			&i.Title,
 			&i.LabType,

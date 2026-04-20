@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import dayjs from 'dayjs'
-import type { DietPlanResponse, PlanDayResponse } from '~/types/plan.types'
+import type { DietPlanListResponse, DietPlanResponse, DietPlanSummary, PlanDayResponse } from '~/types/plan.types'
 
 export const useClientPlanStore = defineStore('clientPlan', () => {
   const activePlan = ref<DietPlanResponse | null>(null)
+  const myPlans = ref<DietPlanSummary[]>([])
   const activeDayNumber = ref<number>(1)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -25,6 +26,40 @@ export const useClientPlanStore = defineStore('clientPlan', () => {
       else {
         error.value = (err.data?.error) ?? 'خطا در بارگذاری برنامه'
       }
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchMyPlans() {
+    loading.value = true
+    error.value = null
+    try {
+      const { apiFetch } = useApi()
+      const data = await apiFetch<DietPlanListResponse>('/clients/me/plans')
+      myPlans.value = data.data ?? []
+    }
+    catch (e: unknown) {
+      const err = e as { data?: { error?: string } }
+      error.value = err.data?.error ?? 'خطا در بارگذاری تاریخچه برنامه‌ها'
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchPlanById(planId: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const { apiFetch } = useApi()
+      return await apiFetch<DietPlanResponse>(`/diet-plans/${planId}`)
+    }
+    catch (e: unknown) {
+      const err = e as { data?: { error?: string } }
+      error.value = err.data?.error ?? 'خطا در بارگذاری برنامه'
+      throw e
     }
     finally {
       loading.value = false
@@ -65,6 +100,7 @@ export const useClientPlanStore = defineStore('clientPlan', () => {
 
   function $reset() {
     activePlan.value = null
+    myPlans.value = []
     activeDayNumber.value = 1
     loading.value = false
     error.value = null
@@ -72,11 +108,14 @@ export const useClientPlanStore = defineStore('clientPlan', () => {
 
   return {
     activePlan,
+    myPlans,
     activeDayNumber,
     activeDay,
     loading,
     error,
     fetchActivePlan,
+    fetchMyPlans,
+    fetchPlanById,
     initActiveDay,
     setActiveDay,
     $reset,

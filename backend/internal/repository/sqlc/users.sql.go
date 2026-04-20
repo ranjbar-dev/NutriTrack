@@ -204,3 +204,78 @@ func (q *Queries) UpdateUserActive(ctx context.Context, arg UpdateUserActivePara
 	_, err := q.db.Exec(ctx, updateUserActive, arg.ID, arg.IsActive)
 	return err
 }
+
+const getClientByIDForNutritionist = `-- name: GetClientByIDForNutritionist :one
+SELECT id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at
+FROM users
+WHERE id = $1
+  AND nutritionist_id = $2
+  AND role = 'client'
+`
+
+type GetClientByIDForNutritionistParams struct {
+	ID             pgtype.UUID `json:"id"`
+	NutritionistID pgtype.UUID `json:"nutritionist_id"`
+}
+
+func (q *Queries) GetClientByIDForNutritionist(ctx context.Context, arg GetClientByIDForNutritionistParams) (User, error) {
+	row := q.db.QueryRow(ctx, getClientByIDForNutritionist, arg.ID, arg.NutritionistID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Role,
+		&i.FullName,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Mobile,
+		&i.DateOfBirth,
+		&i.HeightCm,
+		&i.Gender,
+		&i.NutritionistID,
+		&i.IsActive,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateClientProfile = `-- name: UpdateClientProfile :one
+UPDATE users
+SET
+  date_of_birth = COALESCE($2, date_of_birth),
+  height_cm = COALESCE($3, height_cm),
+  updated_at = NOW()
+WHERE id = $1
+  AND role = 'client'
+RETURNING id, role, full_name, email, password_hash, mobile, date_of_birth, height_cm, gender, nutritionist_id, is_active, notes, created_at, updated_at
+`
+
+type UpdateClientProfileParams struct {
+	ID          pgtype.UUID   `json:"id"`
+	DateOfBirth pgtype.Date   `json:"date_of_birth"`
+	HeightCm    pgtype.Float4 `json:"height_cm"`
+}
+
+func (q *Queries) UpdateClientProfile(ctx context.Context, arg UpdateClientProfileParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateClientProfile, arg.ID, arg.DateOfBirth, arg.HeightCm)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Role,
+		&i.FullName,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Mobile,
+		&i.DateOfBirth,
+		&i.HeightCm,
+		&i.Gender,
+		&i.NutritionistID,
+		&i.IsActive,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
