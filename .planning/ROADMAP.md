@@ -145,7 +145,17 @@ Plans:
   3. All client tracking (food, water, sleep, exercise, medication, body measurements) and outgoing messages work offline — entries queue in IndexedDB (Dexie.js) and sync on reconnect within 30 seconds, with server-side deduplication via local_id, exponential backoff retry (max 3), and Background Sync API where supported (polling fallback)
   4. Push notifications fire for new messages, new diet plans, food request results, meal time reminders, medication reminders, and water intake reminders — client can enable/disable each reminder type in notification preferences
   5. iOS PWA storage eviction handled gracefully: re-fetch on data loss, show pending sync count; sync status indicator shows syncing/synced/pending with manual retry for failed items
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — PWA shell, @vite-pwa/nuxt install, injectManifest strategy, sw.ts skeleton, Persian manifest, icons
+- [ ] 06-02-PLAN.md — Dexie NutriTrackDB schema (6 tables), clientPlan cache-first reads, OfflineBanner, iOS eviction detection
+- [ ] 06-03-PLAN.md — useOfflineApi composable, useSyncQueueStore (Pinia), useSyncManager with Background Sync + polling
+- [ ] 06-04-PLAN.md — All 7 tracking stores wired to useOfflineApi.clientPost, ClientSyncStatus component, client.vue layout
+- [ ] 06-05-PLAN.md — Offline message cache-first reads + sendMessage local echo + Blob attachment queue, offline tests
+- [ ] 06-06-PLAN.md — Backend: push migration, push_repo, NotificationService, reminder scheduler with dedup, push routes
+- [ ] 06-07-PLAN.md — sw.ts full push handler, useNotificationPermission, notificationPrefs store, settings page
+
 **UI hint**: yes
 
 ### Phase 7: Hardening & Launch
@@ -173,7 +183,7 @@ Note: Phases 4 and 5 are parallel-safe (no shared data dependencies beyond Phase
 | 3. Diet Plan Engine | 10/10 | Complete | 2026-04-19 |
 | 4. Client Tracking Suite | 9/9 | Complete | 2026-04-20 |
 | 5. Communication & Collaboration | 7/7 | Complete | 2026-04-20 |
-| 6. Offline & PWA | 0/? | Not started | - |
+| 6. Offline & PWA | 0/7 | Not started | - |
 | 7. Hardening & Launch | 0/? | Not started | - |
 
 ---
