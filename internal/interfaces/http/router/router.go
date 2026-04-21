@@ -4,7 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/ranjbar-dev/nutritrack/bootstrap"
 	"github.com/ranjbar-dev/nutritrack/configs"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/handler"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
 )
 
@@ -13,9 +15,12 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Wire all dependencies via DI container
+	container := bootstrap.NewContainer(db, rdb, cfg)
+
 	r := gin.New()
 
-	// Global middleware (order matters)
+	// Global middleware chain (order matters)
 	r.Use(middleware.CORS())
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger())
@@ -31,9 +36,26 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		})
 	})
 
-	// API v1 — protected route groups registered by phases 2+
+	// API v1
 	v1 := r.Group("/api/v1")
-	_ = v1
+
+	// --- Auth routes (public) ---
+	authHandler := handler.NewAuthHandler(container.AuthService)
+	authGroup := v1.Group("/auth")
+	{
+		authGroup.POST("/login",      authHandler.Login)
+		authGroup.POST("/otp/send",   authHandler.SendOTP)
+		authGroup.POST("/otp/verify", authHandler.VerifyOTP)
+		authGroup.POST("/refresh",    authHandler.Refresh)
+	}
+
+	// --- Protected routes (require JWT) ---
+	protected := v1.Group("")
+	protected.Use(middleware.RequireAuth(container.JWTService))
+	{
+		protected.POST("/auth/logout", authHandler.Logout)
+		protected.GET("/auth/me",      authHandler.Me)
+	}
 
 	// 404 handler
 	r.NoRoute(middleware.NotFound())

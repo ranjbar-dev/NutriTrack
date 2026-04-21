@@ -1,8 +1,12 @@
 package middleware
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/ranjbar-dev/nutritrack/internal/application/auth"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 )
 
 // UserRole constants — used across RBAC middleware.
@@ -17,12 +21,24 @@ const (
 	AuthUserRoleKey = "auth_user_role"
 )
 
-// RequireAuth is a stub placeholder — Phase 2 implements the real JWT validation.
-// This stub rejects all requests with 401 to prevent accidentally unprotected routes.
-func RequireAuth() gin.HandlerFunc {
+// RequireAuth validates the JWT Bearer token and injects user ID + role into context.
+func RequireAuth(jwtService *auth.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Phase 2 will inject real JWT validation here.
-		// For now, this middleware is only registered on protected route groups.
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			dto.Abort(c, shared.ErrUnauthorized)
+			return
+		}
+
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := jwtService.ValidateAccessToken(tokenStr)
+		if err != nil {
+			dto.Abort(c, shared.ErrInvalidToken)
+			return
+		}
+
+		c.Set(AuthUserIDKey, claims.UserID)
+		c.Set(AuthUserRoleKey, claims.Role)
 		c.Next()
 	}
 }
@@ -32,7 +48,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, exists := c.Get(AuthUserRoleKey)
 		if !exists {
-			c.AbortWithStatusJSON(shared.ErrUnauthorized.HTTPStatus, shared.ErrUnauthorized.ToResponse())
+			dto.Abort(c, shared.ErrUnauthorized)
 			return
 		}
 
@@ -43,6 +59,6 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 			}
 		}
 
-		c.AbortWithStatusJSON(shared.ErrForbidden.HTTPStatus, shared.ErrForbidden.ToResponse())
+		dto.Abort(c, shared.ErrForbidden)
 	}
 }
