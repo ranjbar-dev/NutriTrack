@@ -37,6 +37,9 @@ COPY --from=builder /app/server .
 # Ensure correct ownership
 RUN chown appuser:appgroup /app/server
 
+# Create uploads directory owned by appuser so uploads work at runtime
+RUN mkdir -p /uploads && chown appuser:appgroup /uploads
+
 USER appuser
 
 EXPOSE 8080
