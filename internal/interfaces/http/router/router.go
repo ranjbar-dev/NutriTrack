@@ -107,6 +107,16 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/medications/:id",    medHandler.GetOne)
 		protected.PATCH("/medications/:id",  medHandler.Update)
 		protected.DELETE("/medications/:id", medHandler.Delete)
+
+		// Diet plans: nutritionist creates plans for clients; clients/nutritionists can view
+		planHandler := handler.NewDietPlanHandler(container.DietPlanService)
+		protected.POST("/clients/:id/plans",                                              planHandler.CreatePlan)
+		protected.GET("/clients/:id/plans",                                               planHandler.ListClientPlans)
+		protected.GET("/plans/:id",                                                       planHandler.GetPlan)
+		protected.POST("/plans/:id/days",                                                 planHandler.AddDay)
+		protected.POST("/plans/:id/days/:day_id/meals",                                   planHandler.AddMeal)
+		protected.POST("/plans/:id/days/:day_id/meals/:meal_id/options",                  planHandler.AddOption)
+		protected.DELETE("/plans/:id",                                                    planHandler.DeletePlan)
 	}
 
 	// 404 handler
