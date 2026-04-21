@@ -85,6 +85,14 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 			clientGroup.GET("/:id",   clientHandler.GetClientProfile)
 			clientGroup.PATCH("/:id", clientHandler.UpdateClient)
 		}
+
+		// Foods: available to any authenticated user; role-based logic is in the service
+		foodHandler := handler.NewFoodHandler(container.FoodService)
+		protected.POST("/foods",       foodHandler.Create)
+		protected.GET("/foods",        foodHandler.Search)
+		protected.GET("/foods/:id",    foodHandler.GetOne)
+		protected.PATCH("/foods/:id",  foodHandler.Update)
+		protected.DELETE("/foods/:id", foodHandler.Delete)
 	}
 
 	// 404 handler
