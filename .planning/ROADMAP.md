@@ -130,7 +130,7 @@ clients can retrieve their active plan with all structure and food details.
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: DietPlan domain aggregate (Plan + Days + Meals + Options), CreateWithArchive domain service (atomic transaction), sqlc queries for plan tree assembly
+- [x] 05-01: DietPlan domain aggregate (Plan + Days + Meals + Options), CreateWithArchive domain service (atomic transaction), sqlc queries for plan tree assembly
 - [ ] 05-02: MealFood aggregate (option + items), computed nutritional totals (bubble-up calculation), plan template cloning
 - [ ] 05-03: Exercise recommendations + prescribed medications per day
 - [ ] 05-04: Client plan retrieval (active plan, archived plans list), nutritionist plan management (update, delete in-progress plan)
