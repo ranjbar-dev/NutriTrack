@@ -249,3 +249,17 @@ type LabResult struct {
 	Notes          string    `db:"notes"`
 	CreatedAt      time.Time `db:"created_at"`
 }
+
+// Message represents a chat message between a client and a nutritionist.
+type Message struct {
+	ID             uuid.UUID  `db:"id"`
+	SenderID       uuid.UUID  `db:"sender_id"`
+	ReceiverID     uuid.UUID  `db:"receiver_id"`
+	Content        string     `db:"content"`
+	AttachmentPath *string    `db:"attachment_path"`
+	AttachmentType *string    `db:"attachment_type"`
+	AttachmentSize *int64     `db:"attachment_size"`
+	AttachmentName *string    `db:"attachment_name"`
+	ReadAt         *time.Time `db:"read_at"`
+	CreatedAt      time.Time  `db:"created_at"`
+}

@@ -145,6 +145,14 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.POST("/clients/:id/lab-results", labResultHandler.Upload)
 		protected.GET("/clients/:id/lab-results",  labResultHandler.List)
 		protected.GET("/lab-results/:id/download", labResultHandler.Download)
+
+		// Messages — client-nutritionist chat
+		messageHandler := handler.NewMessageHandler(container.MessageService)
+		protected.GET("/messages/unread-count",     messageHandler.GetUnreadCount)
+		protected.GET("/messages",                  messageHandler.GetClientMessages)
+		protected.POST("/messages",                 messageHandler.SendAsClient)
+		protected.GET("/clients/:id/messages",      messageHandler.GetNutritionistMessages)
+		protected.POST("/clients/:id/messages",     messageHandler.SendAsNutritionist)
 	}
 
 	// 404 handler

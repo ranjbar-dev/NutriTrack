@@ -65,3 +65,26 @@ func (s *LocalStorage) SaveLabResult(src io.Reader, ext string) (string, error) 
 
 	return fullPath, nil
 }
+
+// SaveAttachment saves a message attachment to <basePath>/attachments/<uuid>.<ext> and returns the URL path.
+func (s *LocalStorage) SaveAttachment(src io.Reader, ext string) (string, error) {
+	dir := filepath.Join(s.BasePath, "attachments")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	filename := fmt.Sprintf("%s.%s", uuid.NewString(), ext)
+	fullPath := filepath.Join(dir, filename)
+
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(f, src); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/attachments/%s", s.BaseURL, filename), nil
+}

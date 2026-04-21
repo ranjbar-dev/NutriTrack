@@ -174,6 +174,13 @@ var ErrLabResultNotFound = &AppError{
 	HTTPStatus: http.StatusNotFound,
 }
 
+// --- Message errors ---
+var ErrMessageNotFound = &AppError{
+	Code:       "MESSAGE_NOT_FOUND",
+	Message:    "پیام یافت نشد",
+	HTTPStatus: http.StatusNotFound,
+}
+
 // WithMessage returns a new AppError with a custom Persian message (for dynamic error context)
 func (e *AppError) WithMessage(msg string) *AppError {
 	return &AppError{

@@ -8,6 +8,7 @@ import (
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
 	appLabResult "github.com/ranjbar-dev/nutritrack/internal/application/labresult"
 	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
+	appMessage "github.com/ranjbar-dev/nutritrack/internal/application/message"
 	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
@@ -15,6 +16,7 @@ import (
 	foodRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/food"
 	labResultRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/labresult"
 	medRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/medication"
+	msgInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/message"
 	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
@@ -39,6 +41,7 @@ type Container struct {
 	DietPlanService      *appDietPlan.DietPlanService
 	TrackingService      *appTracking.TrackingService
 	LabResultService     *appLabResult.LabResultService
+	MessageService       *appMessage.MessageService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -75,6 +78,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	trackingSvc := appTracking.NewTrackingService(pgTrackingRepo, userRepo)
 	pgLabResultRepo := labResultRepo.NewPgLabResultRepository(db)
 	labResultSvc := appLabResult.NewLabResultService(pgLabResultRepo, userRepo, localStorage)
+	pgMessageRepo := msgInfra.NewPgMessageRepository(db)
+	messageSvc := appMessage.NewMessageService(pgMessageRepo, userRepo, localStorage)
 
 	return &Container{
 		AuthService:         authService,
@@ -91,5 +96,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		DietPlanService:     planSvc,
 		TrackingService:     trackingSvc,
 		LabResultService:    labResultSvc,
+		MessageService:      messageSvc,
 	}
 }
