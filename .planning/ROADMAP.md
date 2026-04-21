@@ -17,14 +17,14 @@ functionality is proven in production conditions.
 - Integer phases (1–8): Planned milestone work executed in order
 - Decimal phases (e.g. 2.1): Urgent insertions created via `/gsd-insert-phase`
 
-- [ ] **Phase 1: Foundation** — DDD scaffold, Docker infra, pg_trgm, Tehran timezone baseline
-- [ ] **Phase 2: Authentication & Authorization** — JWT + OTP + Redis token store + RBAC middleware
-- [ ] **Phase 3: User & Client Management** — User profiles, client–nutritionist relationships
-- [ ] **Phase 4: Food & Medication Databases** — Shared nutrition/medication reference data + Persian search
-- [ ] **Phase 5: Diet Plan Management** — 5-level plan hierarchy, computed totals, auto-archive
-- [ ] **Phase 6: Daily Tracking & Lab Results** — 6 tracking types, offline sync idempotency, lab uploads
-- [ ] **Phase 7: Messaging, Food Requests & Notifications** — Chat, food request workflow, VAPID push
-- [ ] **Phase 8: Admin, Stats & Hardening** — Super admin panel, analytics, security audit, production polish
+- [x] **Phase 1: Foundation** — DDD scaffold, Docker infra, pg_trgm, Tehran timezone baseline
+- [x] **Phase 2: Authentication & Authorization** — JWT + OTP + Redis token store + RBAC middleware
+- [x] **Phase 3: User & Client Management** — User profiles, client–nutritionist relationships
+- [x] **Phase 4: Food & Medication Databases** — Shared nutrition/medication reference data + Persian search
+- [x] **Phase 5: Diet Plan Management** — 5-level plan hierarchy, computed totals, auto-archive
+- [x] **Phase 6: Daily Tracking & Lab Results** — 6 tracking types, offline sync idempotency, lab uploads
+- [x] **Phase 7: Messaging, Food Requests & Notifications** — Chat, food request workflow, VAPID push
+- [x] **Phase 8: Admin, Stats & Hardening** — Super admin panel, analytics, security audit, production polish
 
 ---
 
@@ -45,10 +45,10 @@ baseline concerns so that every subsequent phase builds on a correct, contaminat
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Go module init, DDD folder skeleton, Viper config, zerolog setup
-- [ ] 01-02: Dockerfile (multi-stage, Alpine + tzdata), docker-compose.yml (PG 16, Redis 7, TZ=Asia/Tehran), health-check endpoint
-- [ ] 01-03: golang-migrate setup, Migration 001 (pg_trgm + uuid-ossp), sqlc v2 config
-- [ ] 01-04: Domain shared utilities (timeutil.go, apperror.go), Gin router groups, request-ID middleware, centralized error middleware
+- [x] 01-01: Go module init, DDD folder skeleton, Viper config, zerolog setup
+- [x] 01-02: Dockerfile (multi-stage, Alpine + tzdata), docker-compose.yml (PG 16, Redis 7, TZ=Asia/Tehran), health-check endpoint
+- [x] 01-03: golang-migrate setup, Migration 001 (pg_trgm + uuid-ossp), sqlc v2 config
+- [x] 01-04: Domain shared utilities (timeutil.go, apperror.go), Gin router groups, request-ID middleware, centralized error middleware
 
 ### Phase 2: Authentication & Authorization
 **Goal**: Deliver fully working JWT + OTP authentication for all three roles with Redis-backed token
@@ -67,10 +67,10 @@ phases.
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: User domain aggregate, Iranian mobile validator, bcrypt password hashing, JWT service (access + refresh generation/validation)
-- [ ] 02-02: Redis OTP store (atomic INCR rate limiting, 2-min TTL, 3-attempt cap), Kavenegar SMS adapter
-- [ ] 02-03: Auth application service (login, OTP send/verify, refresh, logout), Redis token blacklist
-- [ ] 02-04: Auth HTTP handlers + public router group, RBAC middleware (RequireRole), row-level auth guard
+- [x] 02-01: User domain aggregate, Iranian mobile validator, bcrypt password hashing, JWT service (access + refresh generation/validation)
+- [x] 02-02: Redis OTP store (atomic INCR rate limiting, 2-min TTL, 3-attempt cap), Kavenegar SMS adapter
+- [x] 02-03: Auth application service (login, OTP send/verify, refresh, logout), Redis token blacklist
+- [x] 02-04: Auth HTTP handlers + public router group, RBAC middleware (RequireRole), row-level auth guard
 
 ### Phase 3: User & Client Management
 **Goal**: Enable super admin to manage nutritionist accounts and nutritionists to register, view, and
@@ -88,9 +88,9 @@ update their client profiles, with BMI computation and optional profile picture 
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: Nutritionist management — super admin CRUD + status toggle + list/search (sqlc queries, application service, HTTP handlers)
-- [ ] 03-02: Client management — registration, list/search/filter, full profile view, BMI calculation, profile update
-- [ ] 03-03: Profile picture upload (magic byte MIME validation, local filesystem storage, path stored in DB)
+- [x] 03-01: Nutritionist management — super admin CRUD + status toggle + list/search (sqlc queries, application service, HTTP handlers)
+- [x] 03-02: Client management — registration, list/search/filter, full profile view, BMI calculation, profile update
+- [x] 03-03: Profile picture upload (magic byte MIME validation, local filesystem storage, path stored in DB)
 
 ### Phase 4: Food & Medication Databases
 **Goal**: Deliver shared, searchable food and medication reference databases with Persian full-text
@@ -109,9 +109,9 @@ plans and prescriptions have concrete items to reference.
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: Food domain aggregate, Arabic/Persian char normalisation utility, pg_trgm sqlc queries (similarity search + ILIKE fallback), food CRUD HTTP handlers
-- [ ] 04-02: Food categories (many-to-many), soft delete, pagination, category filter
-- [ ] 04-03: Medication domain aggregate, CRUD + search, soft delete, row-level write isolation
+- [x] 04-01: Food domain aggregate, Arabic/Persian char normalisation utility, pg_trgm sqlc queries (similarity search + ILIKE fallback), food CRUD HTTP handlers
+- [x] 04-02: Food categories (many-to-many), soft delete, pagination, category filter
+- [x] 04-03: Medication domain aggregate, CRUD + search, soft delete, row-level write isolation
 
 ### Phase 5: Diet Plan Management
 **Goal**: Deliver the core value of the platform — nutritionists can create 5-level diet plans for
@@ -131,9 +131,9 @@ clients can retrieve their active plan with all structure and food details.
 
 Plans:
 - [x] 05-01: DietPlan domain aggregate (Plan + Days + Meals + Options), CreateWithArchive domain service (atomic transaction), sqlc queries for plan tree assembly
-- [ ] 05-02: MealFood aggregate (option + items), computed nutritional totals (bubble-up calculation), plan template cloning
-- [ ] 05-03: Exercise recommendations + prescribed medications per day
-- [ ] 05-04: Client plan retrieval (active plan, archived plans list), nutritionist plan management (update, delete in-progress plan)
+- [x] 05-02: MealFood aggregate (option + items), computed nutritional totals (bubble-up calculation), plan template cloning
+- [x] 05-03: Exercise recommendations + prescribed medications per day
+- [x] 05-04: Client plan retrieval (active plan, archived plans list), nutritionist plan management (update, delete in-progress plan)
 
 ### Phase 6: Daily Tracking & Lab Results
 **Goal**: Clients can log all six daily tracking types with offline-sync idempotency guaranteed at the
@@ -152,9 +152,9 @@ and clients can upload lab results with validated file types.
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Tracking domain aggregates (FoodLog, WaterLog, SleepLog, ExerciseLog, MedicationLog, BodyMeasurement), UNIQUE(client_id, local_id) migrations, ON CONFLICT DO NOTHING sqlc queries
-- [ ] 06-02: Tracking HTTP handlers (individual + bulk sync endpoint), Tehran date resolution, nutritionist read access
-- [ ] 06-03: Lab result domain aggregate, file upload handler (magic byte validation, UUID paths, 10 MB limit), filesystem storage adapter, download endpoint
+- [x] 06-01: Tracking domain aggregates (FoodLog, WaterLog, SleepLog, ExerciseLog, MedicationLog, BodyMeasurement), UNIQUE(client_id, local_id) migrations, ON CONFLICT DO NOTHING sqlc queries
+- [x] 06-02: Tracking HTTP handlers (individual + bulk sync endpoint), Tehran date resolution, nutritionist read access
+- [x] 06-03: Lab result domain aggregate, file upload handler (magic byte validation, UUID paths, 10 MB limit), filesystem storage adapter, download endpoint
 
 ### Phase 7: Messaging, Food Requests & Notifications
 **Goal**: Clients and nutritionists can exchange messages with file attachments via polling, clients
@@ -176,9 +176,9 @@ reminders.
 
 Plans:
 - [x] 07-01: Message domain aggregate, conversation/pagination sqlc queries, read_at tracking, unread count, file attachment upload (magic byte validation)
-- [ ] 07-02: Food request domain aggregate (pending → approved/rejected lifecycle), approve handler creates food item in transaction
-- [ ] 07-03: VAPID push infrastructure (webpush-go, VAPID key storage, device token registration), event-driven push on message + plan assignment + food request status change
-- [ ] 07-04: Notification scheduler (goroutine-based, Asia/Tehran-aware), meal reminders + medication reminders, notification preferences CRUD
+- [x] 07-02: Food request domain aggregate (pending → approved/rejected lifecycle), approve handler creates food item in transaction
+- [x] 07-03: VAPID push infrastructure (webpush-go, VAPID key storage, device token registration), event-driven push on message + plan assignment + food request status change
+- [x] 07-04: Notification scheduler (goroutine-based, Asia/Tehran-aware), meal reminders + medication reminders, notification preferences CRUD
 
 ### Phase 8: Admin, Stats & Hardening
 **Goal**: Super admin has full platform visibility and management APIs, production security concerns
@@ -196,10 +196,10 @@ the system is confirmed stable at target scale (~500 concurrent users).
 **Plans**: TBD
 
 Plans:
-- [ ] 08-01: Super admin stats endpoint, admin nutritionist management APIs, admin food/medication management APIs
-- [ ] 08-02: Non-root Docker user, sqlc CI freshness check, `.env.example` documentation, Makefile hardening targets
-- [ ] 08-03: Security audit (RBAC coverage, row-level auth boundaries, JWT blacklist, file upload validation, rate limiting gaps), N+1 query audit, Redis cache for hot paths
-- [ ] 08-04: Load test at target scale, fix any p99 regressions, final production readiness review
+- [x] 08-01: Super admin stats endpoint, admin nutritionist management APIs, admin food/medication management APIs
+- [x] 08-02: Non-root Docker user, sqlc CI freshness check, `.env.example` documentation, Makefile hardening targets
+- [x] 08-03: Security audit (RBAC coverage, row-level auth boundaries, JWT blacklist, file upload validation, rate limiting gaps), N+1 query audit, Redis cache for hot paths
+- [x] 08-04: Load test at target scale, fix any p99 regressions, final production readiness review
 
 ---
 
@@ -209,11 +209,11 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Not started | - |
-| 2. Authentication & Authorization | 0/4 | Not started | - |
-| 3. User & Client Management | 0/3 | Not started | - |
-| 4. Food & Medication Databases | 0/3 | Not started | - |
-| 5. Diet Plan Management | 0/4 | Not started | - |
-| 6. Daily Tracking & Lab Results | 0/3 | Not started | - |
-| 7. Messaging, Food Requests & Notifications | 1/4 | 🔄 In Progress | - |
-| 8. Admin, Stats & Hardening | 0/4 | Not started | - |
+| 1. Foundation | 4/4 | ✅ Complete | Phase 1 |
+| 2. Authentication & Authorization | 4/4 | ✅ Complete | Phase 2 |
+| 3. User & Client Management | 3/3 | ✅ Complete | Phase 3 |
+| 4. Food & Medication Databases | 3/3 | ✅ Complete | Phase 4 |
+| 5. Diet Plan Management | 4/4 | ✅ Complete | Phase 5 |
+| 6. Daily Tracking & Lab Results | 3/3 | ✅ Complete | Phase 6 |
+| 7. Messaging, Food Requests & Notifications | 4/4 | ✅ Complete | Phase 7 |
+| 8. Admin, Stats & Hardening | 4/4 | ✅ Complete | Phase 8 |
