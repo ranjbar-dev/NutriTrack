@@ -63,11 +63,13 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		avatarHandler := handler.NewAvatarHandler(container.AvatarService)
 		protected.PUT("/users/:id/avatar", avatarHandler.Upload)
 
-		// Super admin: nutritionist management
+		// Super admin: nutritionist management + platform stats
 		nutHandler := handler.NewNutritionistHandler(container.NutritionistService)
+		adminHandler := handler.NewAdminHandler(container.AdminService)
 		adminGroup := protected.Group("/admin")
 		adminGroup.Use(middleware.RequireRole(middleware.RoleSuperAdmin))
 		{
+			adminGroup.GET("/stats",                      adminHandler.GetStats)
 			adminGroup.POST("/nutritionists",             nutHandler.Create)
 			adminGroup.GET("/nutritionists",              nutHandler.List)
 			adminGroup.GET("/nutritionists/:id",          nutHandler.Get)
@@ -93,6 +95,9 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/foods/:id",    foodHandler.GetOne)
 		protected.PATCH("/foods/:id",  foodHandler.Update)
 		protected.DELETE("/foods/:id", foodHandler.Delete)
+		// Admin: list all foods and force-delete any food
+		adminGroup.GET("/foods",        foodHandler.Search)
+		adminGroup.DELETE("/foods/:id", foodHandler.Delete)
 
 		// Food categories
 		catHandler := handler.NewFoodCategoryHandler(container.FoodCategoryService)
@@ -107,6 +112,9 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/medications/:id",    medHandler.GetOne)
 		protected.PATCH("/medications/:id",  medHandler.Update)
 		protected.DELETE("/medications/:id", medHandler.Delete)
+		// Admin: list all medications and force-delete any medication
+		adminGroup.GET("/medications",        medHandler.Search)
+		adminGroup.DELETE("/medications/:id", medHandler.Delete)
 
 		// Diet plans: nutritionist creates plans for clients; clients/nutritionists can view
 		planHandler := handler.NewDietPlanHandler(container.DietPlanService)

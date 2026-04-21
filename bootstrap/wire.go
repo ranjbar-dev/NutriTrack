@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	appAdmin "github.com/ranjbar-dev/nutritrack/internal/application/admin"
 	appAuth "github.com/ranjbar-dev/nutritrack/internal/application/auth"
 	appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
@@ -23,6 +24,7 @@ import (
 	msgInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/message"
 	notifInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/notification"
 	pushInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/push"
+	dbsqlc "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/sqlc"
 	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
@@ -51,6 +53,7 @@ type Container struct {
 	FoodRequestService   *appFoodRequest.FoodRequestService
 	PushService          *appPush.PushService
 	NotificationService  *appNotif.NotificationService
+	AdminService         *appAdmin.AdminService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -95,6 +98,7 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	pushSvc := appPush.NewPushService(pgPushRepo, cfg.VAPID.PublicKey, cfg.VAPID.PrivateKey)
 	pgNotifPrefRepo := notifInfra.NewPgNotificationPreferenceRepository(db)
 	notifSvc := appNotif.NewNotificationService(pgNotifPrefRepo)
+	adminSvc := appAdmin.NewAdminService(dbsqlc.New(db))
 
 	return &Container{
 		AuthService:         authService,
@@ -115,5 +119,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		FoodRequestService:  foodRequestSvc,
 		PushService:         pushSvc,
 		NotificationService: notifSvc,
+		AdminService:        adminSvc,
 	}
 }
