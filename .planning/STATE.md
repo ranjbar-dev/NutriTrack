@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 06-01-PLAN.md (tracking domain aggregates + infrastructure)
-last_updated: "2026-04-21T16:00:00.000Z"
+stopped_at: Completed 06-03-PLAN.md (lab results upload/download)
+last_updated: "2026-04-21T19:35:00.000Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-21)
 
 Phase: 6 of 8 (Daily Tracking & Lab Results)
 Plan: 1 of N in current phase
-Status: Plan 06-01 complete — ready for 06-02
+Status: Plan 06-03 complete — ready for next plan
 Last activity: 2026-04-21
 
 Progress: [░░░░░░░░░░] 0%
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P01 | 25m | 10 tasks | 22 files |
 | Phase 05 P02 | 15m | 12 tasks | 10 files |
 | Phase 06 P01 | 25m | 8 tasks | 19 files |
+| Phase 06 P03 | 20m | 14 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -86,8 +87,8 @@ Recent decisions affecting current work:
 - Hand-wrote sqlc generated files for exercise/prescription queries instead of running sqlc generate (Windows mmap lock)
 - Used *time.Time for nullable date columns per sqlc.yaml emit_pointers_for_null_types override
 
-  - xmax trick in upsert queries detects insert vs conflict without extra SELECT (Phase 6)
-  - ON CONFLICT DO UPDATE SET client_id = EXCLUDED.client_id ensures row always returned via RETURNING (Phase 6)
+  - Magic-byte MIME detection for lab result uploads — same hasMagic pattern as avatar (Phase 6 Plan 03)
+  - SaveLabResult returns filesystem path (not URL) — download served via c.FileAttachment directly (Phase 6 Plan 03)
 
 ### Pending Todos
 
