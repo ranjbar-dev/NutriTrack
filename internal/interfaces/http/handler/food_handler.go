@@ -86,7 +86,17 @@ func (h *FoodHandler) Search(c *gin.Context) {
 	query := c.DefaultQuery("q", "")
 	pg := dto.ParsePagination(c)
 
-	foods, total, err := h.svc.SearchFoods(c.Request.Context(), query, pg.Limit(), pg.Offset())
+	var categoryID *uuid.UUID
+	if catStr := c.Query("category_id"); catStr != "" {
+		parsed, err := uuid.Parse(catStr)
+		if err != nil {
+			dto.Abort(c, shared.ErrValidation)
+			return
+		}
+		categoryID = &parsed
+	}
+
+	foods, total, err := h.svc.SearchFoods(c.Request.Context(), query, categoryID, pg.Limit(), pg.Offset())
 	if err != nil {
 		dto.Abort(c, toAppError(err))
 		return

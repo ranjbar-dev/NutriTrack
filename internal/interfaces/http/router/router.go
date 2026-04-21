@@ -93,6 +93,12 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/foods/:id",    foodHandler.GetOne)
 		protected.PATCH("/foods/:id",  foodHandler.Update)
 		protected.DELETE("/foods/:id", foodHandler.Delete)
+
+		// Food categories
+		catHandler := handler.NewFoodCategoryHandler(container.FoodCategoryService)
+		protected.GET("/food-categories", catHandler.ListAll)
+		adminGroup.POST("/food-categories",        catHandler.Create)
+		adminGroup.DELETE("/food-categories/:id",  catHandler.Delete)
 	}
 
 	// 404 handler

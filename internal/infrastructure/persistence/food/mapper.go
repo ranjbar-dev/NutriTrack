@@ -38,8 +38,9 @@ func foodToDomain(f db.Food) *entity.Food {
 // categoryToDomain converts a sqlc FoodCategory row to a domain entity.
 func categoryToDomain(c db.FoodCategory) entity.FoodCategory {
 	return entity.FoodCategory{
-		ID:   c.ID,
-		Name: c.Name,
+		ID:        c.ID,
+		Name:      c.Name,
+		CreatedAt: c.CreatedAt,
 	}
 }
 

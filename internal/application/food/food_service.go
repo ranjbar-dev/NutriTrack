@@ -100,9 +100,21 @@ func (s *FoodService) GetFood(ctx context.Context, id uuid.UUID) (*entity.Food, 
 	return food, nil
 }
 
-// SearchFoods performs a pg_trgm similarity search on active foods.
-func (s *FoodService) SearchFoods(ctx context.Context, query string, limit, offset int32) ([]*entity.Food, int64, error) {
+// SearchFoods performs a pg_trgm similarity search on active foods, optionally filtered by category.
+func (s *FoodService) SearchFoods(ctx context.Context, query string, categoryID *uuid.UUID, limit, offset int32) ([]*entity.Food, int64, error) {
 	normalized := shared.NormalizePersian(query)
+
+	if categoryID != nil {
+		foods, err := s.foodRepo.SearchByCategory(ctx, *categoryID, normalized, limit, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+		total, err := s.foodRepo.CountByCategory(ctx, *categoryID, normalized)
+		if err != nil {
+			return nil, 0, err
+		}
+		return foods, total, nil
+	}
 
 	foods, err := s.foodRepo.Search(ctx, normalized, limit, offset)
 	if err != nil {

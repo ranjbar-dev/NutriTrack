@@ -166,3 +166,34 @@ func (r *PgFoodRepository) CountSearch(ctx context.Context, query string) (int64
 	}
 	return count, nil
 }
+
+// SearchByCategory returns active foods in a given category matching the query.
+func (r *PgFoodRepository) SearchByCategory(ctx context.Context, categoryID uuid.UUID, query string, limit, offset int32) ([]*entity.Food, error) {
+	rows, err := r.queries.SearchFoodsByCategory(ctx, db.SearchFoodsByCategoryParams{
+		CategoryID: categoryID,
+		Query:      query,
+		Lim:        limit,
+		Off:        offset,
+	})
+	if err != nil {
+		return nil, shared.ErrInternal
+	}
+
+	foods := make([]*entity.Food, len(rows))
+	for i, row := range rows {
+		foods[i] = foodToDomain(row)
+	}
+	return foods, nil
+}
+
+// CountByCategory returns the total count of active foods in a given category matching the query.
+func (r *PgFoodRepository) CountByCategory(ctx context.Context, categoryID uuid.UUID, query string) (int64, error) {
+	count, err := r.queries.CountSearchFoodsByCategory(ctx, db.CountSearchFoodsByCategoryParams{
+		CategoryID: categoryID,
+		Query:      query,
+	})
+	if err != nil {
+		return 0, shared.ErrInternal
+	}
+	return count, nil
+}

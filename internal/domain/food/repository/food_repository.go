@@ -16,4 +16,6 @@ type FoodRepository interface {
 	Deactivate(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, query string, limit, offset int32) ([]*entity.Food, error)
 	CountSearch(ctx context.Context, query string) (int64, error)
+	SearchByCategory(ctx context.Context, categoryID uuid.UUID, query string, limit, offset int32) ([]*entity.Food, error)
+	CountByCategory(ctx context.Context, categoryID uuid.UUID, query string) (int64, error)
 }

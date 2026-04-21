@@ -26,6 +26,7 @@ type Container struct {
 	LocalStorage         *storage.LocalStorage
 	AvatarService        *appUser.AvatarService
 	FoodService          *appFood.FoodService
+	FoodCategoryService  *appFood.FoodCategoryService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -53,6 +54,7 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	localStorage := storage.NewLocalStorage("uploads", "/uploads")
 	avatarSvc := appUser.NewAvatarService(userRepo, localStorage)
 	foodSvc := appFood.NewFoodService(pgFoodRepo, pgCategoryRepo)
+	catSvc := appFood.NewFoodCategoryService(pgCategoryRepo)
 
 	return &Container{
 		AuthService:         authService,
@@ -64,5 +66,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		LocalStorage:        localStorage,
 		AvatarService:       avatarSvc,
 		FoodService:         foodSvc,
+		FoodCategoryService: catSvc,
 	}
 }

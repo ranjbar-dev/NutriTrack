@@ -59,3 +59,29 @@ INSERT INTO food_category_mappings (food_id, category_id) VALUES ($1, $2) ON CON
 
 -- name: RemoveFoodCategories :exec
 DELETE FROM food_category_mappings WHERE food_id = $1;
+
+-- name: SearchFoodsByCategory :many
+SELECT f.id, f.name, f.name_normalized, f.unit, f.calories, f.protein, f.carbohydrate, f.fat, f.fiber, f.created_by, f.is_active, f.created_at, f.updated_at FROM foods f
+JOIN food_category_mappings fcm ON f.id = fcm.food_id
+WHERE f.is_active = true
+  AND fcm.category_id = sqlc.arg(category_id)::uuid
+  AND (
+    sqlc.arg(query)::text = ''
+    OR similarity(f.name_normalized, sqlc.arg(query)::text) > 0.15
+    OR f.name_normalized ILIKE '%' || sqlc.arg(query)::text || '%'
+  )
+ORDER BY
+  CASE WHEN sqlc.arg(query)::text = '' THEN 0.0 ELSE -similarity(f.name_normalized, sqlc.arg(query)::text) END,
+  f.created_at DESC
+LIMIT sqlc.arg(lim)::int OFFSET sqlc.arg(off)::int;
+
+-- name: CountSearchFoodsByCategory :one
+SELECT COUNT(*) FROM foods f
+JOIN food_category_mappings fcm ON f.id = fcm.food_id
+WHERE f.is_active = true
+  AND fcm.category_id = sqlc.arg(category_id)::uuid
+  AND (
+    sqlc.arg(query)::text = ''
+    OR similarity(f.name_normalized, sqlc.arg(query)::text) > 0.15
+    OR f.name_normalized ILIKE '%' || sqlc.arg(query)::text || '%'
+  );

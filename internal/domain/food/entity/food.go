@@ -26,6 +26,7 @@ type Food struct {
 
 // FoodCategory represents a category tag on a food item.
 type FoodCategory struct {
-	ID   uuid.UUID
-	Name string
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
 }
