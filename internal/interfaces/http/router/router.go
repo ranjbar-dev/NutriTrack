@@ -153,6 +153,13 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.POST("/messages",                 messageHandler.SendAsClient)
 		protected.GET("/clients/:id/messages",      messageHandler.GetNutritionistMessages)
 		protected.POST("/clients/:id/messages",     messageHandler.SendAsNutritionist)
+
+		// Food requests — client submits, nutritionist approves/rejects
+		frHandler := handler.NewFoodRequestHandler(container.FoodRequestService)
+		protected.POST("/food-requests",             frHandler.Submit)
+		protected.GET("/food-requests",              frHandler.ListPending)
+		protected.POST("/food-requests/:id/approve", frHandler.Approve)
+		protected.POST("/food-requests/:id/reject",  frHandler.Reject)
 	}
 
 	// 404 handler

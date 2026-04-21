@@ -181,6 +181,25 @@ var ErrMessageNotFound = &AppError{
 	HTTPStatus: http.StatusNotFound,
 }
 
+// --- Food request errors ---
+var ErrFoodRequestNotFound = &AppError{
+	Code:       "FOOD_REQUEST_NOT_FOUND",
+	Message:    "درخواست غذای مورد نظر یافت نشد",
+	HTTPStatus: http.StatusNotFound,
+}
+
+var ErrFoodRequestAlreadyProcessed = &AppError{
+	Code:       "FOOD_REQUEST_ALREADY_PROCESSED",
+	Message:    "این درخواست قبلاً پردازش شده است",
+	HTTPStatus: http.StatusConflict,
+}
+
+var ErrFoodRequestNotOwned = &AppError{
+	Code:       "FOOD_REQUEST_NOT_OWNED",
+	Message:    "این درخواست متعلق به متخصص تغذیه شما نیست",
+	HTTPStatus: http.StatusForbidden,
+}
+
 // WithMessage returns a new AppError with a custom Persian message (for dynamic error context)
 func (e *AppError) WithMessage(msg string) *AppError {
 	return &AppError{

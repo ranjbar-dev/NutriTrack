@@ -263,3 +263,16 @@ type Message struct {
 	ReadAt         *time.Time `db:"read_at"`
 	CreatedAt      time.Time  `db:"created_at"`
 }
+
+// FoodRequest represents a client's request for a nutritionist to add a custom food.
+type FoodRequest struct {
+	ID              uuid.UUID  `db:"id"`
+	ClientID        uuid.UUID  `db:"client_id"`
+	NutritionistID  uuid.UUID  `db:"nutritionist_id"`
+	FoodName        string     `db:"food_name"`
+	Status          string     `db:"status"`
+	RejectionReason *string    `db:"rejection_reason"`
+	CreatedFoodID   *uuid.UUID `db:"created_food_id"`
+	CreatedAt       time.Time  `db:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at"`
+}
