@@ -1,255 +1,185 @@
-# Research Summary — NutriTrack
+# Project Research Summary
 
-**Project:** NutriTrack — Nutrition Management PWA  
-**Domain:** B2B2C Nutritionist Practice Management (Persian Market)  
-**Researched:** 2025-07-14 – 2025-07-18  
-**Overall Confidence:** HIGH
+**Project:** NutriTrack — Go Backend REST API  
+**Domain:** Persian Nutrition Management Platform (Nutritionist ↔ Client)  
+**Researched:** 2026-04-21  
+**Confidence:** HIGH
 
 ---
 
 ## Executive Summary
 
-NutriTrack is a Persian-only, mobile-first Progressive Web App that digitalizes the nutritionist–client workflow in Iran — replacing the current manual process of WhatsApp messaging, Excel diet plans, and paper tracking. The platform serves three roles (Super Admin, Nutritionist, Client) with a deeply nested diet plan engine at its core (Plan → Days → Meals → Options → Items), six daily tracking dimensions (food, water, sleep, exercise, medication, body measurements), and full offline support for clients. The competitive landscape is uniquely favorable: no credible Persian-language competitor exists, making NutriTrack's real competition the manual workflow itself, not other software.
+NutriTrack is a pure Go backend REST API serving a Persian-language nutrition management platform targeting Iranian nutritionists and their clients (~50 nutritionists, ~10,000 clients, ~500 concurrent users). The correct approach is a **layered Domain-Driven Design (DDD)** architecture with four strictly separated layers: Interface (Gin handlers) → Application (use cases) → Domain (entities, value objects, repo interfaces) → Infrastructure (sqlc/PostgreSQL, Redis, SMS, WebPush, filesystem). The golden rule is inward-only dependencies: `domain` imports nothing from this project; `application` imports only `domain`; `infrastructure` implements `domain` interfaces; `interface` wires everything together via manual DI. This architecture must be established correctly in Phase 1 because violations permeate every subsequent phase.
 
-The recommended stack — **Go/Gin + PostgreSQL 16 + Nuxt 4 + Tailwind CSS v4** — is well-validated across all research dimensions. Go's single-binary deployment and Gin's middleware architecture map cleanly to the 3-layer backend pattern (Handler → Service → Repository). PostgreSQL's `pg_trgm` extension solves Persian fuzzy text search without external services. Nuxt 4's `app/` directory structure with Pinia stores and Dexie.js IndexedDB provides the offline-first client architecture. Tailwind v4's native logical properties (`ms-`, `pe-`, `text-start`) eliminate the need for any RTL plugin — a key simplification. The target scale (50 nutritionists, 10K clients, ~500 concurrent users) is comfortably within single-server PostgreSQL + Go capacity, meaning no Redis, no microservices, and no message broker are needed.
+The stack is fully locked by project requirements: **Go 1.24 + Gin v1.12.0** for HTTP, **sqlc v1.31.0** for type-safe query generation (no ORM), **pgx/v5** for the PostgreSQL driver, **go-redis/v9** for Redis, **zerolog** for structured logging, **golang-migrate** for versioned migrations, and **webpush-go** for VAPID push notifications. Three Iran-specific constraints are non-negotiable and must be implemented in Phase 1: (1) `import _ "time/tzdata"` in main.go plus `apk add tzdata` in Dockerfile to make `Asia/Tehran` work on Alpine; (2) `CREATE EXTENSION IF NOT EXISTS pg_trgm` must be in Migration 001 because Persian full-text search depends on trigram similarity (PostgreSQL has no Persian FTS dictionary); (3) all API error `message` fields must be Persian strings, centralised in an `AppError` catalog rather than hardcoded per handler.
 
-The three highest-impact risks are: **(1)** the diet plan engine's N+1 query trap — a naïve implementation produces 500+ queries per plan load, which must be solved with batch loading from day one; **(2)** Persian text handling — `pg_trgm` silently fails with wrong database locale, and Arabic/Persian character variants (`ی`/`ي`, `ک`/`ك`) cause search misses unless normalized at every data boundary; and **(3)** iOS PWA storage eviction — Apple can silently delete IndexedDB data after 7 days of non-use, destroying unsynced client tracking logs. Each risk has a clear prevention strategy, but all three require architectural decisions made early (Phases 1–3) to avoid costly rework later.
-
----
-
-## Cross-Cutting Themes
-
-Patterns that emerged across multiple research dimensions:
-
-### 1. Persian/RTL Permeates Every Layer
-This is not a "skin" concern. Persian text impacts database locale configuration (ARCHITECTURE, PITFALLS), search indexing strategy (STACK — `pg_trgm`), character normalization at storage and query boundaries (PITFALLS #3), date handling via Jalali calendar (PITFALLS #8), font loading (STACK — Vazirmatn), number formatting (FEATURES), CSS logical properties (STACK — Tailwind v4), and Chart.js axis rendering (PITFALLS #15). Every phase must validate RTL/Persian behavior, not just the "UI polish" phase.
-
-### 2. Diet Plan Engine Is the Complexity Nexus
-All four research files converge on the diet plan as the riskiest component. ARCHITECTURE details the 5-level nesting and aggregate root loading pattern. PITFALLS warns of N+1 queries (#1) and frontend state management explosion (#11). FEATURES identifies it as the P0 ship-blocking feature with the longest critical path. STACK recommends sqlc + pgx `SendBatch` specifically to handle this query pattern. This is where the project succeeds or fails technically.
-
-### 3. Offline Support Is High-Value but Must Wait
-FEATURES ranks offline support as the #1 differentiator (no competitor offers it), but all research agrees it must come after all online features are stable (Phase 6). ARCHITECTURE shows offline wraps every API endpoint's sync path. PITFALLS documents iOS storage eviction (#4), sync queue race conditions (#5), stale cache issues (#9), and Dexie.js versioning traps (#12). Building offline on top of unstable online features compounds every bug.
-
-### 4. Row-Level Authorization Is a Security Pattern, Not Per-Endpoint Logic
-PITFALLS (#6) warns that with 30+ endpoints touching client data, at least one will miss ownership verification. ARCHITECTURE recommends repository-level authorization (JOIN to ownership in every query) rather than handler-level checks. This cross-cutting pattern must be established in Phase 1 and validated continuously.
-
-### 5. Keep It Simple — Scale Doesn't Demand Complexity
-ARCHITECTURE explicitly confirms: 500 concurrent users is well within single-server PostgreSQL + Go capacity. STACK recommends against Redis, WebSockets, GraphQL, MinIO, and microservices. The PRD's own decisions (polling for chat, local filesystem for files, no real-time features) all reinforce simplicity. Every "should we add X?" question should default to "no" at this scale.
+The principal risks are (a) DDD layer contamination — sqlc-generated flat structs must never leak into the domain layer, only mapped through repository adapters; (b) offline sync race conditions — `UNIQUE(client_id, local_id)` must be a DB-level constraint, not application-level check; (c) Diet Plan complexity — a 5-level aggregate (Plan → Days → Meals → Options → Items) that must be split into two aggregates with transaction support to remain manageable; and (d) timezone correctness — Asia/Tehran is UTC+3:30 with DST, and using a fixed offset or missing tzdata silently breaks daily tracking and push notification scheduling.
 
 ---
 
-## Critical Decisions (Confirmed)
+## Key Findings
 
-Decisions validated by cross-referencing multiple research dimensions:
+### Recommended Stack
 
-| # | Decision | Source | Cross-Validation | Confidence |
-|---|----------|--------|-------------------|------------|
-| 1 | **sqlc over GORM** for SQL layer | STACK | ARCHITECTURE confirms aggregate loading needs raw SQL; PITFALLS #1 needs explicit query control | HIGH |
-| 2 | **pg_trgm for Persian search** (not full-text search) | STACK, PITFALLS | PostgreSQL has no Persian FTS dictionary; pg_trgm + correct locale works; ARCHITECTURE indexes confirm | HIGH |
-| 3 | **Tailwind v4 logical properties for RTL** (no plugin) | STACK | PITFALLS #15 confirms RTL issues; Tailwind v4's `ms-`/`pe-`/`text-start` solve them natively | HIGH |
-| 4 | **Polling for chat** (not WebSocket) | PROJECT, ARCHITECTURE | PITFALLS #18 adds adaptive polling advice; ARCHITECTURE anti-pattern #5 rejects WebSocket explicitly | HIGH |
-| 5 | **Dexie.js for IndexedDB** (standalone, not Dexie Cloud) | STACK | ARCHITECTURE Pattern 4 details sync queue; PITFALLS #5 and #12 identify Dexie-specific traps | HIGH |
-| 6 | **pgx/v5 with SendBatch** for plan loading | STACK | ARCHITECTURE Pattern 2 implements 2–3 batch queries; PITFALLS #1 validates the N+1 prevention | HIGH |
-| 7 | **No Redis at this scale** | STACK, ARCHITECTURE | 500 concurrent users; OTP/sessions in PostgreSQL; ARCHITECTURE scalability table confirms | HIGH |
-| 8 | **Nuxt 4 `app/` directory structure** from day one | STACK | PITFALLS #14 warns Nuxt 3 structure breaks Nuxt 4; ARCHITECTURE project structure confirms | HIGH |
-| 9 | **`registerType: 'autoUpdate'`** for PWA service worker | PITFALLS | PITFALLS #9 warns `prompt` default causes stale caches; critical for diet plan freshness | HIGH |
-| 10 | **Persian character normalization at every boundary** | PITFALLS | #3 details `ی`/`ي` and `ک`/`ك` problem; must normalize in DB trigger, Go backend, and Nuxt frontend | HIGH |
+The stack is fully specified in `STACK.md` and all versions are verified against `proxy.golang.org`. No contested decisions remain — project constraints lock the major choices. The notable research decision was **zerolog over zap** (both are zero-allocation loggers; zerolog wins on API simplicity and chaining ergonomics for a new project). SMS integration uses a raw `net/http` adapter pattern rather than an SDK dependency because Kavenegar's Go SDK is unmaintained.
+
+**Core technologies:**
+- `github.com/gin-gonic/gin` v1.12.0 — HTTP router/middleware — project requirement; best-in-class Go REST framework
+- `github.com/sqlc-dev/sqlc` v1.31.0 — type-safe SQL code gen CLI — project requirement; zero reflection, compile-time safety
+- `github.com/jackc/pgx/v5` v5.9.2 — PostgreSQL driver — required by sqlc v2 config; faster than lib/pq
+- `github.com/redis/go-redis/v9` v9.18.0 — Redis client — OTP, rate limiting, JWT token store, caching
+- `github.com/rs/zerolog` v1.35.1 — structured JSON logging — zero-allocation, simpler API than zap
+- `github.com/golang-jwt/jwt/v5` v5.3.1 — JWT access/refresh tokens — RFC-compliant successor to dgrijalva/jwt-go
+- `github.com/golang-migrate/migrate/v4` v4.19.1 — versioned SQL migrations — works alongside sqlc
+- `github.com/SherClockHolmes/webpush-go` v1.4.0 — VAPID push notifications — handles key management automatically
+- `github.com/spf13/viper` v1.21.0 — config management — 12-factor env vars + .env file in one pass
+- PostgreSQL 17-alpine (Docker) — primary data store with pg_trgm for Persian search
+- Redis 7-alpine (Docker) — OTP TTL, rate limiting, refresh token store
+- **Go 1.24+** — required for range-over-integers, improved type inference, slices/maps packages
+
+**Critical version/config requirement:**  
+`sqlc.yaml` must set `emit_pointers_for_null_types: true` — otherwise sqlc generates `pgtype.Text` for nullable columns, which serialises as `{"String":"","Valid":false}` in JSON responses and causes runtime panics.
+
+### Expected Features
+
+See `FEATURES.md` for full endpoint inventory. Summary below:
+
+**Must have (table stakes):**
+- JWT + OTP authentication — three roles: super_admin (email+password), nutritionist (email+password), client (mobile+OTP only)
+- Diet Plan CRUD with nested structure (5 levels: Plan → Days → Meals → Options → Items) + computed nutritional totals
+- Food + Medication shared databases with Persian full-text search (`pg_trgm` trigram similarity)
+- Six daily tracking types: food logs, water, sleep, exercise, medications, body measurements — all with `local_id` offline sync
+- Lab result upload (PDF/image, local filesystem, UUID-based paths)
+- Role-based access control with strict row-level isolation (nutritionist sees only own clients)
+- Persian error messages on all API responses
+- Asia/Tehran timezone handling throughout
+
+**Should have (differentiators for Iranian market):**
+- OTP via Iranian SMS (Kavenegar/Melipayamak adapter) — native Iranian auth UX
+- `pg_trgm` Persian full-text search with Arabic/Persian character normalisation at insert + query time
+- `local_id` deduplication for offline-first sync (DB-level `UNIQUE` constraint)
+- Multi-option meal structure — nutritionist creates alternatives; client picks one per meal
+- Computed min/max nutritional range across meal options per day
+- Auto-archive previous plan on new plan creation (atomic transaction)
+- Polling-based chat with file attachments (10-second polling; no WebSocket)
+- Web Push notifications (VAPID) for meal/medication reminders
+- Food addition request workflow (client → nutritionist approval)
+- Super admin panel for nutritionist management and platform statistics
+- Refresh token rotation (Redis-backed, rotate on every use)
+
+**Defer to v2+:**
+- WebSocket real-time chat (polling is PRD decision and sufficient for this scale)
+- Jalali/Shamsi date conversion on backend (frontend handles display)
+- AI diet recommendations
+- External health device integrations
+- Payment/billing
+
+### Architecture Approach
+
+The architecture follows a **4-layer DDD pattern** with seven bounded contexts (aggregates): User, Food, Medication, DietPlan (deepest — 5 levels), TrackingRecord (6 thin per-type aggregates), Message, and FoodRequest. Dependency injection is manual (no framework) — `internal/interface/bootstrap/wire.go` assembles all services at startup. The folder structure is fully documented in `ARCHITECTURE.md` with explicit package-level boundaries enforced by Go's visibility rules. sqlc-generated code lives in `internal/infrastructure/sqlc/` and is treated as read-only; repository adapters in `internal/infrastructure/repository/` map sqlc flat structs to domain entities. Application-layer ports (`internal/application/ports/`) define interfaces for SMS, push notifications, file storage, and JWT management that infrastructure adapters implement.
+
+**Major components:**
+1. `internal/domain/` — 7 aggregate roots with behavior methods, value objects, repository interfaces; zero external imports
+2. `internal/application/` — use-case services (commands + queries) orchestrating domain via repository interfaces and ports; imports domain only
+3. `internal/infrastructure/` — concrete adapters: sqlc-backed repositories, Redis OTP/token store, Kavenegar SMS adapter, webpush adapter, local filesystem storage
+4. `internal/interface/http/` — Gin handlers, middleware chain (Recovery → RequestID → Logging → RateLimit → Auth → RoleCheck), DTOs, centralized error middleware
+5. `pkg/` — project-agnostic utilities: Persian text normalisation, Iranian mobile validation, zerolog setup, AppError catalog
+6. `migrations/` — golang-migrate versioned SQL files; run as a separate Docker service, never from app startup
+7. `docker-compose.yml` — App + PostgreSQL 17 + Redis 7 + Traefik; health-check-gated startup order
+
+### Critical Pitfalls
+
+1. **sqlc structs leaking into domain layer** — Define domain entities as separate structs with behavior; map from `db.*` to `domain.*` exclusively at the repository boundary. Never let `pgtype.*` appear in application or domain code. *Applies: Phase 1 — must get right before any feature work.*
+
+2. **`pg_trgm` extension missing from Migration 001** — Without `CREATE EXTENSION IF NOT EXISTS pg_trgm` in the first migration, Persian food/medication search silently fails in every clean environment (CI, production). Not retrofittable without downtime. *Applies: Phase 1 schema setup.*
+
+3. **Alpine Docker image without tzdata** — `time.LoadLocation("Asia/Tehran")` returns error on Alpine minimal images. Fix: add `import _ "time/tzdata"` to `main.go` (embeds tzdata in binary, +450KB) AND `apk add tzdata` + `ENV TZ=Asia/Tehran` in Dockerfile. Using a fixed offset (`time.FixedZone`) breaks DST — Iran observes IRDT (UTC+4:30) summer/IRST (UTC+3:30) winter. *Applies: Phase 1 — silent data corruption for daily tracking.*
+
+4. **`local_id` offline sync dedup at app level only** — Application-level SELECT-then-INSERT has a race condition under concurrent sync retries. Must enforce with `UNIQUE(client_id, local_id)` DB constraint + `ON CONFLICT DO NOTHING RETURNING *` in all tracking INSERT queries. *Applies: Phase 5 — catastrophic duplicate tracking data.*
+
+5. **OTP attempt counter race condition** — GET+SET pattern on OTP attempt counter allows concurrent requests to bypass rate limits. Must use Redis atomic `INCR` with `EXPIRE` in a pipeline or Lua script. *Applies: Phase 2 auth.*
+
+6. **Centralized Persian error handling** — All API `message` fields must be Persian strings. Define a typed `AppError{Code, MessageFA, HTTPStatus}` catalog in `pkg/apperror/` and use a Gin error-handling middleware. Never hardcode Persian strings in individual handlers. *Applies: Phase 1 — retrofit is 50-file refactor.*
+
+7. **Diet Plan aggregate over-engineering** — Loading the full 5-level tree for every item-level operation (add food to option) causes 6-table JOINs per request. Split into two aggregates: `DietPlan` (root + days + meals + options) and `MealOptionItems` (option + items). Use multiple focused sqlc queries assembled in Go, not one mega-JOIN. *Applies: Phase 4.*
 
 ---
 
-## Risk Register
+## Implications for Roadmap
 
-Top risks ranked by Impact × Likelihood, synthesized from all research:
-
-| ID | Risk | Impact | Likelihood | Mitigation | Phase |
-|----|------|--------|------------|------------|-------|
-| R1 | **N+1 query explosion on diet plan load** — 500+ queries, multi-second response | Critical | High (without intervention) | Batch load in 2–3 queries with pgx SendBatch; test with query counter middleware; assert ≤5 queries per plan load | Phase 3 |
-| R2 | **Persian search silently returns zero results** — wrong locale or missing normalization | Critical | High (default Docker locale is `C`) | Set locale `en_US.UTF-8` in Docker; create `normalize_persian()` DB trigger; seed 50+ real Persian foods; test in Phase 2 | Phase 2 |
-| R3 | **iOS PWA storage eviction** — unsynced client data silently destroyed after 7 days | Critical | Medium (iOS-specific) | Aggressive sync on every app open and connectivity change; show pending count badge; minimize cache size; re-fetch on app resume | Phase 6 |
-| R4 | **Row-level authorization bypass** — nutritionist accesses another's client data | Critical | Medium (30+ endpoints) | Repository-level ownership JOINs; `authorizeClientAccess()` reusable function; automated cross-nutritionist security tests in CI | Phase 1 (pattern), Phase 7 (audit) |
-| R5 | **JWT refresh token race condition** — concurrent 401s cause mass logout | High | High (15-min token + parallel requests) | Auth interceptor with `isRefreshing` flag + retry queue; proactive refresh 1–2 min before expiry; server-side 30s grace period | Phase 1 |
-| R6 | **Offline sync queue creates duplicates** — double-submit, concurrent tabs, partial failures | High | Medium | Web Locks API for cross-tab exclusion; debounce UI; sequential queue processing; server-side `ON CONFLICT (local_id) DO NOTHING` | Phase 4 (infra), Phase 6 (full) |
-| R7 | **Shamsi date boundary bugs** — wrong "today" detection, timezone mismatch | Medium | High (UTC vs Tehran +3:30) | All storage Gregorian; fixed `Asia/Tehran` timezone in Go; `useShamsiDate` composable wrapping jalaali-js; test midnight boundaries | Phase 1 (composable), Phase 3–4 (validation) |
-| R8 | **Diet plan builder UI state explosion** — deeply nested reactive state causes jank | Medium | Medium | Flatten Pinia store (normalized IDs, not nested objects); per-option computed nutrition; `shallowRef` for large lists; debounce recalc | Phase 3 |
-| R9 | **Service worker caches stale diet plan** — client follows wrong/outdated plan | High | Medium | Use Dexie as authoritative offline store (not Workbox cache); push notification on plan update; ETag/If-None-Match; `autoUpdate` SW | Phase 6 |
-| R10 | **File upload security** — content sniffing XSS, path traversal, storage exhaustion | High | Low (but exploitable) | UUID filenames only; validate magic bytes; `Content-Disposition: attachment`; per-client storage limits; authenticated download endpoints | Phase 5 |
-
----
-
-## Phase Readiness Assessment
+Based on combined research, the build order is strictly dependency-driven: infrastructure foundation must precede every feature, auth must precede all protected endpoints, shared databases must precede diet plans (which reference them), and tracking must follow diet plans (which tracking logs reference).
 
 ### Phase 1: Foundation
-**Research readiness: HIGH — clear patterns, minimal unknowns**
+**Rationale:** Every subsequent phase depends on this scaffold. DDD layer boundaries, sqlc config, pg_trgm extension, tzdata, Docker Compose with health checks, centralized error handling, and the AppError catalog must all be established here. Mistakes here require 50-file refactors later.  
+**Delivers:** Compilable DDD project scaffold, Docker Compose with PG+Redis+health checks, Migration 001 (`pg_trgm` + extensions + `uuid-ossp`), zerolog structured logging, Viper config with fail-fast validation, Persian `AppError` catalog, centralized error middleware, Gin router groups (public/protected), request ID middleware, Makefile targets (`migrate-up`, `sqlc-gen`, `lint`, `test`).  
+**Addresses:** All infrastructure setup, timezone handling, Docker startup sequencing.  
+**Avoids:** DDD layer contamination, missing pg_trgm, Alpine tzdata failure, migration-on-app-start anti-pattern, secrets in docker-compose.yml.
 
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| Go project structure (3-layer: handler/service/repository) | Kavenegar SMS API integration — test with actual Iranian SIM |
-| Gin route groups with middleware stacking (Pattern 3) | OTP hashing strategy (bcrypt cost 4 vs SHA-256) — minor decision |
-| JWT access (15min) + refresh (30d) token flow | — |
-| pgxpool configuration (MaxConns: 20–50) | — |
-| Nuxt 4 `app/` directory structure | — |
-| Tailwind v4 + Vazirmatn + RTL logical properties | — |
-| Docker Compose (Go + PG + Traefik) | — |
-| `useShamsiDate` composable with jalaali-js | — |
-| Auth interceptor with refresh queue pattern (R5) | — |
-| Row-level authorization pattern (R4) | — |
+### Phase 2: Authentication & Session Management
+**Rationale:** Every protected endpoint needs auth. JWT middleware, OTP flow, and Redis token store must work before any business logic can be implemented.  
+**Delivers:** OTP send/verify (Kavenegar adapter), email+password login (nutritionist/admin), JWT access tokens (15 min), refresh token rotation (Redis-backed, 30 days), logout with JWT blacklist, RBAC middleware (RequireRole), Iranian mobile validation, OTP rate limiting (3 per 10 min, atomic INCR).  
+**Uses:** go-redis/v9, golang-jwt/v5, golang.org/x/crypto (bcrypt cost 12), webpush-go (VAPID key generation for later).  
+**Avoids:** OTP race condition (atomic INCR), JWT secret validation on startup, no refresh token rotation, auth middleware on wrong router group.
 
-**Verdict:** Standard patterns — skip phase research. All technologies documented with Context7.
+### Phase 3: Shared Databases (Food + Medication)
+**Rationale:** Diet plans, tracking logs, and food requests all reference food and medication entities. These shared databases must exist before complex features can be built.  
+**Delivers:** Food CRUD with pg_trgm Persian search + Arabic/Persian char normalisation, pagination, category filtering; Medication CRUD with search; soft-delete pattern; nutritionist-owned items (row-level write isolation).  
+**Implements:** `domain/food`, `domain/medication`, `application/food`, `application/medication`, sqlc queries with `similarity()` + `ILIKE` fallback.  
+**Avoids:** tsvector for Persian (wrong — use pg_trgm), Arabic/Persian Unicode normalization missing at insert+query time, PostgreSQL ENUM for extensible categories (use TEXT+CHECK).
 
-### Phase 2: Core Data Domain
-**Research readiness: HIGH — but Persian search needs early validation**
+### Phase 4: Diet Plan Management
+**Rationale:** Core value proposition of the platform. The most complex phase — 5-level aggregate, transaction logic for auto-archive, computed nutritional totals, and 20+ REST endpoints.  
+**Delivers:** Full diet plan CRUD (Plan + Days + Meals + Options + Items), plan auto-archive on new plan creation (transaction), computed nutritional totals per option/meal/day, exercise recommendations per day, prescribed medications per plan, client access to own active plan.  
+**Uses:** TxManager pattern (domain/ports), two-aggregate split (DietPlan + MealOptionItems), multiple focused sqlc queries assembled in Go.  
+**Avoids:** Single large aggregate loading full tree for item operations, missing transaction support in repositories, mega-JOIN sqlc queries.
 
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| Food/medication CRUD (3-layer pattern) | Persian `pg_trgm` search with correct locale — **validate immediately** |
-| Food categories and measurement units (8 + 12 enums) | `normalize_persian()` function scope — test with real keyboard variants |
-| Super Admin panel (Nuxt pages) | Minimum trigram query length (2 chars vs 3 chars for Persian) |
-| NutritionLabel, FoodPicker, SearchInput components | — |
+### Phase 5: Daily Tracking (Client-facing)
+**Rationale:** Six tracking types with offline sync idempotency. All reference diet plan data (meal IDs, option IDs). Relatively simple per endpoint but requires careful DB constraint setup for `local_id`.  
+**Delivers:** FoodLog, WaterLog, SleepLog, ExerciseLog, MedicationLog, BodyMeasurement endpoints; `UNIQUE(client_id, local_id)` constraint on all tracking tables; `ON CONFLICT DO NOTHING RETURNING *` idempotency; Tehran date handling; nutritionist read access to client tracking data.  
+**Avoids:** App-level-only `local_id` dedup (race condition), UTC date used for "today" (use Tehran timezone), TIMESTAMP without TZ in schema.
 
-**Verdict:** Run a focused spike on `pg_trgm` with Persian data before full Phase 2 implementation. Seed 50+ real Persian food names and validate search queries.
+### Phase 6: Messaging + Lab Results + Food Requests
+**Rationale:** Supporting features that require auth, user data, and file storage infrastructure from prior phases.  
+**Delivers:** Polling-based chat between client and nutritionist (10-second poll pattern, immutable messages), file attachment upload (magic byte MIME validation, UUID-based server paths, `http.MaxBytesReader`), lab result upload/download (PDF/image, `Content-Disposition: attachment`), food addition request workflow (submit → approve/reject).  
+**Avoids:** MIME type spoofing (magic bytes, not Content-Type header), path traversal (UUID paths only), file size DoS (`http.MaxBytesReader`), serving files without Content-Disposition.
 
-### Phase 3: Diet Plan Engine
-**Research readiness: MEDIUM — highest complexity, needs design spike**
+### Phase 7: Notifications + Admin Panel
+**Rationale:** Push notifications require VAPID keys, push subscription storage, and a scheduler that references diet plan data. Admin panel is straightforward CRUD with super_admin role guard.  
+**Delivers:** Web Push subscription registration/management (VAPID), scheduled meal/medication reminder push notifications, notification preferences per user, super admin APIs for nutritionist CRUD and platform statistics.  
+**Uses:** webpush-go v1.4.0, background scheduler goroutine (cron-style), `domain/notification` entities.  
+**Avoids:** TZ=Asia/Tehran missing from scheduler (reminders fire at wrong time), DST miscalculation using FixedZone.
 
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| Data model (5 tables: plans/days/meals/options/items) | Batch loading query design — prototype the 2–3 query aggregate load |
-| Nutrition computation (sum item quantities × food macros) | Plan builder UI architecture — flatten Pinia store vs nested state (R8) |
-| Plan lifecycle (create → active → archived) | Repeating day pattern (7-day cycle mapping) — modulo arithmetic with Jalali |
-| Partial unique index for one-active-plan constraint | Plan creation payload validation — deeply nested JSON schema |
-| `useMealBuilder` composable pattern | Transaction design — single PG transaction for full plan insert |
-
-**Verdict:** **Needs phase research.** Run a design spike on: (a) aggregate loading query + in-memory tree assembly, (b) plan builder state management approach. This is the highest-risk phase.
-
-### Phase 4: Client Tracking
-**Research readiness: HIGH — six parallel CRUD domains with shared pattern**
-
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| 6 tracking tables with `(client_id, date)` indexes | `local_id` deduplication — `ON CONFLICT DO NOTHING` vs `DO UPDATE` |
-| Tracking CRUD (same 3-layer pattern × 6 types) | Chart.js RTL configuration for weight/measurement charts |
-| Daily dashboard with summary cards | "Today" detection with Tehran timezone (R7) — validate edge cases |
-| `useShamsiDate` for date display | — |
-
-**Verdict:** Standard patterns. The `local_id` dedup strategy is documented; just implement it consistently across all 6 tables.
-
-### Phase 5: Communication Layer
-**Research readiness: HIGH — well-documented patterns**
-
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| Message CRUD + polling (10s, `since` parameter) | File upload security implementation — content sniffing, path traversal (R10) |
-| Chat UI component pattern | Adaptive polling strategy — 10s → 30s → 60s backoff (PITFALLS #18) |
-| File upload handler (UUID names, magic byte validation) | BroadcastChannel API for single-tab polling (performance trap) |
-| Food request workflow (submit → approve → create food) | — |
-| Lab results (file upload + metadata) | — |
-
-**Verdict:** Standard patterns. File upload security needs careful implementation but the patterns are well-documented.
-
-### Phase 6: Offline & PWA
-**Research readiness: MEDIUM — multiple interacting systems, iOS-specific risks**
-
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| @vite-pwa/nuxt configuration + `autoUpdate` SW type | iOS storage eviction mitigation strategy (R3) — test on real devices |
-| Dexie.js schema for offline stores | Cross-tab sync coordination with Web Locks API (R6) |
-| Sync queue pattern (ARCHITECTURE Pattern 4) | Service worker caching strategy — Dexie vs Workbox for API data (R9) |
-| Push notification via webpush-go + VAPID | Dexie.js schema versioning discipline (PITFALLS #12) |
-| Reminder worker (Go goroutine with minute-tick) | Reminder dedup with `processed_reminders` table (PITFALLS #13) |
-| Notification preferences | Background Sync API absence on iOS — polling fallback |
-
-**Verdict:** **Needs phase research.** Multiple interacting systems (SW + Dexie + sync queue + push + reminders) with iOS-specific constraints. Test on actual iOS devices before finalizing architecture.
-
-### Phase 7: Hardening & Launch
-**Research readiness: HIGH — standard security/performance checklist**
-
-| Clear | Needs Spike/Investigation |
-|-------|--------------------------|
-| Row-level authorization audit (all 30+ endpoints) | Load testing tool selection (k6 vs wrk vs custom) |
-| EXPLAIN ANALYZE on all critical queries | Grafana + Loki dashboard design for NutriTrack metrics |
-| Database backup verification | SSL/TLS configuration on Hetzner with Traefik Let's Encrypt |
-| GitLab CI/CD pipeline (lint → test → build → deploy) | — |
-| Security test suite (cross-nutritionist access) | — |
-
-**Verdict:** Standard patterns. No phase research needed — this is execution against a checklist.
+### Phase 8: Hardening
+**Rationale:** Security audit, performance validation, and production readiness before launch.  
+**Delivers:** Security audit (RBAC coverage, row-level auth verification, JWT blacklist correctness), CI enforcement of `sqlc generate` freshness (`git diff --exit-code`), rate limiting coverage, performance testing at target scale (500 concurrent), Docker non-root user, volume permissions, structured logging completeness, `.env.example` documentation.  
+**Avoids:** All "MINOR" pitfalls deferred from earlier phases, secrets committed to git, pgtype leaking into response JSON.
 
 ---
-
-## Open Questions
-
-Consolidated from all research docs, deduplicated and prioritized:
-
-| Priority | Question | Source | Resolution Path |
-|----------|----------|--------|-----------------|
-| **P0** | What is the Kavenegar API contract for OTP delivery, rate limits, and delivery callbacks? | PITFALLS (integration gotchas) | Spike during Phase 1 — test with real Iranian SIM card |
-| **P0** | Does `pg_trgm` produce valid trigrams for Persian text with `en_US.UTF-8` locale? | PITFALLS #2, STACK | Spike during Phase 2 — run `SELECT show_trgm('برنج')` and validate |
-| **P1** | How should the plan builder UI handle 420+ food items without jank on mid-range Persian mobile devices? | PITFALLS #11, ARCHITECTURE | Design spike during Phase 3 — prototype with normalized Pinia store |
-| **P1** | What is the optimal Dexie.js schema for the offline store — mirror server tables or domain-optimized? | ARCHITECTURE (Dexie schema), PITFALLS #12 | Design during Phase 6 — start with minimal schema, expand per tracking type |
-| **P2** | How does iOS 17/18 handle PWA storage persistence? Has Apple relaxed the 7-day eviction? | PITFALLS #4 | Research during Phase 6 — test on latest iOS devices |
-| **P2** | Should the batch sync API (`POST /api/client/tracking/batch`) exist from Phase 4 or only Phase 6? | PITFALLS (performance traps) | Decide during Phase 4 planning — adding it early is low cost |
-| **P2** | What is the initial food database seed set? How many items, which categories? | FEATURES (food database) | Content decision by product owner before Phase 2 |
-| **P3** | What VAPID key management strategy prevents key rotation from invalidating all subscriptions? | PITFALLS (Web Push integration) | Design during Phase 6 — document key storage and rotation plan |
-
----
-
-## Recommendations for Roadmap
 
 ### Phase Ordering Rationale
 
-The 7-phase structure proposed by ARCHITECTURE is strongly validated by all research:
+- **Foundation before everything:** DDD layer structure, pg_trgm, tzdata, and Docker Compose startup sequencing are load-bearing for all subsequent phases. Retrofitting these is extremely expensive.
+- **Auth before any protected endpoints:** JWT middleware and RBAC are prerequisites for every business-logic endpoint.
+- **Food + Medication before Diet Plans:** Diet plan meals reference food items; prescriptions reference medications. Referential integrity requires these tables to exist first.
+- **Diet Plans before Tracking:** Tracking food logs reference meal IDs and option IDs from diet plans. Some tracking types can be built without plans (water, sleep, exercise) but the full feature requires plan data.
+- **Messaging/Labs/Requests after core features:** These are supporting workflows that depend on User and DietPlan being stable.
+- **Notifications after Diet Plans:** Scheduled reminders are generated from diet plan meal times and prescribed medication schedules.
+- **Hardening last:** Polish and security audit after all functionality is proven.
 
-```
-Phase 1 (Foundation) → Phase 2 (Core Data) → Phase 3 (Diet Plan Engine)
-                                                       ↓
-                                              ┌────────┴────────┐
-                                              ↓                 ↓
-                                    Phase 4 (Tracking)   Phase 5 (Communication)
-                                              └────────┬────────┘
-                                                       ↓
-                                              Phase 6 (Offline & PWA)
-                                                       ↓
-                                              Phase 7 (Hardening)
-```
-
-**Why this order:**
-1. **Phase 1 → 2 → 3** follows the strict data dependency chain: users → foods → diet plans. No shortcuts possible.
-2. **Phases 4 and 5 can parallelize** after Phase 3 — FEATURES confirms they share no data dependencies (tracking tables don't reference messages; messages don't reference tracking).
-3. **Phase 6 must follow 4+5** because offline wraps every API endpoint. Building sync before the endpoints exist is wasted work.
-4. **Phase 7 is a hardening pass**, not new features. It validates everything built in Phases 1–6.
-
-### Key Ordering Insights
-
-1. **Front-load Persian text infrastructure (Phase 2).** The `normalize_persian()` function, `pg_trgm` index, and database locale must be proven before any real data enters the system. Every subsequent phase depends on text search working.
-
-2. **Phase 3 needs the most calendar time.** FEATURES estimates 3–4 weeks. It contains the most complex backend (aggregate loading, transaction-based plan creation), the most complex frontend (plan builder UI), and the most complex computation (nutrition totals). Schedule a design spike before implementation.
-
-3. **`local_id` dedup infrastructure belongs in Phase 4, not Phase 6.** PITFALLS #5 specifies this explicitly. The `UNIQUE` constraint on `local_id` columns and the `ON CONFLICT` pattern must exist in the tracking tables from their creation, not retrofitted when offline sync is added.
-
-4. **Push notification subscription can start in Phase 5** (collect subscriptions when messaging is built), even though push sending logic is Phase 6. This decouples subscription management from notification delivery.
-
-5. **Security patterns are Phase 1 decisions with Phase 7 validation.** The row-level authorization pattern, JWT refresh queue, and OTP normalization are all Phase 1 architectural choices. Phase 7 runs the comprehensive audit, but the patterns must be correct from day one.
+---
 
 ### Research Flags
 
-**Phases needing deeper research during planning:**
-- **Phase 3 (Diet Plan Engine):** Design spike needed on aggregate loading query pattern and plan builder UI state management. Highest-complexity phase.
-- **Phase 6 (Offline & PWA):** Multiple interacting systems (SW + Dexie + sync queue + push + reminders) with iOS-specific constraints. Test on real iOS devices.
+**Phases needing deeper research before planning:**
+- **Phase 7 (Notifications scheduler):** Background goroutine scheduling strategy in Go (cron vs. ticker vs. dedicated scheduler library) and VAPID key rotation policy are not fully specified. Needs `/gsd-research-phase` to validate push scheduler architecture before implementation.
+- **Phase 6 (Messaging polling):** Exact polling strategy (long-poll vs. short-poll, unread count endpoint caching) may benefit from a quick design spike.
 
-**Phases with standard, well-documented patterns (skip phase research):**
-- **Phase 1 (Foundation):** All technologies thoroughly documented via Context7. Gin, pgx, JWT, Nuxt 4 patterns are standard.
-- **Phase 2 (Core Data):** CRUD + search. Only the `pg_trgm` Persian validation needs a focused spike (1–2 hours, not full research).
-- **Phase 4 (Tracking):** Six parallel CRUD domains following the same 3-layer pattern.
-- **Phase 5 (Communication):** Chat polling, file uploads, food requests — all well-established patterns.
-- **Phase 7 (Hardening):** Checklist-based execution, no novel research needed.
-
-### Conflicts Identified
-
-One minor inconsistency was found across research dimensions:
-
-| Conflict | STACK says | PITFALLS says | Resolution |
-|----------|-----------|---------------|------------|
-| Tailwind RTL approach | Use Tailwind v4 logical properties natively (no plugin needed) | Use `tailwindcss-rtl` plugin for RTL | **Use STACK recommendation.** Tailwind v4 has native logical property support (`ms-`, `pe-`, `text-start`). The PITFALLS reference to the RTL plugin appears to be based on Tailwind v3 assumptions. No plugin is needed. |
-| pgxpool MaxConns | 20 connections sufficient for 500 concurrent users | 50 connections recommended | **Use 25 as default, scale to 50 if needed.** ARCHITECTURE suggests 25 for 500 concurrent users as the middle ground. Monitor pool utilization in Grafana. |
+**Phases with well-documented patterns (skip research-phase):**
+- **Phase 1 (Foundation):** Go DDD scaffold, Docker Compose health checks, sqlc config, zerolog — all established patterns with HIGH confidence documentation.
+- **Phase 2 (Auth):** JWT + OTP with Redis is a standard Go pattern. Every decision is documented in PITFALLS.md with code examples.
+- **Phase 3 (Shared DBs):** pg_trgm search, CRUD with soft delete — standard patterns.
+- **Phase 5 (Tracking):** `ON CONFLICT DO NOTHING` idempotency is a well-understood PostgreSQL pattern.
+- **Phase 8 (Hardening):** Security checklist items are standard; no research needed, just execution.
 
 ---
 
@@ -257,54 +187,41 @@ One minor inconsistency was found across research dimensions:
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | **HIGH** | All core technologies verified via Context7 official docs. Version compatibility matrix validated. Go 1.25+ requirement for Gin confirmed. |
-| Features | **MEDIUM** | Table stakes derived from Western competitor analysis + PRD, not primary Iranian market research. Anti-features list HIGH (sourced from PRD). Feature dependencies HIGH (from data model FKs). |
-| Architecture | **HIGH** | 3-layer Go pattern is standard. Nuxt 4 directory structure confirmed. All data flows validated against PRD data model. pgx batch loading pattern verified. |
-| Pitfalls | **HIGH** | 18 pitfalls documented, most verified via Context7 official docs. Persian-specific pitfalls (search, normalization, Jalali dates) are well-known in Persian software development. |
+| Stack | HIGH | All versions verified against proxy.golang.org; no contested decisions |
+| Features | HIGH | Derived directly from PRD v1.0 + PROJECT.md; all requirements explicit |
+| Architecture | HIGH | DDD Go patterns are well-established; folder structure fully specified in ARCHITECTURE.md |
+| Pitfalls | HIGH | All pitfalls grounded in stack-specific known issues with code-level prevention strategies |
 
-**Overall confidence: HIGH**
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-| Gap | Impact | Resolution |
-|-----|--------|------------|
-| **No Persian market user research** — feature priorities based on Western competitor analysis | Medium | Validate table stakes with 2–3 real nutritionists before Phase 3 |
-| **Kavenegar API specifics unknown** — rate limits, delivery guarantees, failover | Medium | Test during Phase 1 development with real SMS delivery |
-| **iOS PWA storage eviction behavior on latest iOS** — may have changed in iOS 17/18 | Medium | Test on actual devices during Phase 6 |
-| **Persian food database seed data** — no pre-existing Persian nutritional database identified | Low | Product owner must curate initial seed set before Phase 2 |
-| **Actual mid-range phone performance** — plan builder UI jank untested | Low | Test Phase 3 output on representative devices (Samsung A-series, Xiaomi) |
+- **Push notification scheduler implementation:** No concrete implementation decided (cron library vs. custom goroutine scheduler). Validate during Phase 7 planning.
+- **Conflict resolution rules for offline sync:** Partially defined in PITFALLS.md (last-write-wins vs. additive per entity type). Must be documented as explicit requirements before Phase 5 implementation starts to avoid mid-sprint redesign.
+- **SMS provider failover:** Kavenegar + Melipayamak adapter pattern is specified but failover logic (retry on provider failure, switch to backup) is not defined. Decide before Phase 2 implementation.
+- **Jalali date support scope:** PROJECT.md says "frontend handles Jalali display" but FEATURES.md lists Jalali as a differentiator. Confirm: backend returns Gregorian only, no Jalali conversion endpoints needed.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Gin Framework** — Context7 `/gin-gonic/gin` and `/websites/gin-gonic_en`: Go 1.25 requirement, middleware patterns, route groups
-- **pgx/v5** — Context7 `/jackc/pgx` and `/websites/pkg_go_dev_github_com_jackc_pgx_v5`: SendBatch, pgxpool configuration
-- **sqlc** — Context7 `/websites/sqlc_dev_en`: pgx/v5 integration, configuration format
-- **golang-migrate** — Context7 `/golang-migrate/migrate` (v4.18.3): PostgreSQL setup, Go library usage
-- **golang-jwt** — Context7 `/golang-jwt/jwt`: token creation/parsing, custom claims
-- **Nuxt 4** — Context7 `/nuxt/nuxt` (v4.0.0, v4.1.3) and `/websites/nuxt_4_x`: `app/` directory, composables, middleware
-- **Tailwind CSS v4** — Context7 `/websites/tailwindcss`: RTL logical properties, CSS-first config, PostCSS setup
-- **Pinia** — Context7 `/vuejs/pinia`: SSR hydration, store plugins, Nuxt integration
-- **@vite-pwa/nuxt** — Context7 `/websites/vite-pwa-org_netlify_app`: service worker lifecycle, registerType, `$pwa` composable
-- **Dexie.js** — Context7 `/websites/dexie`: schema versioning, offline-first patterns (standalone)
-- **Traefik** — Context7 `/websites/doc_traefik_io_traefik`: Docker Compose setup, ACME, HTTPS
-- **PostgreSQL pg_trgm** — Context7: trigram extraction, locale dependency
-- **go-playground/validator** — Context7 (v10.27.0): struct tag validation
-- **zerolog** — Context7: zero-allocation JSON logging
-- **Chart.js** — Context7 `/chartjs/chart.js`: RTL configuration, Vue integration
+- `STACK.md` — All library versions verified against proxy.golang.org; zerolog vs. zap decision documented
+- `FEATURES.md` — Full endpoint inventory derived from PRD v1.0 + PROJECT.md; all 80+ endpoints listed
+- `ARCHITECTURE.md` — Complete DDD folder structure, 7 aggregate boundaries, 4 data flow diagrams
+- `PITFALLS.md` — 35+ pitfalls across 10 domains with Go code examples; phase-specific warning matrix
+- `PROJECT.md` — Authoritative requirements, constraints, and key decisions for NutriTrack
 
 ### Secondary (MEDIUM confidence)
-- **Competitive platforms** (training data): Nutrium, Practice Better, Healthie, Foodzilla, That Clean Life, Nutritics — for feature landscape analysis
-- **Consumer tracking apps** (training data): MyFitnessPal, Cronometer — for tracking feature benchmarking
-- **webpush-go** — repository verified but not deeply documented via Context7
+- Go DDD community patterns — Matt Boyle's DDD in Go; go-ddd reference implementations
+- sqlc GitHub issues — nullable pgtype handling, pgx/v5 migration notes
+- PostgreSQL documentation — pg_trgm operator reference, TIMESTAMPTZ behavior, ENUM vs CHECK tradeoffs
+- Redis documentation — INCR/EXPIRE atomicity, pipeline/TxPipeline semantics
 
-### Tertiary (LOW confidence)
-- **Persian market context** — general knowledge of Iranian tech ecosystem; no primary user research conducted
-- **iOS PWA storage eviction timing** — documented behavior but may vary by iOS version
-- **Kavenegar API behavior under load** — known provider but rate limits not verified
+### Tertiary (LOW confidence — needs validation during implementation)
+- Push notification scheduler strategy — multiple approaches possible; needs spike
+- SMS provider failover behavior — Kavenegar-specific failure modes not documented
 
 ---
-*Research completed: 2025-07-18*  
+*Research completed: 2026-04-21*  
 *Ready for roadmap: yes*

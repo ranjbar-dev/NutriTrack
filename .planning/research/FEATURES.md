@@ -1,368 +1,563 @@
 # Feature Landscape
 
-**Domain:** Nutritionist-Client Management PWA (Persian Market)
-**Researched:** 2025-07-14
-**Confidence:** MEDIUM — Based on competitive analysis of Nutrium, Practice Better, Healthie, Foodzilla, That Clean Life, Nutritics, and consumer apps (MyFitnessPal, Cronometer). No web search available; findings driven by training data + detailed PRD analysis.
-
----
-
-## Competitive Context
-
-NutriTrack sits in the **nutritionist practice management** category — a B2B2C tool where the nutritionist is the buyer and the client is the end-user. The major Western competitors are:
-
-| Platform | Strength | Weakness for Persian Market |
-|----------|----------|----------------------------|
-| Nutrium | Full-featured practitioner platform, client portal | No Persian/RTL, USDA food DB, subscription pricing |
-| Practice Better | Scheduling, billing, telehealth, protocols | Overly complex, English-only, no offline |
-| Healthie | Telehealth-first, EHR integration, billing | Enterprise-oriented, no Persian support |
-| That Clean Life | Beautiful meal plans, recipe database | Recipe-focused (not tracking), English-only |
-| Foodzilla | AI-assisted, modern UX | No client tracking, no Persian |
-| Nutritics | Deep nutritional analysis (micronutrients) | Desktop-oriented, academic focus |
-
-**Key insight:** No credible Persian-language competitor exists in this space. Iranian nutritionists currently use WhatsApp/Telegram for messaging, Excel/Word for diet plans, and paper for tracking. NutriTrack's primary competition is **not other software** but **the existing manual workflow**. This means table stakes are defined by "what replaces the current manual process" not "feature parity with Western SaaS."
+**Domain:** Persian Nutrition Management Backend API (Nutritionist ↔ Client)
+**Project:** NutriTrack — Go Backend API
+**Researched:** 2026-04-21
+**Source:** PRD v1.0 + PROJECT.md
 
 ---
 
 ## Table Stakes
 
-Features users expect. Missing any of these = nutritionists won't switch from their current WhatsApp+Excel workflow.
+Features where absence means the platform cannot fulfill its core purpose.
 
-### 1. Authentication & Role-Based Access
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Three-role system (Admin, Nutritionist, Client) | Fundamental access control; nutritionists must not see each other's clients | Medium | Row-level isolation is the hard part |
-| OTP login for clients (SMS) | Iranian clients expect SMS-based auth; no email culture for consumer apps | Medium | Requires Iranian SMS gateway (Kavenegar/Melipayamak) integration |
-| JWT with refresh tokens | Standard session management for PWA | Low | Well-understood pattern |
-| Nutritionist-creates-client flow | Mirrors real-world onboarding (client doesn't self-register) | Low | Matches how clinics actually work |
-
-### 2. Client Management
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Client list with search/filter | Nutritionists managing 20-100+ clients need fast lookup | Low | Search by name + mobile |
-| Client profile with personal info | Height, weight, DOB, gender — minimum clinical data | Low | Static demographic data |
-| Client activation/deactivation | Nutritionists need to manage client lifecycle without data loss | Low | Soft delete pattern |
-| Client history overview | Must see all tracking data at a glance to prepare for sessions | Medium | Aggregation across multiple tracking tables |
-
-### 3. Diet Plan Creation & Viewing
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Plan with date range (start/end) | Diet plans are time-bounded in clinical practice | Low | Basic metadata |
-| Multi-day plans with daily meals | Core of what a nutritionist delivers; replaces Word documents | High | Deeply nested: Plan → Days → Meals → Options → Items |
-| Meal options (client picks one per meal) | Standard practice — give 2-3 options per meal for variety | High | Adds a nesting layer; computation complexity |
-| Food item selection from database | Must link to nutritional data for computation | Medium | Food picker modal with search |
-| Real-time nutritional totals | Nutritionist MUST see calorie/macro totals while building plan | Medium | Pure computation but critical UX |
-| One active plan per client | Clinical rule; prevents confusion | Low | DB constraint + application logic |
-| Plan archival & history | Clients and nutritionists need to reference past plans | Low | Status enum, history list |
-| Client plan view (mobile) | The core client deliverable — "what do I eat today?" | Medium | Day navigation, meal display, RTL layout |
-
-### 4. Shared Food Database
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Food items with full macro data | Calories, protein, carbs, fat per unit — foundation for plan computation | Low | CRUD with nutritional fields |
-| Persian food names & categories | Platform is Persian-only; USDA database is useless | Low | 8 meal-type categories |
-| Multiple measurement units | Iranian cooking uses cups, spoons, palm-size, matchbox-size etc. | Low | 12 unit types — domain-specific |
-| Search & filtering | Nutritionists building plans need fast food lookup | Medium | Persian full-text search with pg_trgm |
-| Shared across nutritionists | All nutritionists contribute to and benefit from a growing DB | Low | Platform-wide resource, created_by tracking |
-
-### 5. Client Daily Tracking
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Food intake logging (which option was eaten) | Clients need to report adherence; nutritionists need to see compliance | Low | Select from plan options or mark skipped |
-| Weight tracking with history chart | Weight is the #1 metric nutritionists and clients track | Low | Simple line chart with Shamsi dates |
-| Body measurements (waist, hip, etc.) | Standard clinical measurements taken at appointments | Low | 7 body sites, both client and nutritionist can record |
-| Water intake tracking | Commonly prescribed alongside diet plans | Low | Tap-to-add glasses, daily total vs target |
-
-### 6. Messaging
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Text messaging (client ↔ nutritionist) | Replaces WhatsApp; must exist for platform to be adopted | Medium | Chat UI, chronological messages |
-| Image attachments | Clients send food photos; nutritionists send diagrams | Medium | Upload, display, file storage |
-| File attachments (PDF) | Sharing lab results, resources | Medium | Upload with size/type validation |
-| Unread message badge | Standard messaging UX expectation | Low | Count query, badge display |
-
-### 7. Persian & RTL Native Experience
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Full RTL layout | Non-negotiable for Persian-only app | Medium | Tailwind RTL plugin, consistent across all components |
-| Shamsi (Jalali) calendar | Iranian users don't use Gregorian dates for daily planning | Medium | All date displays, pickers, and inputs must use Shamsi |
-| Persian numerals | Expected in a native Persian experience | Low | Number formatting utility |
-| Persian error messages & labels | All UI text in natural Persian | Low | But must be reviewed by native speaker |
-
-### 8. Push Notifications
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| New message notification | Essential for messaging adoption; without it, users revert to Telegram | Medium | Web Push via VAPID |
-| New diet plan notification | Client must know when their nutritionist assigns a new plan | Low | Triggered on plan creation |
-| Permission management (enable/disable types) | Standard mobile UX; users expect notification control | Low | Settings toggle per type |
+| Feature | Why Expected | Complexity | Offline Sync | RBAC Scope |
+|---------|--------------|------------|--------------|------------|
+| JWT + OTP Authentication | No login = no platform | Medium | ❌ No | All roles |
+| Diet Plan CRUD (nested) | Core value proposition | **High** | ❌ No | Nutritionist creates, Client reads |
+| Client Registration (by nutritionist) | Clients cannot self-register | Low | ❌ No | Nutritionist only |
+| Food Database CRUD + Persian search | Diet plans reference food items | Medium | Partial (cached) | Admin + Nutritionist write; Client reads |
+| Medication Database CRUD | Prescriptions reference medications | Low | Partial (cached) | Admin + Nutritionist write; Client reads |
+| Daily Food Log | Core client-side tracking | Low | ✅ `local_id` | Client writes; Nutritionist reads |
+| Body Measurement Tracking | Progress monitoring | Low | ✅ `local_id` | Client + Nutritionist write; Nutritionist reads |
+| Water Intake Tracking | Common nutritionist prescription | Low | ✅ `local_id` | Client writes; Nutritionist reads |
+| Sleep Tracking | Holistic health data | Low | ✅ `local_id` | Client writes; Nutritionist reads |
+| Exercise Tracking | Plan compliance verification | Low | ✅ `local_id` | Client writes; Nutritionist reads |
+| Medication Intake Logging | Prescription adherence | Low | ✅ `local_id` | Client writes; Nutritionist reads |
+| Lab Results Upload | Nutritionist diagnostic input | Medium | ❌ No | Client uploads; Nutritionist views/downloads |
+| Role-Based Access Control | 3 roles with strict isolation | Medium | N/A | Enforced everywhere |
+| Persian Error Messages | All API `message` fields in Farsi | Low | N/A | All endpoints |
+| Asia/Tehran Timezone Handling | Iranian users; DST-aware | Medium | N/A | All timestamps |
 
 ---
 
 ## Differentiators
 
-Features that set NutriTrack apart from competitors (and from the manual workflow). Not expected by users, but create significant value.
+Features that make this platform special for the Iranian nutritionist-client market.
 
-### 1. Full Offline Support (Client Side)
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| View diet plan offline | Clients often check their plan in areas with poor connectivity (gyms, kitchens) | High | Service Worker + IndexedDB caching of full plan tree |
-| Log tracking data offline | Removes friction from logging — no "I'll do it later" excuse | High | Queue to IndexedDB, sync on reconnect |
-| Background sync with conflict resolution | Seamless experience — client never worries about connectivity | High | Exponential backoff, local_id deduplication, last-write-wins |
-| Sync status indicator | Transparency builds trust in offline-first UX | Medium | Visual indicator for pending/syncing/synced/failed |
-| Offline message viewing & queuing | Cached messages + queued outgoing = complete offline chat | High | Complex state management with sync |
-
-**Why differentiating:** No competitor in the nutritionist space offers genuine offline support. Western platforms assume always-on connectivity. For Iranian users on mobile data with spotty coverage, this is a **major** value-add.
-
-### 2. Medication Prescription & Tracking
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Shared medication database | Nutritionists prescribe supplements and sometimes coordinate with medications | Low | Similar pattern to food database |
-| Medication prescription as part of diet plan | Supplements (vitamin D, iron, omega-3) are standard in Iranian nutrition practice | Medium | Linked to plan with dosage/frequency/timing |
-| Medication intake checklist (client side) | Clients can track supplement compliance alongside diet | Medium | Pre-populated from prescription, tap-to-mark-taken |
-| Medication reminders (push notifications) | Improves supplement compliance rates significantly | Medium | Time-based push notifications from prescription schedule |
-
-**Why differentiating:** Most nutrition platforms (Nutrium, That Clean Life, Foodzilla) don't handle medications at all. This bridges the gap between nutrition and clinical practice, which is very relevant in Iran where nutritionists often recommend supplements as standard practice.
-
-### 3. Food Request System
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Client submits food request | Empowers clients when they can't find an item | Low | Simple form: name + description |
-| Nutritionist reviews and approves/rejects | Quality-controlled database growth | Medium | Approval → food creation flow |
-| Approved items added to shared database | Crowdsourced Persian food database expansion | Low | Bridges the gap of no pre-existing Persian food DB |
-
-**Why differentiating:** Unique workflow not seen in any competitor. Solves the cold-start problem of a Persian food database — clients help identify local and regional foods that nutritionists can then add with proper nutritional data.
-
-### 4. Multi-Dimensional Tracking Suite
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Sleep tracking (time, duration, quality) | Sleep affects weight loss; nutritionists increasingly assess it | Low | Date + sleep/wake times + quality enum |
-| Exercise tracking (activity, duration, calories) | Correlates with dietary goals; provides complete picture | Low | Free-text exercise name + metrics |
-| Comprehensive body measurements (6 sites) | Goes beyond weight — waist/hip ratio, body composition trends | Low | Multiple measurement fields per entry |
-| Nutritionist-recorded measurements | Both parties can contribute data (at-clinic vs at-home) | Low | `recorded_by` field distinguishes source |
-
-**Why differentiating:** While individual tracking features exist elsewhere, the combination of food + water + sleep + exercise + medication + body measurements in a single client view gives nutritionists a uniquely **holistic** picture. Most platforms offer 2-3 of these.
-
-### 5. Lab Results Upload
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Upload lab results (PDF/JPG/PNG) | Nutritionists need blood work to create proper plans (iron, thyroid, vitamin D, etc.) | Medium | File upload + storage + download |
-| Categorized by test type | Quick filtering of blood vs thyroid vs hormone tests | Low | Enum-based categorization |
-| Link-based results (external URL) | Some Iranian labs provide online result portals | Low | Alternative to file upload |
-
-**Why differentiating:** Bridges the gap between nutrition and medical data. Competitors typically handle this through separate document management or not at all. Having lab results alongside diet history and body measurements creates a comprehensive clinical record.
-
-### 6. Repeating Day Patterns
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| 7-day cycle that repeats throughout plan period | Massive time saver — nutritionist creates 7 days, system applies across 4+ weeks | Medium | Frontend modulo mapping, backend stores only template days |
-
-**Why differentiating:** Most competitors require creating each day individually or duplicating entire plans. Cycle-based planning matches how nutritionists actually think about weekly meal patterns.
-
-### 7. PWA (Progressive Web App) Distribution
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Installable on home screen (Android + iOS) | No app store needed — instant deployment, no review process | Medium | Web manifest, service worker registration |
-| Standalone app experience | Feels like native app without address bar | Low | `display: standalone` in manifest |
-| Instant updates (no app store delays) | Bug fixes and features deploy immediately | Low | Service worker update detection |
-
-**Why differentiating:** In the Iranian market, Google Play has restrictions and Apple App Store requires a developer account. PWA sidesteps both distribution channels entirely. Updates bypass store review processes.
+| Feature | Value Proposition | Complexity | Offline Sync | RBAC Scope |
+|---------|-------------------|------------|--------------|------------|
+| OTP via Iranian SMS (Kavenegar/Melipayamak) | Native Iranian auth UX — no email required for clients | Medium | ❌ No | Client auth only |
+| Persian full-text search with `pg_trgm` | Search food/medication names in Farsi script | **High** | N/A | All roles |
+| Jalali (Shamsi) date support at API level | Dates meaningful to Iranian users | Medium | N/A | Optional query param |
+| Offline-first idempotent tracking API | Field use without stable mobile data | **High** | ✅ All tracking tables | Client only |
+| `local_id` deduplication for sync | Prevents duplicate entries on reconnect | Medium | ✅ Required | Client tracking endpoints |
+| Computed nutritional totals per option/meal/day | Real-time diet plan building feedback for nutritionists | Medium | N/A | Nutritionist plan builder |
+| Multi-option meal structure (client picks ONE) | Flexible real-world diets | Medium | N/A | Nutritionist creates; Client reads |
+| Nutritional min/max range across meal options | Shows total daily range based on choices | Medium | N/A | Nutritionist plan builder |
+| Diet plan day templates (repeating patterns) | Efficient 7-day cycle creation | Medium | N/A | Nutritionist only |
+| Food addition request workflow | Client-driven database enrichment | Low | ❌ No | Client requests; Nutritionist approves |
+| Web Push notifications (VAPID) | PWA notifications on Android/iOS | Medium | ❌ No | All roles receive; Backend sends |
+| Notification preferences per user | Opt-out granular control | Low | N/A | Client self-service |
+| Polling-based chat with file attachments | Works offline, simpler than WebSocket | Medium | ✅ Queue messages | Client ↔ Nutritionist (own clients only) |
+| Client view of own nutritionist (isolated) | Strict row-level data isolation | Medium | N/A | Row-level authorization |
+| Super Admin nutritionist management | Platform operator controls professional access | Low | ❌ No | Super admin only |
+| Platform statistics dashboard | Basic operational visibility | Low | ❌ No | Super admin only |
+| Scheduled meal + medication reminders | Time-based push from plan data | **High** | ❌ No | Backend scheduler; Client receives |
+| Bcrypt password hashing (cost 12) | Strong password security | Low | N/A | Admin + Nutritionist accounts |
+| SMS OTP rate limiting (3 per 10 min) | Protects against SMS cost abuse | Low | N/A | Client auth only |
+| Refresh token rotation (Redis-backed) | Secure long-lived sessions | Medium | N/A | All roles |
 
 ---
 
 ## Anti-Features
 
-Features to explicitly NOT build. Each has a clear rationale.
+Things explicitly **out of scope** per PRD. Do not build, do not architect for.
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| **AI-powered diet recommendations** | Adds massive complexity (ML infrastructure, training data, liability); nutritionists want to be the decision-makers, not have software prescribe for them | Let nutritionists use their expertise; provide data, not prescriptions |
-| **Calorie auto-detection from food photos** | Requires ML model, unreliable accuracy, massive engineering effort for marginal value | Manual food logging from plan options is faster and more accurate |
-| **Real-time video/voice consultation** | WebRTC infrastructure is complex, costly, and a completely different product domain; Telegram/WhatsApp already serve this well | Keep messaging as text+images+files; clients already use external apps for calls |
-| **Payment/subscription billing** | Iranian payment landscape (Shetab, Shaparak) is unique and complex; adds regulatory burden; nutritionists handle payments outside the platform | Out of scope; can add later if demand emerges |
-| **Wearable device integration** | Requires device-specific APIs (Fitbit, Apple Health, Google Fit), ongoing maintenance, and many users don't have wearables | Manual tracking is sufficient; lower adoption ceiling isn't worth the integration cost |
-| **Desktop-optimized UI** | Splits design effort; mobile-first for clients, and nutritionists in Iran primarily use phones too | Single mobile viewport maximizes quality and development speed |
-| **Multi-language / i18n** | Persian-only market; adding i18n infrastructure is premature and adds complexity to every component | Hardcode Persian strings; revisit only if international expansion becomes a goal |
-| **Recipe database with cooking instructions** | That Clean Life's territory; recipes are content-heavy and require curation/licensing | Focus on food items with nutritional data, not how to cook them |
-| **Grocery list generation** | Nice-to-have but adds complexity to plan engine; low priority for initial launch | Can be derived from plan items later as a read-only feature |
-| **Appointment scheduling / calendar** | Separate domain (scheduling SaaS); nutritionists use existing tools for this | Integrate with external calendar apps if needed, don't build one |
-| **Social features / community** | Client privacy is paramount; nutritionist-client relationship is private | Keep all interactions 1:1 between assigned nutritionist and client |
-| **Gamification (badges, streaks, leaderboards)** | Nutritional adherence gamification can create unhealthy relationships with food; inappropriate for clinical context | Focus on objective tracking data and professional guidance |
-| **Detailed micronutrient analysis** | Requires extremely comprehensive food database (100+ nutrients per item); accuracy concerns with non-USDA data | Track macros (calories, protein, carbs, fat) + fiber/sugar/sodium; sufficient for practice |
+| Anti-Feature | Why Explicitly Avoided | What to Do Instead |
+|--------------|------------------------|-------------------|
+| WebSocket real-time chat | Polling is sufficient; WebSocket adds complexity and offline issues | 10-second polling when chat open |
+| Payment/billing API | Out of scope per PRD §2 | No payment models, no billing tables |
+| AI diet recommendations | Out of scope per PRD §2 | Manual nutritionist-created plans only |
+| External health device integrations | Out of scope per PRD §2 | Manual client tracking entry only |
+| i18n / multi-language | Persian-only platform; YAGNI | Persian strings hardcoded; no translation layer |
+| Calorie detection from food photos | Out of scope per PRD §2 | Manual food item entry only |
+| Self-registration for any role | All accounts created by higher authority | Nutritionist → super admin; Client → nutritionist |
+| Message editing or deletion | Explicit PRD decision | Messages are immutable append-only |
+| Jalali-to-Gregorian conversion on backend | Frontend handles Jalali display | Backend stores Gregorian dates; frontend converts |
+| Client-side diet plan creation | Nutritionist-only workflow | Clients are plan consumers, not creators |
+| Multiple concurrent active plans per client | Explicit PRD decision §6 | Auto-archive previous plan on new plan creation |
+| Desktop-optimized endpoints | Mobile-only platform | No special desktop response shaping needed |
+
+---
+
+## Feature Groups with API Endpoint Patterns
+
+### 1. Authentication & Session Management
+**Complexity: Medium**  
+**Role implications:** Nutritionist/Admin use email+password; Clients use mobile+OTP only
+
+```
+POST   /api/v1/auth/login                    → email+password (admin/nutritionist)
+POST   /api/v1/auth/otp/send                 → send OTP to mobile (client)
+POST   /api/v1/auth/otp/verify               → verify OTP, issue JWT pair (client)
+POST   /api/v1/auth/refresh                  → exchange refresh token for new access token
+POST   /api/v1/auth/logout                   → invalidate refresh token in Redis
+```
+
+**Implementation notes:**
+- OTP: 6-digit, 2-minute TTL, max 3 verification attempts, max 3 requests per phone per 10 minutes → stored in Redis
+- JWT access token: 15-minute expiry; refresh token: 30-day expiry stored in Redis
+- Role embedded in JWT claims (`role: super_admin | nutritionist | client`)
+- OTP rate limiting: Redis counter with TTL, atomic INCR
+- Kavenegar/Melipayamak adapter pattern — swap SMS provider without code changes
+- Iranian mobile format validation: `09[0-9]{9}` (10-digit starting with 09)
+
+---
+
+### 2. Food Database
+**Complexity: Medium**  
+**Persian search:** `pg_trgm` trigram index on `foods.name`; GIN index recommended
+
+```
+GET    /api/v1/foods                         → list with search, category filter, pagination (all authenticated)
+GET    /api/v1/foods/:id                     → single food item (all authenticated)
+POST   /api/v1/foods                         → create (admin, nutritionist)
+PUT    /api/v1/foods/:id                     → update (admin: any; nutritionist: own items only)
+DELETE /api/v1/foods/:id                     → soft delete (admin: any; nutritionist: own items only)
+```
+
+**Query parameters:**
+- `?q=نان` — Persian full-text search via `pg_trgm` `ILIKE '%نان%'` or `similarity()`
+- `?category=breakfast` — filter by food category
+- `?active=true|false` — filter by active status (admin/nutritionist only)
+- `?page=1&per_page=20` — pagination (default 20 per page)
+
+**Nutritional totals computation:**  
+When plan items reference food, computed calories/protein/carbs/fat = `(quantity / measurement_amount) * nutrient_per_unit`. This computation happens at the service layer, not in SQL.
+
+---
+
+### 3. Medication Database
+**Complexity: Low**  
+Same access pattern as food database.
+
+```
+GET    /api/v1/medications                   → list with search, pagination (all authenticated)
+GET    /api/v1/medications/:id               → single medication (all authenticated)
+POST   /api/v1/medications                   → create (admin, nutritionist)
+PUT    /api/v1/medications/:id               → update (admin: any; nutritionist: own items only)
+DELETE /api/v1/medications/:id               → soft delete (admin: any; nutritionist: own items only)
+```
+
+**Query parameters:** `?q=`, `?form=tablet`, `?active=`, `?page=`, `?per_page=`
+
+---
+
+### 4. Client Management (Nutritionist-facing)
+**Complexity: Low**  
+Row-level isolation: nutritionist can only see their own clients.
+
+```
+GET    /api/v1/clients                       → list own clients (nutritionist)
+GET    /api/v1/clients/:id                   → client profile (nutritionist: own clients only)
+POST   /api/v1/clients                       → register new client (nutritionist)
+PUT    /api/v1/clients/:id                   → update client profile (nutritionist: own clients only)
+PATCH  /api/v1/clients/:id/status            → activate/deactivate (nutritionist: own clients only)
+```
+
+**Query parameters:** `?q=` (name/mobile), `?status=active|inactive`, `?sort=name|last_activity`
+
+---
+
+### 5. Diet Plan Management
+**Complexity: HIGH — most complex feature in the system**  
+Deeply nested structure; computed totals traverse 4 levels of aggregation.
+
+```
+# Plan-level
+GET    /api/v1/clients/:id/diet-plans        → list plans (active first; nutritionist)
+GET    /api/v1/diet-plans/:id                → full plan with all nested data (nutritionist + client:own)
+POST   /api/v1/clients/:id/diet-plans        → create plan (auto-archives previous) (nutritionist)
+PUT    /api/v1/diet-plans/:id                → update plan metadata (nutritionist: own clients)
+DELETE /api/v1/diet-plans/:id                → archive plan (nutritionist: own clients)
+
+# Plan days
+POST   /api/v1/diet-plans/:id/days           → add day (nutritionist)
+PUT    /api/v1/plan-days/:id                 → update day (nutritionist)
+DELETE /api/v1/plan-days/:id                 → delete day (nutritionist)
+
+# Meals
+POST   /api/v1/plan-days/:id/meals           → add meal (nutritionist)
+PUT    /api/v1/meals/:id                     → update meal (nutritionist)
+DELETE /api/v1/meals/:id                     → delete meal (nutritionist)
+
+# Meal options
+POST   /api/v1/meals/:id/options             → add option to meal (nutritionist)
+PUT    /api/v1/meal-options/:id              → update option (nutritionist)
+DELETE /api/v1/meal-options/:id              → delete option (nutritionist)
+
+# Meal option items
+POST   /api/v1/meal-options/:id/items        → add food item to option (nutritionist)
+PUT    /api/v1/meal-option-items/:id         → update item quantity/unit (nutritionist)
+DELETE /api/v1/meal-option-items/:id         → delete item (nutritionist)
+
+# Prescribed medications (plan-level, not day-level)
+POST   /api/v1/diet-plans/:id/medications    → prescribe medication (nutritionist)
+PUT    /api/v1/prescribed-medications/:id    → update prescription (nutritionist)
+DELETE /api/v1/prescribed-medications/:id    → remove prescription (nutritionist)
+
+# Exercise recommendations (day-level)
+POST   /api/v1/plan-days/:id/exercises       → add exercise recommendation (nutritionist)
+PUT    /api/v1/exercise-recommendations/:id  → update recommendation (nutritionist)
+DELETE /api/v1/exercise-recommendations/:id  → delete recommendation (nutritionist)
+```
+
+**Computed nutritional totals — returned inline with plan response:**
+- Per `meal_option_item`: `calories = (quantity / food.measurement_amount) * food.calories`
+- Per `meal_option`: sum of all items
+- Per `meal`: `{min: min(options), max: max(options)}` range across all options
+- Per `plan_day`: sum of meal min/max ranges
+- All computations done in application layer (service/domain), not SQL
+
+**Auto-archive rule:** `POST /clients/:id/diet-plans` must atomically set all existing `active` plans to `archived` before inserting new plan.
+
+**Client access:** `GET /diet-plans/:id` — client can only fetch their own active plan (or history by plan ID if previously fetched).
+
+---
+
+### 6. Daily Tracking (Client-facing)
+**Complexity: Low per endpoint; Medium for sync orchestration**  
+**ALL tracking endpoints require `local_id` in request body for idempotency.**
+
+#### Idempotency Pattern (applies to all tracking endpoints)
+```
+INSERT INTO <table> (..., local_id)
+VALUES (...)
+ON CONFLICT (client_id, local_id) DO NOTHING
+RETURNING *;
+```
+If `local_id` already exists → return the existing record (200 OK), not an error. This allows clients to safely replay the same record on reconnect.
+
+#### Food Log
+```
+GET    /api/v1/tracking/food-logs            → list food logs by date range (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/food-logs            → log meal selection (client only) [requires local_id]
+PUT    /api/v1/tracking/food-logs/:id        → update log entry (client: own only)
+DELETE /api/v1/tracking/food-logs/:id        → delete entry (client: own only)
+```
+Request body includes: `date`, `meal_id`, `selected_option_id` (nullable = skipped), `notes`, `local_id`
+
+#### Water Intake
+```
+GET    /api/v1/tracking/water                → list water logs by date (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/water                → log water intake entry (client only) [requires local_id]
+DELETE /api/v1/tracking/water/:id            → delete entry (client: own only)
+```
+Response includes daily total vs. `daily_water_target_ml` from active plan.
+
+#### Sleep
+```
+GET    /api/v1/tracking/sleep                → list sleep logs by date range (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/sleep                → create/update sleep entry for date (client only) [requires local_id]
+PUT    /api/v1/tracking/sleep/:id            → update sleep entry (client: own only)
+```
+One entry per date per client. `POST` with same `date` should upsert.
+
+#### Exercise
+```
+GET    /api/v1/tracking/exercise             → list exercise logs by date range (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/exercise             → log exercise session (client only) [requires local_id]
+PUT    /api/v1/tracking/exercise/:id         → update session (client: own only)
+DELETE /api/v1/tracking/exercise/:id         → delete session (client: own only)
+```
+
+#### Medication Intake
+```
+GET    /api/v1/tracking/medications          → list medication logs by date range (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/medications          → log medication taken (client only) [requires local_id]
+DELETE /api/v1/tracking/medications/:id      → delete entry (client: own only)
+```
+Supports both prescribed (`prescribed_medication_id` present) and self-reported (only `medication_name` + `dosage`).
+
+#### Body Measurements
+```
+GET    /api/v1/tracking/measurements         → list measurements by date range (client: own; nutritionist: own clients)
+POST   /api/v1/tracking/measurements         → record measurement (client + nutritionist) [requires local_id]
+PUT    /api/v1/tracking/measurements/:id     → update measurement (recorded_by only)
+```
+`recorded_by` auto-set from authenticated user. Both roles can create but data belongs to client.
+
+---
+
+### 7. Lab Results
+**Complexity: Medium (file upload validation + storage)**
+
+```
+GET    /api/v1/clients/:id/lab-results       → list lab results (nutritionist: own clients; client: own)
+GET    /api/v1/lab-results/:id               → single result with file download URL (nutritionist + client:own)
+POST   /api/v1/clients/:id/lab-results       → upload lab result (client only; multipart/form-data)
+DELETE /api/v1/lab-results/:id               → delete (client: own only)
+GET    /api/v1/lab-results/:id/download      → serve file (authenticated, authorized)
+```
+
+**File validation:**
+- Accepted MIME types: `application/pdf`, `image/jpeg`, `image/png`
+- Max size: 10 MB
+- Content sniffing (do not trust `Content-Type` header alone — inspect magic bytes)
+- Storage path: `/data/uploads/lab-results/{client_id}/{uuid}.{ext}`
+- At least one of `file` or `link` must be provided
+
+---
+
+### 8. Messaging System
+**Complexity: Medium**  
+Polling-based. No WebSocket. Clients can only message their own nutritionist.
+
+```
+GET    /api/v1/messages                      → fetch conversation messages (paginated, newest-first cursor)
+POST   /api/v1/messages                      → send message (text and/or attachment) [requires local_id for offline queue]
+PATCH  /api/v1/messages/read                 → mark messages as read (bulk IDs)
+GET    /api/v1/messages/unread-count         → badge count endpoint (polling target)
+```
+
+**Polling strategy:**  
+Frontend polls `GET /api/v1/messages?since=<last_message_id>` every 10 seconds when chat is open. Backend returns only new messages since cursor. `unread-count` is polled globally for badge.
+
+**File attachments (multipart):**  
+- Images: JPG, PNG, max 5 MB → `/data/uploads/messages/{sender_id}/{uuid}.{ext}`
+- Files: PDF, max 10 MB → same path pattern
+
+**Push notification trigger:**  
+On `POST /api/v1/messages`, backend immediately enqueues Web Push notification to the receiver (if subscribed).
+
+**Authorization:** Client may only send to/receive from their `nutritionist_id`. Nutritionist may only send to/receive from own clients. Verified at handler level.
+
+---
+
+### 9. Food Addition Requests
+**Complexity: Low**
+
+```
+GET    /api/v1/food-requests                 → list requests (nutritionist: pending requests for own clients)
+GET    /api/v1/food-requests/:id             → single request
+POST   /api/v1/food-requests                 → submit request (client only)
+PATCH  /api/v1/food-requests/:id/approve     → approve + create food item (nutritionist only)
+PATCH  /api/v1/food-requests/:id/reject      → reject with optional reason (nutritionist only)
+```
+
+**Approval flow:**  
+`PATCH /approve` is a **domain transaction**: atomically creates the `foods` record AND sets `food_requests.status = approved` AND sets `reviewed_by`. Triggers push notification to requesting client.
+
+---
+
+### 10. Web Push Notifications
+**Complexity: Medium (VAPID key management + scheduled reminders = High)**
+
+```
+POST   /api/v1/push/subscribe                → register push subscription (endpoint, p256dh, auth)
+DELETE /api/v1/push/subscribe                → unregister subscription (logout or permission revoked)
+GET    /api/v1/push/preferences              → get notification preferences
+PUT    /api/v1/push/preferences              → update notification preferences (enable/disable per type)
+```
+
+**Notification triggers (backend-initiated):**
+| Event | Target | Trigger Point |
+|-------|--------|---------------|
+| New message received | Client / Nutritionist | `POST /messages` handler |
+| New diet plan assigned | Client | `POST /diet-plans` handler |
+| Food request approved/rejected | Client | `PATCH /food-requests/:id/approve|reject` |
+| Meal time reminder | Client | Scheduler goroutine (cron) |
+| Medication reminder | Client | Scheduler goroutine (cron) |
+| Water intake reminder | Client | Scheduler goroutine (cron) |
+
+**Scheduler notes:**  
+Reminders based on `meals.scheduled_time` and `prescribed_medications.times[]` from the client's active diet plan. Cron job wakes every minute, loads due reminders, sends push. Must respect `notification_preferences` per user. Asia/Tehran timezone critical — scheduler must convert UTC times to Tehran local before comparing.
+
+---
+
+### 11. Super Admin Panel
+**Complexity: Low**
+
+```
+# Nutritionist management
+GET    /api/v1/admin/nutritionists           → list all nutritionists
+POST   /api/v1/admin/nutritionists           → create nutritionist account
+PATCH  /api/v1/admin/nutritionists/:id/status → activate/deactivate
+GET    /api/v1/admin/nutritionists/:id/clients → view nutritionist's client list (read-only)
+
+# Platform statistics
+GET    /api/v1/admin/stats                   → platform-wide counts
+```
+
+---
+
+### 12. File Serving
+**Complexity: Low (infrastructure concern)**
+
+```
+GET    /api/v1/files/:path                   → serve uploaded file (authenticated + authorized)
+```
+
+Authorization rule: User can only access files they own (lab results for own client_id; messages they sent/received). Nutritionists can access their clients' lab results and shared message files.
+
+---
+
+### 13. Health Check
+**Complexity: Trivial**
+
+```
+GET    /health                               → returns 200 OK with version + DB ping result (no auth)
+```
 
 ---
 
 ## Feature Dependencies
 
-Critical ordering constraints based on data model and UX dependencies:
-
 ```
-Authentication (users table)
-├── Client Management (requires users)
-│   ├── Diet Plan Engine (requires clients + food database)
-│   │   ├── Food Logging (requires active plan with meals/options)
-│   │   ├── Medication Tracking (requires prescribed medications in plan)
-│   │   ├── Exercise Tracking (independent, but exercise recommendations live in plan)
-│   │   └── Meal/Medication Reminders (requires plan schedule times)
-│   │
-│   ├── Body Measurements (requires clients, independent of plan)
-│   ├── Weight Tracking (requires clients, independent of plan)
-│   ├── Water Tracking (requires clients; target from plan is optional)
-│   ├── Sleep Tracking (requires clients, fully independent)
-│   ├── Lab Results (requires clients, fully independent)
-│   └── Messaging (requires client-nutritionist relationship)
-│
-├── Food Database (shared resource, no user dependency beyond created_by)
-│   ├── Diet Plan Engine (food items used in meal options)
-│   └── Food Request System (requires food DB + client-nutritionist relationship)
-│
-├── Medication Database (shared resource, parallel to food DB)
-│   └── Medication Prescription (used in diet plan)
-│
-├── Offline Support (requires ALL tracking features to be built first)
-│   ├── Plan Caching (requires plan viewing)
-│   ├── Tracking Queue (requires all log endpoints)
-│   └── Message Caching (requires messaging)
-│
-└── Push Notifications (requires push subscription infrastructure)
-    ├── Message Notifications (requires messaging)
-    ├── Plan Assignment Notification (requires plan creation)
-    ├── Meal Reminders (requires plan with scheduled times)
-    ├── Medication Reminders (requires medication prescriptions)
-    └── Water Reminders (requires water tracking + target)
+Food Database ──────────────────────────────────────────┐
+Medication Database ─────────────────────────────────── │
+Client Registration (by nutritionist) ──────────────── │
+                                                        ▼
+                                              Diet Plan CRUD
+                                                        │
+                          ┌─────────────────────────────┤
+                          │                             │
+                          ▼                             ▼
+                 Daily Tracking APIs           Notification Scheduler
+                 (food/water/sleep/            (meal/medication reminders
+                  exercise/meds/               derived from plan times)
+                  measurements)
+                          │
+                          ▼
+                 Offline Sync (local_id)
+                          │
+                          ▼
+                 Messaging (can reference plan context)
+
+Authentication ──────────────────────────────────────────► EVERYTHING
+
+Food Addition Requests ──► Food Database (on approval)
+                       ──► Push Notification (on status change)
+
+Lab Results Upload ──────► File Storage + Download Endpoint
+
+Web Push Subscribe ──────► Notification Scheduler
+                       ──► Message Send handler
 ```
-
-### Critical Path
-
-The longest dependency chain that gates all subsequent work:
-
-```
-Auth → Food DB → Diet Plan Engine → Food Logging → Offline Food Logging → PWA
-```
-
-This chain spans the entire project. The Diet Plan Engine is the **bottleneck** — it's the most complex feature and blocks both client tracking (food logs depend on plans) and offline support (must cache plans).
-
-### Parallel-Safe Features (after Plan Engine exists)
-
-These features share no data dependencies and can be built concurrently:
-- Water tracking, Sleep tracking, Exercise tracking, Body measurements (all independent tracking)
-- Messaging system (independent of plans)
-- Lab results upload (independent of plans)
-- Food request system (depends only on food DB + relationships)
 
 ---
 
 ## MVP Recommendation
 
-### Prioritize (Phase 1-3 Essentials — must ship before any user touches the product):
+**Build in this order to validate core value quickly:**
 
-1. **Authentication with all 3 roles** — Foundation; nothing works without it
-2. **Food database with Persian search** — Plans can't be built without food items; needs initial seeding
-3. **Diet plan engine with full nesting** — The core value proposition; what nutritionists actually pay for
-4. **Client registration and management** — Nutritionists need to onboard clients before anything else
-5. **Client plan viewing (mobile)** — The single screen clients use most; "what do I eat today?"
+**Phase 1 — Auth + User Foundation**
+1. JWT + OTP authentication (all three roles)
+2. Client registration by nutritionist
+3. RBAC middleware
 
-### Include in First Usable Release (Phase 4-5 — tracking + communication):
+**Phase 2 — Diet Plan Core**
+4. Food database with Persian search
+5. Diet plan CRUD (full nested structure)
+6. Nutritional totals computation
 
-6. **Food logging** — Direct plan adherence tracking; most requested by nutritionists
-7. **Weight & body measurement tracking** — The primary outcomes nutritionists measure
-8. **Water intake tracking** — Simple, high-frequency interaction; builds daily app habit
-9. **Messaging (text + attachments)** — Replaces WhatsApp; critical for adoption
-10. **Push notifications (messages + new plans)** — Without this, messaging fails (users won't poll manually)
+**Phase 3 — Daily Tracking**
+7. All 6 tracking endpoints (food log, water, sleep, exercise, meds, body measurements) with `local_id`
+8. Lab results upload
 
-### Defer (Phase 6 — offline; high value but high complexity):
+**Phase 4 — Communication**
+9. Messaging system (polling-based)
+10. Food addition request workflow
+11. Medication database
 
-11. **Full offline support** — Massive value but requires ALL tracking features to be stable first
-12. **Sleep tracking** — Useful but lower priority than diet adherence metrics
-13. **Exercise tracking** — Useful but lower priority than food/weight tracking
-14. **Medication prescription & tracking** — Differentiator but not blocking initial adoption
-15. **Lab results upload** — Nice-to-have; nutritionists can use messaging to receive lab results initially
-16. **Food request system** — Differentiator but edge case; nutritionists can add foods themselves initially
+**Phase 5 — Engagement**
+12. Web Push notification subscription + triggered events
+13. Scheduled meal/medication reminders
+14. Notification preferences
 
-### Rationale for MVP Ordering
+**Phase 6 — Admin**
+15. Super admin panel (nutritionist management + stats)
 
-The MVP must answer one question: **"Can a nutritionist create a plan and can a client view it?"** If yes, the platform replaces Word documents. Everything else (tracking, messaging, offline) layers on top.
-
-Food logging and weight tracking come immediately after because they create the **feedback loop** that makes the platform sticky. Without tracking, it's a one-way broadcast (nutritionist → client) and provides no advantage over a PDF sent via Telegram.
-
-Messaging must be in the first usable release because if clients need to switch to WhatsApp to ask their nutritionist a question, the platform loses its "single pane of glass" value.
-
-Offline support is deferred not because it's unimportant but because it's **architecturally expensive** and requires all online features to be stable. Building offline sync on top of buggy online features creates compounding problems.
+**Defer to post-launch:**
+- Scheduled reminder cron (complex timezone handling; validate demand first)
+- Platform statistics beyond simple counts
 
 ---
 
-## Feature Prioritization Matrix
+## Persian-Specific API Requirements
 
-| Feature | User Value | Business Value | Complexity | Priority |
-|---------|-----------|---------------|------------|----------|
-| Diet Plan Engine | ★★★★★ | ★★★★★ | High | **P0 — Ship-blocking** |
-| Client Management | ★★★★★ | ★★★★★ | Low | **P0 — Ship-blocking** |
-| Food Database | ★★★★★ | ★★★★★ | Medium | **P0 — Ship-blocking** |
-| Auth (3 roles + OTP) | ★★★★★ | ★★★★★ | Medium | **P0 — Ship-blocking** |
-| Client Plan View | ★★★★★ | ★★★★★ | Medium | **P0 — Ship-blocking** |
-| Food Logging | ★★★★☆ | ★★★★★ | Low | **P1 — First release** |
-| Weight/Body Tracking | ★★★★☆ | ★★★★☆ | Low | **P1 — First release** |
-| Water Tracking | ★★★☆☆ | ★★★★☆ | Low | **P1 — First release** |
-| Messaging | ★★★★★ | ★★★★★ | Medium | **P1 — First release** |
-| Push (messages + plans) | ★★★★☆ | ★★★★★ | Medium | **P1 — First release** |
-| Medication DB & Tracking | ★★★☆☆ | ★★★☆☆ | Medium | **P2 — Second release** |
-| Sleep Tracking | ★★☆☆☆ | ★★☆☆☆ | Low | **P2 — Second release** |
-| Exercise Tracking | ★★☆☆☆ | ★★☆☆☆ | Low | **P2 — Second release** |
-| Lab Results Upload | ★★★☆☆ | ★★☆☆☆ | Medium | **P2 — Second release** |
-| Food Request System | ★★☆☆☆ | ★★★☆☆ | Medium | **P2 — Second release** |
-| Offline Plan Viewing | ★★★★★ | ★★★★☆ | High | **P3 — Polish release** |
-| Offline Tracking Sync | ★★★★☆ | ★★★★☆ | High | **P3 — Polish release** |
-| Offline Messaging | ★★★☆☆ | ★★★☆☆ | High | **P3 — Polish release** |
-| Meal/Med Reminders | ★★★☆☆ | ★★★☆☆ | Medium | **P3 — Polish release** |
-| Super Admin Panel | ★★☆☆☆ | ★★★★★ | Low | **P1 — First release** |
-| Repeating Day Pattern | ★★★☆☆ | ★★☆☆☆ | Medium | **P2 — Second release** |
+| Concern | Requirement | Where It Applies |
+|---------|-------------|-----------------|
+| **Error messages** | All `message` fields in JSON error responses MUST be in Farsi | Every endpoint |
+| **Iranian mobile format** | Validate `09[0-9]{9}` pattern for client mobile numbers | Client registration, OTP send |
+| **Jalali dates** | Backend stores and accepts Gregorian (ISO 8601) dates; frontend handles Jalali display — Assumption #5 | No backend conversion needed |
+| **Asia/Tehran timezone** | All cron/scheduler logic in Tehran local time (UTC+3:30, DST-aware); `TZ=Asia/Tehran` in all containers | Reminder scheduler, OTP TTL, sleep time parsing |
+| **Persian full-text search** | `pg_trgm` extension + GIN index on `foods.name` and `medications.name`; use `similarity()` or `ILIKE '%query%'` — pure trigram works better than `to_tsvector` for Persian since Postgres has no Persian stemmer | Food/medication search |
+| **RTL field length** | Persian strings can be longer in bytes (UTF-8 multibyte); ensure `varchar` lengths account for 3 bytes/char in Persian | `foods.name`, `medications.name`, `meals.title` |
+| **SMS gateway abstraction** | Kavenegar/Melipayamak behind adapter interface; configurable via env vars | OTP sending |
+| **No Gregorian assumption in responses** | Include raw ISO dates in responses, not formatted strings — let frontend format per Jalali | All `date` and `timestamp` fields |
 
 ---
 
-## Feature Complexity Notes
+## Offline Sync: Endpoints Requiring `local_id` Deduplication
 
-### High Complexity Features (warrant extra attention)
+| Table | Endpoint | `local_id` Required | Conflict Strategy |
+|-------|----------|--------------------|--------------------|
+| `food_logs` | `POST /tracking/food-logs` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `water_logs` | `POST /tracking/water` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `sleep_logs` | `POST /tracking/sleep` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `exercise_logs` | `POST /tracking/exercise` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `medication_logs` | `POST /tracking/medications` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `body_measurements` | `POST /tracking/measurements` | ✅ Yes | `ON CONFLICT (client_id, local_id) DO NOTHING` |
+| `messages` | `POST /messages` | ✅ Yes | `ON CONFLICT (sender_id, local_id) DO NOTHING` |
+| All other tables | — | ❌ No | Standard constraint errors |
 
-1. **Diet Plan Engine** — The deeply nested data model (Plan → Days → Meals → Options → Items) creates complexity in CRUD operations, API design (deep fetches), and frontend state management. The plan builder UI is the single most complex frontend component. Expect 3-4 weeks.
+**Response behavior on duplicate `local_id`:** Return `200 OK` with the existing record (not `409 Conflict`). This is critical — the client cannot distinguish "first sync" from "retry after network error."
 
-2. **Offline Sync Manager** — Managing a queue in IndexedDB, handling reconnection, deduplicating via local_id, retrying failures with backoff, and showing sync state is a full feature unto itself. Each tracking type adds a sync concern. Testing offline→online transitions is notoriously difficult.
+---
 
-3. **Service Worker Caching** — Caching the plan tree (which is deeply nested JSON), managing cache invalidation (plan updates), and handling the "stale cache + background refresh" pattern requires careful architecture. ETag/If-Modified-Since negotiation adds backend work.
+## Role Permission Matrix
 
-### Low Complexity Features (good candidates for parallel work)
+| Endpoint Group | super_admin | nutritionist | client |
+|----------------|:-----------:|:------------:|:------:|
+| Auth (all) | ✅ | ✅ | ✅ (OTP only) |
+| Food DB read | ✅ | ✅ | ✅ |
+| Food DB write | ✅ any | ✅ own | ❌ (request only) |
+| Medication DB read | ✅ | ✅ | ✅ |
+| Medication DB write | ✅ any | ✅ own | ❌ |
+| Client management | ❌ | ✅ own clients | ❌ |
+| Diet plan read | ❌ | ✅ own clients | ✅ own plans |
+| Diet plan write | ❌ | ✅ own clients | ❌ |
+| Daily tracking write | ❌ | ❌ (measurements only) | ✅ own data |
+| Daily tracking read | ❌ | ✅ own clients | ✅ own data |
+| Lab results upload | ❌ | ❌ | ✅ own |
+| Lab results download | ❌ | ✅ own clients | ✅ own |
+| Messaging | ❌ | ✅ own clients only | ✅ own nutritionist only |
+| Food requests submit | ❌ | ❌ | ✅ |
+| Food requests review | ❌ | ✅ own clients | ❌ |
+| Push subscribe | ❌ | ✅ | ✅ |
+| Admin: nutritionist mgmt | ✅ | ❌ | ❌ |
+| Admin: stats | ✅ | ❌ | ❌ |
+| Health check | ✅ (no auth) | ✅ (no auth) | ✅ (no auth) |
 
-1. **Water Tracking** — Simple counter + daily total. Few edge cases.
-2. **Sleep Tracking** — One record per day, upsert, simple computation.
-3. **Exercise Tracking** — Free-text log, no plan dependency for the basic version.
-4. **Body Measurements** — CRUD with date, multiple fields per record.
-5. **Lab Results Upload** — Standard file upload + metadata form.
+---
+
+## Complexity Notes by Feature
+
+| Feature | Complexity | Reason |
+|---------|------------|--------|
+| OTP Auth | Medium | Redis TTL, rate limiting, SMS adapter, Iranian number validation |
+| JWT + Refresh | Medium | Redis-backed invalidation, token rotation, 3-role claims |
+| Food DB + pg_trgm | Medium | Persian trigram config, GIN index, search ranking |
+| Diet Plan nested CRUD | **High** | 5-level hierarchy, transactional writes, auto-archive, computed totals at 4 levels |
+| Nutritional totals computation | Medium | Unit conversion, quantity scaling across 4 aggregate levels |
+| Daily tracking × 6 | Low each | Simple CRUD + `ON CONFLICT`; complexity is in the pattern repetition |
+| Offline sync `local_id` | Medium | Database unique constraint design, conflict response semantics |
+| File upload (lab + messages) | Medium | MIME validation, magic byte sniffing, path sanitization, download auth |
+| Polling chat | Medium | Cursor-based pagination, unread count, attachment file handling |
+| Food request workflow | Low | Simple state machine: pending → approved/rejected + side effect |
+| Web Push VAPID | Medium | Key generation, subscription storage, payload construction |
+| Reminder scheduler | **High** | Timezone math (Asia/Tehran DST), diet plan time parsing, goroutine safety, user preference checks |
+| Super admin panel | Low | Simple CRUD with elevated role checks |
+| RBAC middleware | Medium | 3-role JWT, row-level checks (nutritionist→client ownership) at domain service layer |
+| Persian error messages | Low | Message catalog in Farsi; no logic complexity |
 
 ---
 
 ## Sources
 
-- **Competitive platforms (training data, MEDIUM confidence):** Nutrium (nutrium.com), Practice Better (practicebetter.io), Healthie (gethealthie.com), Foodzilla (foodzilla.io), That Clean Life (thatcleanlife.com), Nutritics (nutritics.com)
-- **Consumer tracking apps (training data, MEDIUM confidence):** MyFitnessPal, Cronometer, Lose It!, FatSecret
-- **PRD analysis (HIGH confidence):** Detailed PRD reviewed line-by-line for feature extraction
-- **Technical capabilities (HIGH confidence):** Dexie.js docs via Context7 (offline sync patterns), vite-pwa docs via Context7 (service worker strategies)
-- **Persian market context (LOW confidence):** Based on general knowledge of Iranian tech ecosystem; no primary research conducted
-
-### Confidence Notes
-
-- Table stakes categorization: **MEDIUM** — based on competitive analysis of Western platforms and PRD's own goals/non-goals. No direct user research or Persian market validation available.
-- Complexity estimates: **MEDIUM** — based on architectural analysis of the data model and technology stack. Actual complexity depends on team skill and edge cases discovered during implementation.
-- Anti-features list: **HIGH** — directly sourced from PRD Section 2 (Non-Goals) with additional entries based on domain knowledge.
-- Feature dependencies: **HIGH** — derived directly from the data model foreign key relationships in PRD Section 9.
+- `docs/PRD.md` v1.0 (April 19, 2026) — PRIMARY source, all feature specs derived from here
+- `.planning/PROJECT.md` — Confirmed stack decisions, constraints, and out-of-scope items
+- PostgreSQL documentation on `pg_trgm` — trigram search for non-Latin scripts (HIGH confidence: well-established for Persian)
+- PRD Decision Log §11 — All anti-features traceable to explicit product decisions

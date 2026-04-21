@@ -1,1023 +1,1142 @@
-# Architecture Patterns
+# Architecture Patterns — NutriTrack Go Backend
 
-**Domain:** Nutrition Management PWA (Nutritionist–Client Platform)
-**Researched:** 2025-07-18
-**Confidence:** HIGH — Stack is well-understood (Go/Gin, PostgreSQL, Nuxt 4), PRD provides exhaustive data model and feature specs.
-
----
-
-## System Overview
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   Client Devices (Mobile)                     │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Nuxt 4 PWA (app/ directory)               │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌────────────────────────┐ │  │
-│  │  │  Pinia   │ │Composable│ │  Service Worker        │ │  │
-│  │  │  Stores  │ │  Layer   │ │  (@vite-pwa/nuxt)      │ │  │
-│  │  └────┬─────┘ └────┬─────┘ └─────────┬──────────────┘ │  │
-│  │       │             │                 │                │  │
-│  │  ┌────▼─────────────▼─────┐  ┌───────▼──────────────┐ │  │
-│  │  │   ofetch / useFetch    │  │    IndexedDB          │ │  │
-│  │  │   (API Client Layer)   │  │    (Dexie.js)         │ │  │
-│  │  │   + Offline Queue      │  │    + Sync Queue       │ │  │
-│  │  └────────────┬───────────┘  └───────────────────────┘ │  │
-│  └───────────────┼───────────────────────────────────────┘  │
-└──────────────────┼──────────────────────────────────────────┘
-                   │ HTTPS (REST JSON)
-                   ▼
-┌──────────────────────────────────────────────────────────────┐
-│              Traefik Reverse Proxy (Docker)                   │
-│              TLS termination (Let's Encrypt)                  │
-│              Rate limiting, CORS, HTTPS redirect              │
-└──────────────────┬───────────────────────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Go API Server (Gin)                        │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │                   Middleware Chain                       │ │
-│  │  CORS → Logger → Recovery → RateLimit → JWT Auth        │ │
-│  │  → Role Guard → Request Validation                      │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ┌───────────────────┐  ┌───────────────────────────────┐   │
-│  │   Route Groups    │  │    Background Workers         │   │
-│  │                   │  │                               │   │
-│  │  /api/auth/*      │  │  • Push Notification Sender   │   │
-│  │  /api/admin/*     │  │  • Reminder Scheduler         │   │
-│  │  /api/nutritionist│  │    (meal/med/water times)     │   │
-│  │  /api/client/*    │  │  • Stale OTP Cleanup          │   │
-│  │  /api/foods/*     │  │                               │   │
-│  │  /api/medications │  └───────────────────────────────┘   │
-│  │  /api/messages/*  │                                      │
-│  │  /api/push/*      │                                      │
-│  └────────┬──────────┘                                      │
-│           │                                                  │
-│  ┌────────▼──────────┐                                      │
-│  │   Handler Layer   │  ← HTTP concern: parse, validate,    │
-│  │   (internal/      │     serialize, status codes           │
-│  │    handler/)      │                                      │
-│  └────────┬──────────┘                                      │
-│           │                                                  │
-│  ┌────────▼──────────┐                                      │
-│  │   Service Layer   │  ← Business logic: authorization,    │
-│  │   (internal/      │     computation, orchestration,       │
-│  │    service/)      │     domain rules                     │
-│  └────────┬──────────┘                                      │
-│           │                                                  │
-│  ┌────────▼──────────┐                                      │
-│  │  Repository Layer │  ← Data access: SQL queries,         │
-│  │  (internal/       │     batch loading, pgx/pgxpool       │
-│  │   repository/)    │                                      │
-│  └────────┬──────────┘                                      │
-│           │                                                  │
-└───────────┼──────────────────────────────────────────────────┘
-            │
-     ┌──────┴───────┐
-     │              │
-     ▼              ▼
-┌──────────┐  ┌───────────┐
-│PostgreSQL│  │   File    │
-│  16      │  │  Storage  │
-│          │  │ /data/    │
-│ pg_trgm  │  │ uploads/  │
-│ UUID ext │  │           │
-└──────────┘  └───────────┘
-```
+**Domain:** Nutrition management platform (nutritionist ↔ client)
+**Researched:** 2026-04-21
+**Confidence:** HIGH (DDD Go patterns are well-established; specifics cross-checked against project constraints)
 
 ---
 
-## Component Responsibilities
+## Recommended Architecture: Layered DDD
 
-### 1. Traefik Reverse Proxy
+Four concentric layers with a strict **inward-only dependency rule**: outer layers import inner layers, never the reverse.
 
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | TLS termination, HTTPS redirect, routing to Go API and Nuxt SSR, basic rate limiting |
-| **Communicates with** | Go API Server, Nuxt SSR server (if SSR mode), Let's Encrypt ACME |
-| **Boundary** | External world ↔ Internal Docker network. No application logic. |
-| **Key config** | Auto-discovery via Docker labels; wildcard routing `Host(...)` rules |
+```
+┌─────────────────────────────────────────────────────────┐
+│  Interface Layer      (HTTP handlers, middleware, DTOs)  │
+│  internal/interface/                                     │
+├─────────────────────────────────────────────────────────┤
+│  Application Layer    (use cases, commands, queries)     │
+│  internal/application/                                   │
+├─────────────────────────────────────────────────────────┤
+│  Domain Layer         (entities, value objects, repos)   │
+│  internal/domain/                                        │
+├─────────────────────────────────────────────────────────┤
+│  Infrastructure Layer (sqlc, Redis, SMS, push, files)    │
+│  internal/infrastructure/                                │
+└─────────────────────────────────────────────────────────┘
+```
 
-### 2. Go API Server (Gin)
-
-The backend is the largest component. It follows a **3-layer architecture** (Handler → Service → Repository) which is the idiomatic Go pattern for domain-driven web services.
-
-#### 2a. Handler Layer (`internal/handler/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | HTTP concerns only: parse request bodies (Gin `ShouldBindJSON`), extract path/query params, call service methods, serialize responses, set HTTP status codes |
-| **Communicates with** | Service layer (calls), Gin context (reads/writes) |
-| **Boundary** | Knows HTTP, knows JSON. Does NOT contain business logic or SQL. |
-| **Key pattern** | One file per domain: `auth_handler.go`, `food_handler.go`, `plan_handler.go`, `tracking_handler.go`, `message_handler.go` |
-
-#### 2b. Service Layer (`internal/service/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Business rules, authorization enforcement (nutritionist owns client), domain computations (nutritional totals), workflow orchestration (archive old plan → create new plan) |
-| **Communicates with** | Repository layer (calls for data), other services (e.g., PlanService calls FoodRepository for nutrition data), SMS adapter, Push notification adapter |
-| **Boundary** | Knows domain models. Does NOT know HTTP or SQL. Receives and returns domain structs. |
-| **Key pattern** | Interfaces for external dependencies (SMS, Push) enabling mock testing |
-
-#### 2c. Repository Layer (`internal/repository/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | All SQL queries via pgx/pgxpool. Parameterized queries only. Translates between database rows and domain models. |
-| **Communicates with** | PostgreSQL (via pgxpool connection) |
-| **Boundary** | Knows SQL and pgx. Returns domain model structs. Does NOT know HTTP or business rules. |
-| **Key pattern** | One file per aggregate root: `user_repo.go`, `food_repo.go`, `plan_repo.go` (includes days/meals/options/items), `tracking_repo.go`, `message_repo.go` |
-
-#### 2d. Model Layer (`internal/model/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Domain struct definitions, enums, request/response DTOs |
-| **Communicates with** | Referenced by all layers |
-| **Key pattern** | Separate domain models from API DTOs. A `DietPlan` domain model has nested `PlanDay` slices; a `CreatePlanRequest` DTO is a flat input structure. |
-
-#### 2e. Middleware Layer (`internal/middleware/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Cross-cutting concerns: JWT extraction/validation, role-based access control, request logging, rate limiting, CORS |
-| **Communicates with** | Gin router (injected via `Use()`), JWT/token service |
-| **Key pattern** | Gin route groups with stacked middleware: public group (no auth), admin group (JWT + admin role), nutritionist group (JWT + nutritionist role), client group (JWT + client role) |
-
-#### 2f. Background Workers
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Scheduled tasks that don't run in request context: reminder notifications (meal times, medication times, water), OTP cleanup, push notification delivery |
-| **Communicates with** | Repository layer (reads schedules), Push adapter (sends notifications) |
-| **Key pattern** | Go goroutines launched at server startup with `context.Context` for graceful shutdown. Minute-tick loop for reminder checks. |
-
-### 3. PostgreSQL 16
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Primary persistent data store. 20+ tables. Full-text search via pg_trgm. |
-| **Communicates with** | Go API Server only (via pgxpool TCP connection within Docker network) |
-| **Boundary** | No direct external access. All access through repository layer. |
-| **Key extensions** | `pg_trgm` (Persian fuzzy text search), `uuid-ossp` or `gen_random_uuid()` (UUID PKs) |
-| **Key constraints** | Partial unique index on `diet_plans(client_id) WHERE status='active'` (one active plan per client). Foreign keys cascade on plan deletion. `local_id` unique constraints for offline dedup. |
-
-### 4. Nuxt 4 PWA Frontend
-
-The frontend runs as a mobile-first SPA/SSR hybrid with PWA capabilities.
-
-#### 4a. Pages & Layouts (`app/pages/`, `app/layouts/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Route-based views, role-specific layouts (admin, nutritionist, client) with bottom navigation |
-| **Key pattern** | File-based routing. Three layout files: `admin.vue`, `nutritionist.vue`, `client.vue`. Route middleware redirects based on JWT role. |
-
-#### 4b. Composables (`app/composables/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Reusable stateful logic: `useAuth()`, `useApi()` (ofetch wrapper with auth headers + offline queue), `useSyncManager()`, `useShamsiDate()`, `usePlanDays()`, `useMealBuilder()`, `useNutritionCalc()`, `useMessagePolling()` |
-| **Communicates with** | Pinia stores, Dexie.js, ofetch/useFetch |
-| **Key pattern** | Composables are the bridge between components and data. They manage side effects (API calls, IndexedDB reads) and expose reactive state. |
-
-#### 4c. Pinia Stores (`app/stores/` or `app/composables/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Client-side state management per domain: `authStore`, `planStore`, `foodStore`, `waterStore`, `sleepStore`, `exerciseStore`, `medicationStore`, `measurementStore`, `messageStore` |
-| **Communicates with** | API composables, Dexie.js (for offline data) |
-| **Key pattern** | Each store follows: `state` (reactive data), `actions` (fetch from API or IndexedDB, submit), `getters` (computed summaries like daily totals). |
-
-#### 4d. Service Worker + Offline Layer
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Cache static assets (cache-first), cache API responses (network-first with stale fallback), intercept failed POST requests and queue to IndexedDB |
-| **Communicates with** | Dexie.js (IndexedDB), browser Cache API, Push API |
-| **Key pattern** | `@vite-pwa/nuxt` configures Workbox-based service worker. Custom sync logic in `useSyncManager()` composable. Background Sync API registration with polling fallback. |
-
-#### 4e. Dexie.js (IndexedDB)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Client-side persistent storage for offline: active diet plan cache, pending tracking logs (syncQueue), cached messages, plan-related food items |
-| **Communicates with** | Composables/stores read/write; sync manager drains queue to API |
-| **Schema** | Tables: `activePlan`, `foodLogs`, `waterLogs`, `sleepLogs`, `exerciseLogs`, `medicationLogs`, `bodyMeasurements`, `messages`, `syncQueue` |
-
-### 5. File Storage (`/data/uploads/`)
-
-| Aspect | Detail |
-|--------|--------|
-| **Responsibility** | Persistent storage for user-uploaded files (lab results, message attachments) |
-| **Communicates with** | Go API server reads/writes; served through authenticated download endpoints (never directly exposed) |
-| **Structure** | `/data/uploads/lab-results/{client_id}/{uuid}.{ext}`, `/data/uploads/messages/{conversation_id}/{uuid}.{ext}` |
+**Golden rule:** `domain` imports nothing from this project. `application` imports only `domain`. `infrastructure` implements `domain` interfaces. `interface` wires them together via DI.
 
 ---
 
-## Recommended Project Structure
-
-### Go Backend
+## Complete Folder Structure
 
 ```
-nutritrack-api/
+nutritrack/
 ├── cmd/
-│   └── server/
-│       └── main.go                    # Entry point: init config, DB, router, start server
+│   └── api/
+│       └── main.go                    # Entry point: wire all layers, start server
+│
 ├── internal/
-│   ├── config/
-│   │   └── config.go                  # Env-based config with validation
-│   ├── handler/                       # HTTP handlers (one per domain)
-│   │   ├── auth_handler.go            # Login, OTP request/verify, refresh
-│   │   ├── admin_handler.go           # Nutritionist CRUD, stats
-│   │   ├── food_handler.go            # Food CRUD, search, categories
-│   │   ├── medication_handler.go      # Medication CRUD
-│   │   ├── plan_handler.go            # Diet plan CRUD, days/meals/options
-│   │   ├── tracking_handler.go        # All 6 tracking logs (food, water, sleep, exercise, med, body)
-│   │   ├── message_handler.go         # Send, list, poll, read receipts
-│   │   ├── food_request_handler.go    # Client requests, nutritionist approval
-│   │   ├── lab_result_handler.go      # Upload, list, download
-│   │   ├── push_handler.go            # Subscribe, unsubscribe, preferences
-│   │   └── upload_handler.go          # File upload utility (shared by messages, labs)
-│   ├── service/                       # Business logic (one per domain)
-│   │   ├── auth_service.go            # JWT issue/refresh, OTP generate/verify, password hash
-│   │   ├── user_service.go            # User CRUD, role management
-│   │   ├── food_service.go            # Food CRUD with authorization
-│   │   ├── medication_service.go
-│   │   ├── plan_service.go            # Plan lifecycle, archive, nutrition compute
-│   │   ├── tracking_service.go        # All tracking with local_id dedup
-│   │   ├── message_service.go         # Authorization (own clients only), unread counts
-│   │   ├── food_request_service.go    # Request workflow, approval → food creation
-│   │   ├── notification_service.go    # Push send, reminder scheduling logic
-│   │   └── file_service.go            # File validation, storage, path generation
-│   ├── repository/                    # Data access (one per aggregate)
-│   │   ├── user_repo.go
-│   │   ├── food_repo.go               # Includes pg_trgm search queries
-│   │   ├── medication_repo.go
-│   │   ├── plan_repo.go               # Complex: batch loads plan tree in 2-3 queries
-│   │   ├── tracking_repo.go           # Generic pattern for all 6 log tables
-│   │   ├── message_repo.go
-│   │   ├── food_request_repo.go
-│   │   ├── lab_result_repo.go
-│   │   ├── push_repo.go               # Push subscriptions, notification prefs
-│   │   └── otp_repo.go                # OTP codes with TTL
-│   ├── model/                         # Domain models + DTOs
-│   │   ├── user.go
-│   │   ├── food.go
-│   │   ├── medication.go
-│   │   ├── plan.go                    # DietPlan, PlanDay, Meal, MealOption, MealOptionItem
-│   │   ├── tracking.go               # All log types
-│   │   ├── message.go
-│   │   ├── notification.go
-│   │   └── dto/                       # Request/response DTOs (separate from domain)
-│   │       ├── auth_dto.go
-│   │       ├── food_dto.go
-│   │       ├── plan_dto.go
-│   │       └── ...
-│   ├── middleware/
-│   │   ├── auth.go                    # JWT extraction + validation
-│   │   ├── role_guard.go              # Role-based route protection
-│   │   ├── rate_limit.go              # Sliding window rate limiter
-│   │   ├── logger.go                  # Structured JSON logging
-│   │   └── cors.go
-│   └── worker/                        # Background goroutines
-│       ├── reminder_worker.go         # Meal/medication/water reminder scheduler
-│       └── cleanup_worker.go          # Expired OTP cleanup
-├── pkg/                               # Shared utilities (no domain knowledge)
-│   ├── sms/                           # SMS adapter interface + implementations
-│   │   ├── sms.go                     # interface Sender { Send(phone, message) error }
-│   │   ├── mock.go                    # Logs to stdout
-│   │   └── kavenegar.go               # Production SMS gateway
-│   ├── push/                          # Web Push adapter
-│   │   └── webpush.go                 # VAPID key management, push sending
-│   ├── jwt/                           # JWT utilities
-│   │   └── jwt.go
-│   └── validator/                     # Custom validation helpers
-│       └── iranian_mobile.go          # Iranian phone format validation
-├── migrations/                        # SQL migration files (golang-migrate format)
-│   ├── 001_users.up.sql
-│   ├── 001_users.down.sql
-│   ├── 002_foods_medications.up.sql
-│   ├── 003_diet_plans.up.sql
-│   ├── 004_tracking_tables.up.sql
-│   ├── 005_messages_requests_labs.up.sql
-│   └── 006_push_notifications.up.sql
-├── Dockerfile                         # Multi-stage build
-├── docker-compose.yml
-├── .env.example
-└── go.mod
-```
-
-### Nuxt 4 Frontend
-
-```
-nutritrack-web/
-├── app/
-│   ├── assets/
-│   │   ├── css/
-│   │   │   └── main.css               # Tailwind + RTL + Persian fonts
-│   │   └── fonts/
-│   │       └── Vazirmatn/             # Persian font files
-│   ├── components/
-│   │   ├── ui/                        # Generic UI components
-│   │   │   ├── AppButton.vue
-│   │   │   ├── AppInput.vue
-│   │   │   ├── AppModal.vue
-│   │   │   ├── AppBottomSheet.vue
-│   │   │   ├── PaginatedList.vue
-│   │   │   ├── SearchInput.vue        # Persian-aware search with debounce
-│   │   │   ├── LoadingSpinner.vue
-│   │   │   └── EmptyState.vue
-│   │   ├── nutrition/                 # Domain-specific shared components
-│   │   │   ├── NutritionLabel.vue     # Macro display card (cal/protein/carb/fat)
-│   │   │   ├── FoodPicker.vue         # Search + select food item modal
-│   │   │   ├── CategoryChip.vue
-│   │   │   └── MealCard.vue
+│   │
+│   ├── domain/                        # ── DOMAIN LAYER ──────────────────────────
+│   │   │                              # Zero external dependencies
+│   │   ├── user/
+│   │   │   ├── entity.go              # User, Nutritionist, Client (embedded)
+│   │   │   ├── value_objects.go       # Mobile, Email, Role, Gender, HeightCM
+│   │   │   ├── repository.go          # UserRepository interface
+│   │   │   ├── service.go             # UserDomainService (cross-entity rules)
+│   │   │   └── errors.go              # ErrUserNotFound, ErrMobileAlreadyTaken…
+│   │   │
+│   │   ├── food/
+│   │   │   ├── entity.go              # Food aggregate root
+│   │   │   ├── value_objects.go       # NutritionalValues, MeasurementUnit, Category
+│   │   │   ├── repository.go          # FoodRepository interface
+│   │   │   └── errors.go
+│   │   │
+│   │   ├── medication/
+│   │   │   ├── entity.go              # Medication aggregate root
+│   │   │   ├── value_objects.go       # MedicationForm, DosageUnit
+│   │   │   ├── repository.go          # MedicationRepository interface
+│   │   │   └── errors.go
+│   │   │
+│   │   ├── dietplan/
+│   │   │   ├── entity.go              # DietPlan aggregate root
+│   │   │   ├── plan_day.go            # PlanDay entity (child of DietPlan)
+│   │   │   ├── meal.go                # Meal entity
+│   │   │   ├── meal_option.go         # MealOption entity
+│   │   │   ├── meal_option_item.go    # MealOptionItem entity
+│   │   │   ├── exercise_rec.go        # ExerciseRecommendation entity
+│   │   │   ├── prescribed_med.go      # PrescribedMedication entity
+│   │   │   ├── value_objects.go       # NutritionalTotals, PlanStatus, DailyRange
+│   │   │   ├── service.go             # DietPlanDomainService (archive rules, totals)
+│   │   │   ├── repository.go          # DietPlanRepository interface
+│   │   │   └── errors.go
+│   │   │
 │   │   ├── tracking/
-│   │   │   ├── WaterProgress.vue      # Water glass fill animation
-│   │   │   ├── MedicationChecklist.vue
-│   │   │   ├── WeightChart.vue        # Chart.js line chart
-│   │   │   └── DailySummaryCard.vue
-│   │   ├── chat/
-│   │   │   ├── ChatBubble.vue
-│   │   │   ├── ChatInput.vue
-│   │   │   └── AttachmentPreview.vue
-│   │   └── sync/
-│   │       └── SyncStatusIndicator.vue # "Syncing..." / "All synced" / "X pending"
-│   ├── composables/
-│   │   ├── useApi.ts                  # ofetch wrapper: auth headers, 401 refresh, offline queue
-│   │   ├── useAuth.ts                 # Login, logout, token management
-│   │   ├── useSyncManager.ts          # Offline queue processing, retry logic
-│   │   ├── useOfflineDetect.ts        # navigator.onLine + event listeners
-│   │   ├── useShamsiDate.ts           # Jalali date formatting (jalaali-js)
-│   │   ├── usePlanDays.ts             # Day navigation for diet plan view
-│   │   ├── useMealBuilder.ts          # Plan builder orchestration (nutritionist)
-│   │   ├── useNutritionCalc.ts        # Client-side nutrition sum computation
-│   │   ├── useMessagePolling.ts       # 10s interval polling, start/stop lifecycle
-│   │   └── usePersianNumbers.ts       # Latin → Persian numeral conversion
-│   ├── layouts/
-│   │   ├── admin.vue                  # Super admin layout
-│   │   ├── nutritionist.vue           # Nutritionist layout with bottom nav
-│   │   ├── client.vue                 # Client layout with bottom nav
-│   │   └── auth.vue                   # Login/registration pages (no nav)
-│   ├── middleware/
-│   │   ├── auth.global.ts             # Redirect unauthenticated to login
-│   │   └── role-guard.ts              # Check JWT role matches route prefix
-│   ├── pages/
+│   │   │   ├── food_log.go            # FoodLog entity
+│   │   │   ├── water_log.go           # WaterLog entity
+│   │   │   ├── sleep_log.go           # SleepLog entity
+│   │   │   ├── exercise_log.go        # ExerciseLog entity
+│   │   │   ├── medication_log.go      # MedicationLog entity
+│   │   │   ├── measurement.go         # BodyMeasurement entity
+│   │   │   ├── value_objects.go       # SleepQuality, MeasurementFields
+│   │   │   ├── repository.go          # TrackingRepository interface (one per type)
+│   │   │   └── errors.go
+│   │   │
+│   │   ├── labresult/
+│   │   │   ├── entity.go              # LabResult aggregate root
+│   │   │   ├── value_objects.go       # LabResultType, FileRef
+│   │   │   ├── repository.go          # LabResultRepository interface
+│   │   │   └── errors.go
+│   │   │
+│   │   ├── message/
+│   │   │   ├── entity.go              # Message aggregate root
+│   │   │   ├── value_objects.go       # AttachmentType
+│   │   │   ├── repository.go          # MessageRepository interface
+│   │   │   └── errors.go
+│   │   │
+│   │   ├── foodrequest/
+│   │   │   ├── entity.go              # FoodRequest aggregate root
+│   │   │   ├── value_objects.go       # RequestStatus
+│   │   │   ├── repository.go          # FoodRequestRepository interface
+│   │   │   └── errors.go
+│   │   │
+│   │   └── shared/
+│   │       ├── id.go                  # NewID() → uuid.UUID helper
+│   │       ├── pagination.go          # Page, PageSize, Cursor value objects
+│   │       ├── timeutil.go            # TehranLocation(), TodayTehran()
+│   │       └── errors.go              # DomainError base type, ErrNotFound sentinel
+│   │
+│   ├── application/                   # ── APPLICATION LAYER ─────────────────────
+│   │   │                              # Imports: domain only
 │   │   ├── auth/
-│   │   │   ├── login.vue              # Role selector → email/password or OTP
-│   │   │   └── otp.vue                # OTP input for clients
+│   │   │   ├── commands.go            # LoginByOTPCmd, RefreshTokenCmd, LogoutCmd
+│   │   │   ├── queries.go             # (none — auth is command-heavy)
+│   │   │   ├── service.go             # AuthAppService
+│   │   │   └── dto.go                 # TokenPairDTO, OTPSentDTO
+│   │   │
+│   │   ├── user/
+│   │   │   ├── commands.go            # CreateClientCmd, UpdateClientCmd, DeactivateCmd
+│   │   │   ├── queries.go             # GetClientQuery, ListClientsQuery
+│   │   │   ├── service.go             # UserAppService
+│   │   │   └── dto.go                 # ClientProfileDTO, ClientListItemDTO
+│   │   │
+│   │   ├── food/
+│   │   │   ├── commands.go            # CreateFoodCmd, UpdateFoodCmd, DeleteFoodCmd
+│   │   │   ├── queries.go             # SearchFoodsQuery, GetFoodQuery
+│   │   │   ├── service.go             # FoodAppService
+│   │   │   └── dto.go                 # FoodDTO, FoodListDTO
+│   │   │
+│   │   ├── medication/
+│   │   │   ├── commands.go            # CreateMedicationCmd, UpdateMedicationCmd
+│   │   │   ├── queries.go             # ListMedicationsQuery, GetMedicationQuery
+│   │   │   ├── service.go             # MedicationAppService
+│   │   │   └── dto.go                 # MedicationDTO
+│   │   │
+│   │   ├── dietplan/
+│   │   │   ├── commands.go            # CreateDietPlanCmd, AddPlanDayCmd, AddMealCmd
+│   │   │   │                          # AddMealOptionCmd, AddMealOptionItemCmd
+│   │   │   │                          # AddExerciseRecCmd, PrescribeMedCmd
+│   │   │   ├── queries.go             # GetActivePlanQuery, GetPlanByIDQuery, ListPlansQuery
+│   │   │   ├── service.go             # DietPlanAppService
+│   │   │   └── dto.go                 # DietPlanDTO, PlanDayDTO, MealDTO, etc.
+│   │   │
+│   │   ├── tracking/
+│   │   │   ├── commands.go            # LogFoodCmd, LogWaterCmd, LogSleepCmd
+│   │   │   │                          # LogExerciseCmd, LogMedicationCmd, RecordMeasurementCmd
+│   │   │   ├── queries.go             # GetDailyLogsQuery, GetHistoryQuery
+│   │   │   ├── service.go             # TrackingAppService
+│   │   │   └── dto.go                 # DailyTrackingSummaryDTO, HistoryDTO
+│   │   │
+│   │   ├── labresult/
+│   │   │   ├── commands.go            # UploadLabResultCmd, DeleteLabResultCmd
+│   │   │   ├── queries.go             # ListLabResultsQuery
+│   │   │   ├── service.go             # LabResultAppService
+│   │   │   └── dto.go                 # LabResultDTO
+│   │   │
+│   │   ├── message/
+│   │   │   ├── commands.go            # SendMessageCmd
+│   │   │   ├── queries.go             # GetConversationQuery, GetUnreadCountQuery
+│   │   │   ├── service.go             # MessageAppService
+│   │   │   └── dto.go                 # MessageDTO, ConversationDTO
+│   │   │
+│   │   ├── foodrequest/
+│   │   │   ├── commands.go            # SubmitFoodRequestCmd, ApproveRequestCmd, RejectRequestCmd
+│   │   │   ├── queries.go             # ListPendingRequestsQuery
+│   │   │   ├── service.go             # FoodRequestAppService
+│   │   │   └── dto.go                 # FoodRequestDTO
+│   │   │
 │   │   ├── admin/
-│   │   │   ├── index.vue              # Dashboard with stats
-│   │   │   ├── nutritionists.vue      # Nutritionist management
-│   │   │   ├── foods.vue              # Food database
-│   │   │   └── medications.vue        # Medication database
-│   │   ├── nutritionist/
-│   │   │   ├── index.vue              # Client list
-│   │   │   ├── clients/
-│   │   │   │   └── [id].vue           # Client profile with tabs
-│   │   │   ├── plans/
-│   │   │   │   ├── create.vue         # Diet plan builder
-│   │   │   │   └── [id].vue           # Plan detail/edit
-│   │   │   ├── foods.vue              # Food database
-│   │   │   ├── medications.vue
-│   │   │   ├── messages.vue           # Conversation list
-│   │   │   ├── messages/
-│   │   │   │   └── [clientId].vue     # Chat with specific client
-│   │   │   └── food-requests.vue      # Pending requests
-│   │   └── client/
-│   │       ├── index.vue              # Daily dashboard (home screen)
-│   │       ├── plan.vue               # Active diet plan view
-│   │       ├── tracking/
-│   │       │   ├── food.vue           # Food log
-│   │       │   ├── water.vue          # Water tracker
-│   │       │   ├── sleep.vue
-│   │       │   ├── exercise.vue
-│   │       │   ├── medication.vue     # Medication checklist
-│   │       │   └── measurements.vue   # Weight + body measurements
-│   │       ├── messages.vue           # Chat with nutritionist
-│   │       ├── lab-results.vue        # Upload and list
-│   │       └── settings.vue           # Notification preferences
-│   ├── plugins/
-│   │   ├── dexie.client.ts            # Initialize Dexie DB (client-only)
-│   │   └── pwa.client.ts              # PWA registration and update prompt
-│   ├── stores/                        # Pinia stores
-│   │   ├── auth.ts
-│   │   ├── plan.ts
-│   │   ├── food.ts
-│   │   ├── tracking.ts               # Composite store for all tracking types
-│   │   └── message.ts
-│   ├── utils/
-│   │   └── constants.ts               # Measurement units, categories, enums (mirrors Go)
-│   ├── app.vue                        # Root component
-│   └── app.config.ts
-├── shared/
-│   ├── types/
-│   │   ├── api.ts                     # API response types
-│   │   ├── food.ts                    # Food, Category, MeasurementUnit
-│   │   ├── plan.ts                    # DietPlan, PlanDay, Meal, MealOption, MealOptionItem
-│   │   ├── tracking.ts               # All log types
-│   │   └── user.ts
-│   └── utils/
-│       └── nutrition.ts               # Shared nutrition calculation (isomorphic)
-├── server/                            # Nuxt server (minimal — Go is the real API)
-│   └── api/                           # Only if SSR proxy needed; otherwise empty
-├── public/
-│   ├── icons/                         # PWA icons (multiple sizes)
-│   └── manifest.webmanifest
-├── nuxt.config.ts                     # Tailwind, PWA, RTL, API proxy config
-├── tailwind.config.ts                 # RTL plugin, Persian font, mobile-first
+│   │   │   ├── commands.go            # CreateNutritionistCmd, ToggleNutritionistCmd
+│   │   │   ├── queries.go             # ListNutritionistsQuery, PlatformStatsQuery
+│   │   │   ├── service.go             # AdminAppService
+│   │   │   └── dto.go                 # NutritionistDTO, PlatformStatsDTO
+│   │   │
+│   │   └── ports/                     # Driven ports (interfaces used by application)
+│   │       ├── sms.go                 # SMSSender interface
+│   │       ├── push.go                # PushNotifier interface
+│   │       ├── storage.go             # FileStorage interface
+│   │       ├── token.go               # TokenManager interface (JWT issue/verify)
+│   │       └── otp.go                 # OTPStore interface (Redis-backed TTL store)
+│   │
+│   ├── infrastructure/                # ── INFRASTRUCTURE LAYER ──────────────────
+│   │   │                              # Implements domain repo interfaces + app ports
+│   │   ├── postgres/
+│   │   │   ├── db.go                  # *sql.DB / pgxpool setup, connection string
+│   │   │   └── migrations/            # golang-migrate SQL files (also at root /migrations)
+│   │   │
+│   │   ├── sqlc/                      # Generated code lives here (DO NOT EDIT)
+│   │   │   ├── db.go                  # sqlc boilerplate
+│   │   │   ├── models.go              # Generated DB row structs
+│   │   │   ├── querier.go             # Generated interface
+│   │   │   └── *.sql.go               # Generated query implementations
+│   │   │
+│   │   ├── repository/                # Adapters: sqlc → domain repository interfaces
+│   │   │   ├── user_repo.go           # Implements domain/user.UserRepository
+│   │   │   ├── food_repo.go           # Implements domain/food.FoodRepository
+│   │   │   ├── medication_repo.go
+│   │   │   ├── dietplan_repo.go       # Implements domain/dietplan.DietPlanRepository
+│   │   │   ├── tracking_repo.go       # Implements all tracking repo interfaces
+│   │   │   ├── labresult_repo.go
+│   │   │   ├── message_repo.go
+│   │   │   └── foodrequest_repo.go
+│   │   │
+│   │   ├── redis/
+│   │   │   ├── client.go              # go-redis client setup
+│   │   │   ├── otp_store.go           # Implements application/ports.OTPStore
+│   │   │   ├── token_store.go         # Refresh token blacklist / session store
+│   │   │   └── rate_limiter.go        # Sliding window rate limit (OTP, API)
+│   │   │
+│   │   ├── sms/
+│   │   │   ├── adapter.go             # Implements application/ports.SMSSender
+│   │   │   ├── kavenegar.go           # Kavenegar concrete provider
+│   │   │   └── melipayamak.go         # Melipayamak concrete provider (optional)
+│   │   │
+│   │   ├── push/
+│   │   │   ├── adapter.go             # Implements application/ports.PushNotifier
+│   │   │   └── webpush.go             # github.com/SherClockHolmes/webpush-go wrapper
+│   │   │
+│   │   ├── storage/
+│   │   │   ├── adapter.go             # Implements application/ports.FileStorage
+│   │   │   └── local.go               # Local filesystem: /data/uploads/{type}/{uuid}.ext
+│   │   │
+│   │   └── jwt/
+│   │       ├── manager.go             # Implements application/ports.TokenManager
+│   │       └── claims.go              # Custom JWT claims (user_id, role, jti)
+│   │
+│   └── interface/                     # ── INTERFACE LAYER ────────────────────────
+│       │                              # Imports: application layer only
+│       ├── http/
+│       │   ├── server.go              # gin.Engine setup, route registration
+│       │   ├── middleware/
+│       │   │   ├── auth.go            # JWT extraction + validation, ctx injection
+│       │   │   ├── role.go            # RequireRole(roles...) guard
+│       │   │   ├── logging.go         # Structured request/response logging (zerolog)
+│       │   │   ├── ratelimit.go       # Per-IP + per-user rate limiting via Redis
+│       │   │   ├── cors.go            # CORS for PWA origin
+│       │   │   ├── recovery.go        # Panic recovery → 500 with Persian message
+│       │   │   └── requestid.go       # X-Request-ID injection
+│       │   │
+│       │   ├── handler/
+│       │   │   ├── auth.go            # POST /auth/otp/send, POST /auth/otp/verify
+│       │   │   │                      # POST /auth/login, POST /auth/refresh, POST /auth/logout
+│       │   │   ├── user.go            # Nutritionist client management endpoints
+│       │   │   ├── food.go            # CRUD + search for foods
+│       │   │   ├── medication.go      # CRUD for medications
+│       │   │   ├── dietplan.go        # Diet plan builder endpoints
+│       │   │   ├── tracking.go        # All client tracking log endpoints
+│       │   │   ├── labresult.go       # Lab result upload/list
+│       │   │   ├── message.go         # Send/poll messages, unread count
+│       │   │   ├── foodrequest.go     # Submit / approve / reject food requests
+│       │   │   ├── notification.go    # Push subscription registration
+│       │   │   └── admin.go           # Super admin nutritionist management
+│       │   │
+│       │   └── dto/
+│       │       ├── request/           # Inbound JSON binding structs + validation tags
+│       │       │   ├── auth.go        # SendOTPRequest, VerifyOTPRequest, LoginRequest
+│       │       │   ├── food.go        # CreateFoodRequest, UpdateFoodRequest, SearchFoodRequest
+│       │       │   ├── dietplan.go    # CreatePlanRequest, AddDayRequest, …
+│       │       │   └── tracking.go    # LogFoodRequest, LogWaterRequest, …
+│       │       └── response/          # Outbound JSON structs
+│       │           ├── envelope.go    # APIResponse{data, message, errors, meta}
+│       │           ├── error.go       # ErrorResponse{code, message(Persian), details}
+│       │           └── pagination.go  # PaginatedResponse{items, total, page, page_size}
+│       │
+│       └── bootstrap/
+│           └── wire.go                # Manual DI wiring: build all services, inject deps
+│
+├── migrations/                        # golang-migrate versioned SQL files
+│   ├── 000001_create_users.up.sql
+│   ├── 000001_create_users.down.sql
+│   ├── 000002_create_foods.up.sql
+│   ├── 000002_create_foods.down.sql
+│   ├── 000003_create_medications.up.sql
+│   ├── 000003_create_medications.down.sql
+│   ├── 000004_create_diet_plans.up.sql
+│   ├── 000004_create_diet_plans.down.sql
+│   ├── 000005_create_tracking_tables.up.sql
+│   ├── 000005_create_tracking_tables.down.sql
+│   ├── 000006_create_messages.up.sql
+│   ├── 000006_create_messages.down.sql
+│   ├── 000007_create_lab_results.up.sql
+│   ├── 000007_create_lab_results.down.sql
+│   ├── 000008_create_food_requests.up.sql
+│   ├── 000008_create_food_requests.down.sql
+│   └── 000009_create_push_subscriptions.up.sql
+│
+├── db/
+│   └── queries/                       # sqlc source SQL query files (one per domain)
+│       ├── users.sql
+│       ├── foods.sql
+│       ├── medications.sql
+│       ├── diet_plans.sql
+│       ├── plan_days.sql
+│       ├── meals.sql
+│       ├── meal_options.sql
+│       ├── tracking.sql
+│       ├── messages.sql
+│       ├── lab_results.sql
+│       └── food_requests.sql
+│
+├── config/
+│   ├── config.go                      # Config struct loaded from env vars
+│   └── config.example.env             # Template with all required vars documented
+│
+├── pkg/                               # Reusable, project-agnostic utilities
+│   ├── apperror/
+│   │   ├── codes.go                   # Error code constants (E4001, E4004, …)
+│   │   └── persian.go                 # PersianMessages map[ErrorCode]string
+│   ├── logger/
+│   │   └── logger.go                  # zerolog setup: JSON output, Tehran timestamp
+│   ├── validator/
+│   │   └── validator.go               # go-playground/validator + Persian field names
+│   └── persian/
+│       ├── numbers.go                 # Arabic-Indic ↔ ASCII digit normalisation
+│       └── mobile.go                  # Iranian mobile number validation (+98 / 09xx)
+│
+├── sqlc.yaml                          # sqlc config pointing db/queries/ → internal/infrastructure/sqlc/
+├── docker-compose.yml                 # App + Postgres + Redis + Traefik
+├── docker-compose.override.yml        # Local dev overrides (hot reload, debug port)
 ├── Dockerfile
-└── package.json
+├── Makefile                           # migrate-up, migrate-down, sqlc-gen, lint, test, build
+└── .env.example
 ```
 
 ---
 
-## Architectural Patterns to Follow
+## Component Boundaries
 
-### Pattern 1: Layered Service Architecture (Go Backend)
+### Dependency Graph (arrows = "imports")
 
-**What:** Three clean layers — Handler → Service → Repository — with dependency injection via constructor functions. Each layer depends only on the layer below it via interfaces.
-
-**Why:** This is the dominant Go web service pattern. It keeps business logic testable without HTTP or database dependencies. Gin's middleware + route group system maps cleanly to this.
-
-**Implementation:**
-
-```go
-// internal/repository/food_repo.go
-type FoodRepository interface {
-    Create(ctx context.Context, food *model.Food) error
-    GetByID(ctx context.Context, id uuid.UUID) (*model.Food, error)
-    Search(ctx context.Context, query string, filters FoodFilters, page int) ([]model.Food, int, error)
-}
-
-type foodRepo struct {
-    pool *pgxpool.Pool
-}
-
-func NewFoodRepository(pool *pgxpool.Pool) FoodRepository {
-    return &foodRepo{pool: pool}
-}
-
-// internal/service/food_service.go
-type FoodService struct {
-    repo   repository.FoodRepository
-    // No HTTP knowledge, no SQL knowledge
-}
-
-func NewFoodService(repo repository.FoodRepository) *FoodService {
-    return &FoodService{repo: repo}
-}
-
-// internal/handler/food_handler.go
-type FoodHandler struct {
-    svc *service.FoodService
-}
-
-func NewFoodHandler(svc *service.FoodService) *FoodHandler {
-    return &FoodHandler{svc: svc}
-}
-
-func (h *FoodHandler) RegisterRoutes(rg *gin.RouterGroup) {
-    foods := rg.Group("/foods")
-    foods.GET("", h.List)
-    foods.POST("", h.Create)
-    foods.GET("/:id", h.GetByID)
-    foods.PUT("/:id", h.Update)
-    foods.DELETE("/:id", h.Delete)
-}
+```
+cmd/api/main.go
+    │
+    ▼
+internal/interface/bootstrap/wire.go   ← assembles everything
+    │
+    ├──► internal/interface/http/      (handlers + middleware)
+    │         │
+    │         ▼
+    ├──► internal/application/         (use-case services)
+    │         │
+    │         ├──► internal/domain/    (entities, VOs, repo interfaces)
+    │         │         ▲ (implements)
+    │         └──► internal/infrastructure/  (concrete adapters)
+    │
+    └──► pkg/                          (shared utilities — no internal imports)
 ```
 
-**Confidence:** HIGH — Standard Go web architecture verified via Gin docs, pgx docs, and ecosystem conventions.
+**What is forbidden:**
+- `domain` → anything in `internal/` (zero upstream imports)
+- `application` → `infrastructure` or `interface` (never touches DB directly)
+- `infrastructure` → `application` or `interface` (only implements interfaces)
+- `domain` → `pkg/apperror` is acceptable (pkg is project-agnostic)
 
-### Pattern 2: Aggregate Root Loading for Nested Entities (Diet Plan)
+### Component Responsibilities
 
-**What:** The diet plan entity (Plan → Days → Meals → Options → Items) is loaded as a complete aggregate in 2–3 SQL queries using batch loading, NOT one query per entity level and NOT a single massive JOIN.
-
-**Why:** A single JOIN across 5 tables produces a cartesian explosion (420+ rows for a realistic plan). N+1 queries (one per meal, option, etc.) would mean 50+ queries. The sweet spot: load flat entity lists in 2–3 queries, then assemble the tree in Go memory.
-
-**Implementation:**
-
-```go
-// internal/repository/plan_repo.go
-func (r *planRepo) GetFullPlan(ctx context.Context, planID uuid.UUID) (*model.DietPlanFull, error) {
-    // Query 1: Plan + Days + Exercise Recommendations
-    // SELECT p.*, pd.*, er.* FROM diet_plans p
-    //   JOIN plan_days pd ON pd.diet_plan_id = p.id
-    //   LEFT JOIN exercise_recommendations er ON er.plan_day_id = pd.id
-    //   WHERE p.id = $1 ORDER BY pd.day_number
-
-    // Query 2: Meals + Options + Items (with food data)
-    // SELECT m.*, mo.*, moi.*, f.name, f.calories, f.protein, f.carbohydrates, f.fat
-    //   FROM meals m
-    //   JOIN meal_options mo ON mo.meal_id = m.id
-    //   JOIN meal_option_items moi ON moi.meal_option_id = mo.id
-    //   JOIN foods f ON f.id = moi.food_id
-    //   WHERE m.plan_day_id = ANY($1)  -- pass all day IDs from query 1
-    //   ORDER BY m.display_order, mo.option_number
-
-    // Query 3: Prescribed medications (with medication names)
-    // SELECT pm.*, med.name FROM prescribed_medications pm
-    //   JOIN medications med ON med.id = pm.medication_id
-    //   WHERE pm.diet_plan_id = $1
-
-    // Assemble in memory: map day_id → meals → options → items
-}
-```
-
-**Alternative considered:** Using pgx `SendBatch` to execute all 3 queries in a single round-trip. This reduces network overhead further. **Recommendation:** Use `SendBatch` from day one — pgx supports it natively and it keeps the code clean.
-
-**Confidence:** HIGH — pgx batch queries verified via Context7 docs. Aggregate loading is a well-established DDD pattern.
-
-### Pattern 3: Route Group Middleware Stacking (Gin)
-
-**What:** Use Gin's route group system to apply auth middleware at the group level, creating four distinct API zones with different access rules.
-
-**Why:** Verified via Gin docs — route groups with `Use()` apply middleware to all routes in the group. This eliminates per-handler auth checks and ensures no endpoint is accidentally left unprotected.
-
-**Implementation:**
-
-```go
-func SetupRouter(
-    authMiddleware gin.HandlerFunc,
-    roleGuard func(roles ...string) gin.HandlerFunc,
-    handlers *Handlers,
-) *gin.Engine {
-    r := gin.New()
-    r.Use(gin.Recovery(), middleware.Logger(), middleware.CORS())
-
-    // Public routes — no auth
-    public := r.Group("/api")
-    {
-        public.GET("/health", handlers.Health)
-        public.POST("/auth/login", handlers.Auth.Login)
-        public.POST("/auth/otp/request", handlers.Auth.RequestOTP)
-        public.POST("/auth/otp/verify", handlers.Auth.VerifyOTP)
-        public.POST("/auth/refresh", handlers.Auth.Refresh)
-    }
-
-    // Admin routes — JWT + super_admin role
-    admin := r.Group("/api/admin")
-    admin.Use(authMiddleware, roleGuard("super_admin"))
-    {
-        handlers.Admin.RegisterRoutes(admin)
-    }
-
-    // Nutritionist routes — JWT + nutritionist role
-    nutritionist := r.Group("/api/nutritionist")
-    nutritionist.Use(authMiddleware, roleGuard("nutritionist"))
-    {
-        handlers.Plan.RegisterRoutes(nutritionist)
-        handlers.ClientMgmt.RegisterRoutes(nutritionist)
-        handlers.FoodRequest.RegisterNutritionistRoutes(nutritionist)
-    }
-
-    // Client routes — JWT + client role
-    client := r.Group("/api/client")
-    client.Use(authMiddleware, roleGuard("client"))
-    {
-        handlers.Tracking.RegisterRoutes(client)
-        handlers.ClientPlan.RegisterRoutes(client)
-        handlers.FoodRequest.RegisterClientRoutes(client)
-    }
-
-    // Shared authenticated routes — any role with JWT
-    shared := r.Group("/api")
-    shared.Use(authMiddleware)
-    {
-        handlers.Food.RegisterRoutes(shared)     // /api/foods
-        handlers.Medication.RegisterRoutes(shared)
-        handlers.Message.RegisterRoutes(shared)
-        handlers.Push.RegisterRoutes(shared)
-    }
-
-    return r
-}
-```
-
-**Confidence:** HIGH — Verified directly against Gin documentation via Context7.
-
-### Pattern 4: Offline-First Sync Queue (Frontend)
-
-**What:** An offline-aware API layer that intercepts failed POST/PUT requests, serializes them to Dexie.js IndexedDB, and replays them in FIFO order when connectivity returns. Uses `local_id` (UUID) for server-side deduplication.
-
-**Why:** Client users (mobile, potentially poor connectivity in Iran) need to log meals, water, exercise etc. without waiting for network. The sync queue pattern is the standard approach for offline-first apps.
-
-**Implementation:**
-
-```typescript
-// app/composables/useApi.ts
-export function useApi() {
-  const { isOnline } = useOfflineDetect()
-
-  async function post<T>(url: string, body: any): Promise<T> {
-    // Attach local_id for dedup if not present
-    if (!body.local_id) {
-      body.local_id = crypto.randomUUID()
-    }
-
-    if (!isOnline.value) {
-      await db.syncQueue.add({
-        id: crypto.randomUUID(),
-        method: 'POST',
-        url,
-        body,
-        createdAt: new Date(),
-        status: 'pending',
-        retries: 0,
-      })
-      return body as T // Return optimistic response
-    }
-
-    try {
-      return await $fetch<T>(url, { method: 'POST', body })
-    } catch (err) {
-      if (isNetworkError(err)) {
-        await db.syncQueue.add({ /* same as above */ })
-        return body as T
-      }
-      throw err
-    }
-  }
-
-  return { get, post, put, delete: del }
-}
-
-// app/composables/useSyncManager.ts
-export function useSyncManager() {
-  const processingQueue = ref(false)
-  const pendingCount = ref(0)
-
-  async function processQueue() {
-    const items = await db.syncQueue
-      .where('status').equals('pending')
-      .sortBy('createdAt')
-
-    for (const item of items) {
-      try {
-        await db.syncQueue.update(item.id, { status: 'syncing' })
-        await $fetch(item.url, { method: item.method, body: item.body })
-        await db.syncQueue.delete(item.id)
-      } catch (err) {
-        const retries = item.retries + 1
-        if (retries >= 3) {
-          await db.syncQueue.update(item.id, { status: 'failed', retries })
-        } else {
-          await db.syncQueue.update(item.id, { status: 'pending', retries })
-          await delay(Math.pow(2, retries) * 1000) // Exponential backoff
-        }
-      }
-    }
-  }
-
-  // Watch online status
-  watch(isOnline, (online) => {
-    if (online) processQueue()
-  })
-}
-```
-
-**Confidence:** HIGH — Dexie.js schema/query patterns verified via Context7. Standard offline-first pattern.
-
-### Pattern 5: Domain-Scoped Pinia Stores + Composable Pairs
-
-**What:** Each feature domain gets one Pinia store (state container) and one composable (side-effect orchestrator). The store holds reactive state; the composable handles API calls, IndexedDB sync, and complex logic.
-
-**Why:** Separating "what data we have" (store) from "how we get/update data" (composable) keeps components clean and enables the offline layer to transparently swap data sources.
-
-**Example:**
-
-```typescript
-// app/stores/tracking.ts — State only
-export const useTrackingStore = defineStore('tracking', () => {
-  const waterLogs = ref<WaterLog[]>([])
-  const dailyWaterTotal = computed(() =>
-    waterLogs.value.reduce((sum, log) => sum + log.amount_ml, 0)
-  )
-  const waterTarget = ref<number | null>(null)
-
-  return { waterLogs, dailyWaterTotal, waterTarget }
-})
-
-// app/composables/useWaterTracking.ts — Side effects
-export function useWaterTracking() {
-  const store = useTrackingStore()
-  const api = useApi()
-
-  async function addWater(amountMl: number) {
-    const entry = { amount_ml: amountMl, date: today(), local_id: crypto.randomUUID() }
-    // Optimistic: add to store immediately
-    store.waterLogs.push(entry)
-    // Persist (online or queued)
-    await api.post('/api/client/water-logs', entry)
-  }
-
-  async function fetchToday() {
-    // Try API, fallback to IndexedDB
-    // ...
-  }
-
-  return { addWater, fetchToday }
-}
-```
-
-**Confidence:** HIGH — Nuxt 4 + Pinia is the official recommended state management pattern per Nuxt docs.
+| Component | Owns | Communicates With |
+|-----------|------|-------------------|
+| `domain/user` | User entity, Mobile VO, repo interface | Nothing |
+| `domain/dietplan` | DietPlan aggregate, nutrition total computation | `domain/food` (read-only for item data) |
+| `domain/tracking` | All tracking log entities | `domain/dietplan` (validates meal/option references) |
+| `application/auth` | OTP flow, JWT issuance, token refresh | `domain/user`, ports: OTPStore, SMSSender, TokenManager |
+| `application/dietplan` | Plan creation, archiving previous plan | `domain/dietplan`, `domain/food`, `domain/medication` |
+| `application/tracking` | Idempotent log writes (local_id dedup) | `domain/tracking`, `domain/dietplan` |
+| `infrastructure/repository` | sqlc query execution, DB ↔ domain mapping | `infrastructure/sqlc`, `domain/*/repository` |
+| `infrastructure/redis` | OTP TTL, refresh token store, rate limits | `application/ports` |
+| `interface/http/handler` | HTTP binding, validation, response shaping | `application/*` services only |
+| `interface/bootstrap` | Construct dependency graph, run migrations | All layers |
 
 ---
 
-## Data Flow
+## DDD Aggregate Boundaries
 
-### Flow 1: Client Views Diet Plan (Online → Cached)
-
-```
-Client opens app
-  → auth.global.ts middleware checks JWT
-  → client/plan.vue mounts
-  → usePlanDays() composable → planStore.fetchActivePlan()
-    → useApi().get('/api/client/plan')
-      → Go Handler: extracts client_id from JWT
-      → Go Service: verifies active plan exists
-      → Go Repository: batch loads full plan tree (3 queries via pgx SendBatch)
-      → Response: 200 + full plan JSON with computed nutrition
-    → Store receives plan, updates reactive state
-    → Dexie.js: serialize full plan to `activePlan` table (cache for offline)
-  → Vue renders plan days with swipeable navigation
-```
-
-### Flow 2: Client Logs Water Intake (Offline-Capable)
+### Aggregate 1: User
 
 ```
-Client taps "Add Water" button
-  → useWaterTracking().addWater(250)
-    → Generates local_id UUID
-    → Optimistically adds to Pinia store (instant UI update)
-    → useApi().post('/api/client/water-logs', { amount_ml: 250, local_id: "..." })
-      IF ONLINE:
-        → Go Handler: validates, extracts client_id from JWT
-        → Go Service: calls repo
-        → Go Repository: INSERT with local_id, ON CONFLICT (local_id) DO NOTHING
-        → Response: 201 Created
-      IF OFFLINE:
-        → Catches network error
-        → Writes to Dexie.js syncQueue: { method: 'POST', url: '...', body: {...}, status: 'pending' }
-        → Shows toast: "ذخیره شد — بعد از اتصال همگام‌سازی می‌شود"
-        LATER, when online:
-        → useSyncManager detects navigator.onLine → true
-        → Processes syncQueue FIFO
-        → POST to /api/client/water-logs
-        → Backend deduplicates via local_id
-        → Deletes from syncQueue on success
+User (aggregate root)
+├── id: UUID
+├── role: Role (value object: super_admin | nutritionist | client)
+├── fullName: string
+├── email: Email (value object — nullable)
+├── passwordHash: string (nullable)
+├── mobile: Mobile (value object — nullable, Iranian format)
+├── dateOfBirth: time.Time (nullable)
+├── heightCM: float64 (nullable)
+├── gender: Gender (value object)
+├── nutritionistID: UUID (nullable FK — not embedded, just a reference)
+├── isActive: bool
+└── timestamps
 ```
 
-### Flow 3: Nutritionist Creates Diet Plan
+**Invariants enforced in entity:**
+- A client must have a `mobile` and a `nutritionistID`
+- A nutritionist/admin must have an `email` and `passwordHash`
+- `mobile` must match Iranian mobile format
+
+**Cross-aggregate rule (domain service):** "Only one active diet plan per client" — enforced in `DietPlanDomainService`, not in User entity.
+
+---
+
+### Aggregate 2: Food
 
 ```
-Nutritionist opens plan builder
-  → nutritionist/plans/create.vue mounts
-  → useMealBuilder() composable manages local plan state
-  → For each day:
-    → Add meals with title, time, order
-    → For each meal:
-      → Add options
-      → For each option:
-        → FoodPicker.vue → searches /api/foods?q=... (pg_trgm fuzzy search)
-        → Select food → set quantity + unit
-        → useNutritionCalc() recomputes totals (client-side, instant)
-  → "Save Plan" button
-    → useApi().post('/api/nutritionist/clients/:id/plans', fullPlanPayload)
-      → Go Handler: validates deeply nested JSON payload
-      → Go Service:
-        1. Verify nutritionist owns this client
-        2. Archive current active plan (UPDATE status='archived' WHERE client_id AND status='active')
-        3. Insert new plan + days + meals + options + items in a single DB transaction
-        4. Insert prescribed medications
-        5. Insert exercise recommendations
-        6. Trigger push notification: "برنامه غذایی جدید" to client
-      → Go Repository: single pgx transaction with multiple INSERTs
-      → Response: 201 + plan ID
+Food (aggregate root)
+├── id: UUID
+├── name: string (Persian)
+├── categories: []FoodCategory (value object set)
+├── nutritionalValues: NutritionalValues (value object)
+│   ├── calories: float64
+│   ├── protein: float64
+│   ├── carbohydrates: float64
+│   ├── fat: float64
+│   ├── fiber: *float64
+│   ├── sugar: *float64
+│   └── sodium: *float64
+├── measurementUnit: MeasurementUnit (value object)
+├── measurementAmount: float64
+├── description: *string
+├── isActive: bool
+└── createdBy: UUID (reference to User — not embedded)
 ```
 
-### Flow 4: Messaging (Polling-Based)
+**No child entities** — Food is a small aggregate. Categories are a value-object set stored in a junction table.
+
+---
+
+### Aggregate 3: Medication
 
 ```
-Client opens chat
-  → client/messages.vue mounts
-  → Loads existing messages: GET /api/messages/:nutritionistId?limit=50
-  → useMessagePolling() starts 10-second interval
-    → Every 10s: GET /api/messages/new?since={lastMessageTimestamp}
-      → Go Repository: SELECT WHERE sent_at > $since AND (sender_id OR receiver_id)
-      → Returns only new messages (lightweight query)
-    → New messages appended to Pinia store + Dexie.js cache
-  → Client sends message
-    → POST /api/messages { receiver_id, content }
-      → Go Service: verifies sender→receiver relationship (client→own nutritionist)
-      → Go Repository: INSERT message
-      → Go NotificationService: send Web Push to receiver
-    → Optimistic: message appears in chat immediately
-  → On component unmount: useMessagePolling().stop() clears interval
+Medication (aggregate root)
+├── id: UUID
+├── name: string
+├── genericName: *string
+├── form: MedicationForm (value object)
+├── dosageUnit: string
+├── description: *string
+├── isActive: bool
+└── createdBy: UUID
 ```
 
-### Flow 5: Push Notification (Meal Reminder)
+---
+
+### Aggregate 4: DietPlan ← Most Complex Aggregate
 
 ```
-Server-side (background worker):
-  → ReminderWorker goroutine ticks every 60 seconds
-  → Queries active diet plans for meals/medications with times in next 60 seconds:
-    SELECT u.id, ps.endpoint, ps.p256dh, ps.auth, m.title, m.scheduled_time
-    FROM meals m
-    JOIN plan_days pd ON pd.id = m.plan_day_id
-    JOIN diet_plans dp ON dp.id = pd.diet_plan_id
-    JOIN users u ON u.id = dp.client_id
-    JOIN push_subscriptions ps ON ps.user_id = u.id
-    JOIN notification_preferences np ON np.user_id = u.id
-    WHERE dp.status = 'active'
-      AND np.meal_reminders = true
-      AND m.scheduled_time BETWEEN NOW()::time AND (NOW() + INTERVAL '1 minute')::time
-      AND (dp.day_number logic matching today's date)
-  → For each match:
-    → webpush-go sends push to endpoint
-    → Service worker receives push event
-    → Displays notification: "وقت صبحانه 🍽️"
-    → On click: navigates to /client/plan (today's meals)
+DietPlan (aggregate root)
+├── id: UUID
+├── clientID: UUID (reference — not embedded)
+├── nutritionistID: UUID (reference)
+├── period: DateRange (value object: startDate, endDate)
+├── dailyWaterTargetML: *int
+├── notes: *string
+├── status: PlanStatus (value object: active | archived)
+│
+├── planDays: []PlanDay (child entities, owned by DietPlan)
+│   └── PlanDay
+│       ├── id: UUID
+│       ├── dayNumber: int
+│       ├── meals: []Meal (child entities)
+│       │   └── Meal
+│       │       ├── id: UUID
+│       │       ├── title: string
+│       │       ├── scheduledTime: time.Time
+│       │       ├── order: int
+│       │       └── options: []MealOption (child entities)
+│       │           └── MealOption
+│       │               ├── id: UUID
+│       │               ├── optionNumber: int
+│       │               └── items: []MealOptionItem (child entities)
+│       │                   └── MealOptionItem
+│       │                       ├── id: UUID
+│       │                       ├── foodID: UUID (reference to Food aggregate)
+│       │                       ├── quantity: float64
+│       │                       ├── measurementUnit: MeasurementUnit
+│       │                       └── notes: *string
+│       └── exerciseRecs: []ExerciseRecommendation (child entities)
+│
+└── prescribedMedications: []PrescribedMedication (child entities)
+    └── PrescribedMedication
+        ├── id: UUID
+        ├── medicationID: UUID (reference to Medication aggregate)
+        ├── dosage: string
+        ├── frequency: string
+        ├── times: []time.Time
+        ├── instructions: *string
+        └── duration: *DateRange
+```
+
+**Key domain methods on DietPlan:**
+```go
+func (dp *DietPlan) Archive() error           // sets status = archived
+func (dp *DietPlan) AddPlanDay(day PlanDay)   // validates day number uniqueness
+func (dp *DietPlan) ComputeDailyTotals(dayNumber int, foodLookup FoodLookupFunc) NutritionalRange
+func (dp *DietPlan) IsActive() bool
+```
+
+**Invariant:** Only the DietPlan aggregate root controls state transitions. The `DietPlanDomainService.CreatePlan()` archives the previous active plan before persisting the new one — within a single DB transaction.
+
+---
+
+### Aggregate 5: TrackingRecord (per-type, thin aggregates)
+
+Each tracking type is a **separate small aggregate** (not one giant tracking aggregate):
+
+```
+FoodLog        { id, clientID, date, mealID, selectedOptionID*, loggedAt, notes, localID }
+WaterLog       { id, clientID, date, amountML, time*, loggedAt, localID }
+SleepLog       { id, clientID, date, sleepTime, wakeTime, quality*, notes, localID }
+ExerciseLog    { id, clientID, date, exerciseName, durationMinutes, caloriesBurned*, notes, localID }
+MedicationLog  { id, clientID, date, prescribedMedID*, medicationName, dosage, takenAt, notes, localID }
+BodyMeasurement{ id, clientID, date, weight*, waist*, hip*, abdomen*, thigh*, chest*, wrist*, recordedBy }
+```
+
+`localID` is a client-assigned UUID for **offline sync idempotency** — the server uses `ON CONFLICT (client_id, local_id) DO NOTHING`.
+
+---
+
+### Aggregate 6: Message
+
+```
+Message (aggregate root)
+├── id: UUID
+├── senderID: UUID
+├── receiverID: UUID
+├── content: *string
+├── attachmentType: *AttachmentType (value object: image | file)
+├── attachmentPath: *string
+├── sentAt: time.Time
+└── readAt: *time.Time
+```
+
+**Invariant (domain service):** Client can only message their own nutritionist; nutritionist can only message own clients. Checked against User aggregate in `MessageDomainService`.
+
+---
+
+### Aggregate 7: FoodRequest
+
+```
+FoodRequest (aggregate root)
+├── id: UUID
+├── foodName: string
+├── description: *string
+├── status: RequestStatus (pending | approved | rejected)
+├── requestedBy: UUID (clientID)
+├── reviewedBy: *UUID (nutritionistID)
+├── rejectionReason: *string
+└── createdAt: time.Time
+```
+
+**Domain methods:**
+```go
+func (fr *FoodRequest) Approve(reviewerID uuid.UUID) error
+func (fr *FoodRequest) Reject(reviewerID uuid.UUID, reason string) error
+```
+
+---
+
+## Data Flow for Key Operations
+
+### Flow 1: OTP Login (Client)
+
+```
+POST /auth/otp/send { mobile: "09123456789" }
+    │
+    ▼
+interface/http/handler/auth.go
+    ├── Bind + validate request DTO
+    ├── Normalize mobile (pkg/persian/mobile.go)
+    └── Call application/auth.AuthAppService.SendOTP(cmd)
+            │
+            ├── domain/user.UserRepository.FindByMobile(mobile)     → check client exists & is active
+            ├── application/ports.OTPStore.GetAttempts(mobile)      → check rate limit (≤3 per 10min)
+            ├── Generate 6-digit OTP
+            ├── application/ports.OTPStore.Save(mobile, otp, 2min)  → Redis SET with TTL
+            └── application/ports.SMSSender.Send(mobile, otp)       → Kavenegar HTTP call
+                    │
+                    ▼
+            Return OTPSentDTO { expiresInSeconds: 120 }
+    │
+    ▼
+response/envelope.go → 200 { data: { expires_in: 120 }, message: "کد تأیید ارسال شد" }
+
+POST /auth/otp/verify { mobile: "09123456789", otp: "481923" }
+    │
+    ▼
+AuthAppService.VerifyOTP(cmd)
+    ├── OTPStore.Verify(mobile, otp)                   → Redis GET + compare + DEL on success
+    ├── UserRepository.FindByMobile(mobile)
+    ├── TokenManager.IssueAccessToken(userID, role)    → JWT HS256, 15min
+    ├── TokenManager.IssueRefreshToken(userID)         → opaque UUID stored in Redis, 30d TTL
+    └── Return TokenPairDTO { access_token, refresh_token, expires_in }
+```
+
+---
+
+### Flow 2: Diet Plan Creation (Nutritionist)
+
+```
+POST /diet-plans { client_id, start_date, end_date, notes, … }
+    │
+    ▼
+handler/dietplan.go
+    ├── Extract nutritionistID from JWT claims (middleware/auth.go put it in ctx)
+    ├── Bind + validate CreatePlanRequest
+    └── Call DietPlanAppService.CreateDietPlan(cmd)
+            │
+            ├── UserRepository.FindClientByID(clientID)             → verify client belongs to nutritionist
+            ├── DietPlanRepository.FindActiveByClientID(clientID)   → get existing active plan (if any)
+            ├── DietPlanDomainService.CreateWithArchive(existing, newPlan)
+            │       ├── existing.Archive()                          → domain method, sets status=archived
+            │       ├── Validate new plan dates (start < end, future dates)
+            │       └── Return (planToArchive, newPlan)
+            ├── Begin DB transaction
+            │   ├── DietPlanRepository.Update(planToArchive)        → set status=archived
+            │   └── DietPlanRepository.Save(newPlan)                → insert new active plan
+            └── Commit transaction
+                    │
+                    ▼
+            Return DietPlanDTO (with computed nutritional totals = 0, empty days)
+```
+
+---
+
+### Flow 3: Offline Sync — Log Water Intake
+
+```
+POST /tracking/water { date, amount_ml, time, local_id: "uuid-from-client" }
+    │
+    ▼
+handler/tracking.go → TrackingAppService.LogWater(cmd)
+    ├── Validate client ownership (clientID from JWT must match)
+    ├── Build WaterLog entity { …, localID: cmd.LocalID }
+    └── TrackingRepository.SaveWaterLog(log)
+            │
+            ▼
+        infrastructure/repository/tracking_repo.go
+            └── sqlc: INSERT INTO water_logs (…, local_id)
+                       ON CONFLICT (client_id, local_id) DO NOTHING
+                       RETURNING id
+                  ─ If RETURNING returns empty, it was a duplicate → return existing record ID
+```
+
+**Idempotency guarantee:** The `(client_id, local_id)` unique constraint handles duplicate sync submissions without error.
+
+---
+
+### Flow 4: Push Notification on New Message
+
+```
+MessageAppService.SendMessage(cmd)
+    ├── Validate sender/receiver relationship (domain service)
+    ├── Create Message entity
+    ├── MessageRepository.Save(message)
+    └── PushNotifier.Send(receiverID, payload)          ← async, non-blocking
+            │
+            ▼
+    infrastructure/push/webpush.go
+        ├── Load receiver's push subscription from DB
+        └── webpush.SendNotification(subscription, payload, options)
+                  Payload: { title: "پیام جدید", body: senderName, url: "/messages" }
+```
+
+Push is fire-and-forget — failure is logged but does not fail the message save.
+
+---
+
+## Configuration Management
+
+```go
+// config/config.go — envconfig pattern (no viper: simpler, no YAML needed)
+type Config struct {
+    // Server
+    Port        string `env:"PORT" envDefault:"8080"`
+    Environment string `env:"ENVIRONMENT" envDefault:"production"`
+
+    // Database
+    DatabaseURL string `env:"DATABASE_URL,required"`
+
+    // Redis
+    RedisURL    string `env:"REDIS_URL,required"`
+
+    // JWT
+    JWTSecret          string        `env:"JWT_SECRET,required"`
+    AccessTokenTTL     time.Duration `env:"ACCESS_TOKEN_TTL" envDefault:"15m"`
+    RefreshTokenTTL    time.Duration `env:"REFRESH_TOKEN_TTL" envDefault:"720h"`
+
+    // OTP
+    OTPLength    int           `env:"OTP_LENGTH" envDefault:"6"`
+    OTPTTL       time.Duration `env:"OTP_TTL" envDefault:"2m"`
+    OTPMaxTries  int           `env:"OTP_MAX_TRIES" envDefault:"3"`
+    OTPRateWindow time.Duration `env:"OTP_RATE_WINDOW" envDefault:"10m"`
+    OTPRateMax    int           `env:"OTP_RATE_MAX" envDefault:"3"`
+
+    // SMS
+    SMSProvider   string `env:"SMS_PROVIDER" envDefault:"kavenegar"` // kavenegar | melipayamak
+    SMSAPIKey     string `env:"SMS_API_KEY,required"`
+    SMSSenderLine string `env:"SMS_SENDER_LINE"`
+
+    // Push
+    VAPIDPublicKey  string `env:"VAPID_PUBLIC_KEY,required"`
+    VAPIDPrivateKey string `env:"VAPID_PRIVATE_KEY,required"`
+    VAPIDSubject    string `env:"VAPID_SUBJECT" envDefault:"mailto:admin@nutritrack.ir"`
+
+    // File Storage
+    UploadDir    string `env:"UPLOAD_DIR" envDefault:"/data/uploads"`
+    MaxFileSizeMB int   `env:"MAX_FILE_SIZE_MB" envDefault:"10"`
+
+    // Timezone (also set TZ=Asia/Tehran in container env)
+    Timezone string `env:"TIMEZONE" envDefault:"Asia/Tehran"`
+
+    // Logging
+    LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
+}
+```
+
+**Library choice:** `github.com/kelseyhightower/envconfig` over viper — no config files needed for a 12-factor app, env vars only, simpler struct tags.
+
+---
+
+## Cross-Cutting Concerns
+
+### Persian Error Messages
+
+```go
+// pkg/apperror/codes.go
+type ErrorCode string
+
+const (
+    ErrCodeNotFound         ErrorCode = "NOT_FOUND"
+    ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
+    ErrCodeForbidden        ErrorCode = "FORBIDDEN"
+    ErrCodeValidation       ErrorCode = "VALIDATION_ERROR"
+    ErrCodeOTPInvalid       ErrorCode = "OTP_INVALID"
+    ErrCodeOTPExpired       ErrorCode = "OTP_EXPIRED"
+    ErrCodeOTPRateLimit     ErrorCode = "OTP_RATE_LIMIT"
+    ErrCodeDuplicateMobile  ErrorCode = "DUPLICATE_MOBILE"
+    ErrCodeInactiveUser     ErrorCode = "INACTIVE_USER"
+    ErrCodeActivePlanExists ErrorCode = "ACTIVE_PLAN_EXISTS"
+    // …
+)
+
+// pkg/apperror/persian.go
+var PersianMessages = map[ErrorCode]string{
+    ErrCodeNotFound:         "مورد درخواستی یافت نشد",
+    ErrCodeUnauthorized:     "لطفاً وارد حساب کاربری خود شوید",
+    ErrCodeForbidden:        "دسترسی به این بخش مجاز نیست",
+    ErrCodeOTPInvalid:       "کد تأیید وارد شده صحیح نیست",
+    ErrCodeOTPExpired:       "کد تأیید منقضی شده است. لطفاً کد جدید دریافت کنید",
+    ErrCodeOTPRateLimit:     "تعداد درخواست کد تأیید بیش از حد مجاز است. ۱۰ دقیقه دیگر تلاش کنید",
+    ErrCodeDuplicateMobile:  "این شماره موبایل قبلاً ثبت شده است",
+    ErrCodeActivePlanExists: "این مراجع از قبل دارای برنامه‌ی فعال است",
+    // …
+}
+```
+
+**Response envelope (always Persian `message`):**
+```json
+{
+  "success": false,
+  "message": "کد تأیید وارد شده صحیح نیست",
+  "error_code": "OTP_INVALID",
+  "data": null
+}
+```
+
+---
+
+### Asia/Tehran Timezone
+
+```go
+// pkg/logger/logger.go
+var TehranLocation *time.Location
+
+func init() {
+    var err error
+    TehranLocation, err = time.LoadLocation("Asia/Tehran")
+    if err != nil {
+        panic("cannot load Asia/Tehran timezone: " + err.Error())
+    }
+}
+
+// All timestamp responses format in Tehran time:
+func FormatTehran(t time.Time) string {
+    return t.In(TehranLocation).Format(time.RFC3339)
+}
+```
+
+**Container requirement:** `TZ=Asia/Tehran` in docker-compose `environment:` for all services.
+**DB storage:** All timestamps stored as `TIMESTAMPTZ` (UTC internally, displayed in Tehran tz via app layer).
+**"Today" computation:** Use `TodayTehran()` from `domain/shared/timeutil.go` — never `time.Now().UTC()` for date-only logic (3:30 AM UTC = 7 AM Tehran — wrong date otherwise).
+
+---
+
+### Structured Logging
+
+```go
+// pkg/logger/logger.go — zerolog
+func New(level string) zerolog.Logger {
+    lvl, _ := zerolog.ParseLevel(level)
+    return zerolog.New(os.Stdout).
+        Level(lvl).
+        With().
+        Timestamp().
+        Str("service", "nutritrack-api").
+        Logger()
+}
+
+// interface/http/middleware/logging.go
+func RequestLogger(log zerolog.Logger) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        start := time.Now()
+        c.Next()
+        log.Info().
+            Str("method", c.Request.Method).
+            Str("path", c.Request.URL.Path).
+            Int("status", c.Writer.Status()).
+            Str("request_id", c.GetString("X-Request-ID")).
+            Str("user_id", c.GetString("user_id")).   // set by auth middleware
+            Dur("latency_ms", time.Since(start)).
+            Msg("request")
+    }
+}
+```
+
+---
+
+## Dependency Injection Pattern
+
+Manual DI wired in `internal/interface/bootstrap/wire.go` — no code generation tool needed at this scale:
+
+```go
+// internal/interface/bootstrap/wire.go
+func BuildApp(cfg *config.Config) (*http.Server, error) {
+    // Infrastructure
+    db, err := postgres.Connect(cfg.DatabaseURL)
+    queries := sqlc.New(db)
+
+    redisClient := redis.NewClient(cfg.RedisURL)
+
+    // Repositories (infrastructure → domain interface)
+    userRepo     := repository.NewUserRepo(queries)
+    foodRepo     := repository.NewFoodRepo(queries)
+    dietPlanRepo := repository.NewDietPlanRepo(queries, db) // db for tx
+    trackingRepo := repository.NewTrackingRepo(queries)
+    messageRepo  := repository.NewMessageRepo(queries)
+    // …
+
+    // Ports
+    otpStore     := redis.NewOTPStore(redisClient)
+    tokenStore   := redis.NewTokenStore(redisClient)
+    rateLimiter  := redis.NewRateLimiter(redisClient)
+    smsAdapter   := sms.NewAdapter(cfg)
+    pushAdapter  := push.NewAdapter(cfg)
+    storageAdapter := storage.NewLocalAdapter(cfg.UploadDir)
+    jwtManager   := jwt.NewManager(cfg.JWTSecret, cfg.AccessTokenTTL)
+
+    // Application services
+    authSvc     := appauth.NewAuthService(userRepo, otpStore, tokenStore, smsAdapter, jwtManager)
+    userSvc     := appuser.NewUserService(userRepo)
+    foodSvc     := appfood.NewFoodService(foodRepo)
+    dietPlanSvc := appdietplan.NewDietPlanService(dietPlanRepo, userRepo, foodRepo, medicationRepo)
+    trackingSvc := apptracking.NewTrackingService(trackingRepo, dietPlanRepo)
+    messageSvc  := appmessage.NewMessageService(messageRepo, userRepo, pushAdapter)
+    // …
+
+    // HTTP layer
+    logger := pkglogger.New(cfg.LogLevel)
+    router := httpserver.NewRouter(cfg, logger, rateLimiter,
+        authSvc, userSvc, foodSvc, dietPlanSvc, trackingSvc, messageSvc, …)
+
+    return &http.Server{Addr: ":" + cfg.Port, Handler: router}, nil
+}
+```
+
+---
+
+## Docker Compose Multi-Service Setup
+
+```yaml
+# docker-compose.yml
+version: "3.9"
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Tehran
+      PORT: 8080
+      DATABASE_URL: postgres://nutritrack:${DB_PASSWORD}@postgres:5432/nutritrack?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SMS_PROVIDER: kavenegar
+      SMS_API_KEY: ${SMS_API_KEY}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      UPLOAD_DIR: /data/uploads
+      LOG_LEVEL: info
+      ENVIRONMENT: production
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.nutritrack.ir`)"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=8080"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Tehran
+      POSTGRES_DB: nutritrack
+      POSTGRES_USER: nutritrack
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutritrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Tehran
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  letsencrypt:
+```
+
+---
+
+## Database Schema Organization
+
+```
+migrations/           ← golang-migrate versioned SQL (run at startup or via Makefile)
+  000001_users        ← foundation: users table with roles, soft delete
+  000002_foods        ← shared food database + food_categories junction
+  000003_medications  ← shared medication database
+  000004_diet_plans   ← diet_plans, plan_days, meals, meal_options, meal_option_items
+                         prescribed_medications, exercise_recommendations
+  000005_tracking     ← food_logs, water_logs, sleep_logs, exercise_logs,
+                         medication_logs, body_measurements
+                         (all with local_id for offline sync)
+  000006_messages     ← messages + attachments
+  000007_lab_results  ← lab_results with file_path
+  000008_food_requests← food_requests with status workflow
+  000009_push         ← push_subscriptions (endpoint, keys, user_id)
+
+db/queries/           ← sqlc input SQL (one file per domain table group)
+  users.sql           ← GetByID, GetByMobile, GetByEmail, ListClientsByNutritionist
+  foods.sql           ← Insert, Update, GetByID, SearchByName (pg_trgm), ListByCategory
+  diet_plans.sql      ← Insert, GetActiveByClient, GetByID, Archive, ListByClient
+  tracking.sql        ← InsertFoodLog (ON CONFLICT local_id), GetDailyLogs, etc.
+  messages.sql        ← Insert, GetConversation, CountUnread, MarkRead
+
+internal/infrastructure/sqlc/  ← sqlc OUTPUT (generated, do not edit)
+```
+
+**pg_trgm for Persian search** — migration must include:
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX foods_name_trgm_idx ON foods USING gin (name gin_trgm_ops);
+```
+
+---
+
+## Build Order (Phase Dependencies)
+
+The build order follows domain dependency direction:
+
+```
+Phase 1 — Foundation
+  1. Project scaffold (go mod, folder structure, Dockerfile, docker-compose.yml)
+  2. Config loading (config.go + envconfig)
+  3. Database connection + redis connection
+  4. Logger setup (zerolog, Tehran tz)
+  5. Migration runner (golang-migrate) + first migration (users table)
+  6. pkg/apperror + Persian messages map
+  7. pkg/persian (mobile validation, number normalization)
+
+Phase 2 — Domain Core + Auth
+  8. domain/shared (ID, pagination, timeutil)
+  9. domain/user (entity, value objects, repository interface)
+  10. infrastructure/repository/user_repo.go + sqlc queries/users.sql
+  11. infrastructure/redis (OTP store, token store, rate limiter)
+  12. infrastructure/jwt/manager.go
+  13. infrastructure/sms/kavenegar.go
+  14. application/auth (SendOTP, VerifyOTP, Refresh, Logout)
+  15. interface/http (server, middleware: auth, logging, cors, recovery)
+  16. interface/http/handler/auth.go
+  → Milestone: OTP login works end-to-end
+
+Phase 3 — Shared Databases (Food + Medication)
+  17. domain/food + domain/medication
+  18. Migrations: foods, medications tables + pg_trgm
+  19. infrastructure/repository/food_repo + medication_repo
+  20. application/food + application/medication services
+  21. interface/http/handler/food.go + medication.go
+  → Milestone: Admin/nutritionist can CRUD foods and medications
+
+Phase 4 — Diet Plan Builder
+  22. domain/dietplan (all entities + domain service)
+  23. Migration: diet_plans + all nested tables
+  24. infrastructure/repository/dietplan_repo (with transaction support)
+  25. application/dietplan service
+  26. interface/http/handler/dietplan.go
+  → Milestone: Nutritionist can create and assign diet plans
+
+Phase 5 — Client Tracking
+  27. domain/tracking (all entity types)
+  28. Migration: all tracking tables (with local_id unique constraints)
+  29. infrastructure/repository/tracking_repo
+  30. application/tracking service (idempotent writes)
+  31. interface/http/handler/tracking.go
+  → Milestone: Client can log all daily tracking data (offline sync ready)
+
+Phase 6 — Messaging + Lab Results + Food Requests
+  32. domain/message + domain/labresult + domain/foodrequest
+  33. Migrations: messages, lab_results, food_requests
+  34. infrastructure/storage/local.go (file upload handling)
+  35. infrastructure/push/webpush.go
+  36. Application services + handlers for messages, lab results, food requests
+  → Milestone: Messaging, lab uploads, food request workflow complete
+
+Phase 7 — Notifications + Admin Panel
+  37. Push subscription management (DB + handler)
+  38. Notification triggers in messaging, diet plan, food request services
+  39. application/admin service + interface/http/handler/admin.go
+  40. Super admin nutritionist management endpoints
+  → Milestone: Push notifications + super admin panel complete
+
+Phase 8 — Hardening
+  41. Rate limiting middleware (Redis sliding window)
+  42. Row-level authorization audit (every handler checked)
+  43. Structured logging audit (all sensitive fields masked)
+  44. Integration test suite
+  45. Performance indexes review
 ```
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: N+1 Queries on Diet Plan Load
+### Anti-Pattern 1: Anemic Domain Models
+**What:** Entities are just data bags; all logic in app services.
+**Why bad:** Invariants can be violated from anywhere; domain becomes meaningless.
+**Instead:** Put `Archive()`, `AddPlanDay()`, `ComputeTotals()` on the DietPlan entity itself.
 
-**What:** Loading the plan, then each day, then each meal per day, then each option per meal, then each item per option — resulting in 50–100+ queries.
-**Why bad:** At 420 items, this means ~100 queries per plan load. Response time exceeds 500ms target by 5–10x.
-**Instead:** Batch load in 2–3 queries using JOINs or `WHERE id = ANY($1)` with pgx SendBatch, then assemble the tree in Go memory.
+### Anti-Pattern 2: Domain Importing Infrastructure
+**What:** `domain/dietplan/entity.go` imports `database/sql` or `github.com/go-redis/redis`.
+**Why bad:** Destroys testability; domain can't be unit-tested without DB.
+**Instead:** Domain defines interfaces (`DietPlanRepository`); infrastructure implements them.
 
-### Anti-Pattern 2: Putting Business Logic in Handlers
+### Anti-Pattern 3: Fat Handlers
+**What:** Gin handler directly builds SQL queries or calls Redis.
+**Why bad:** Business logic leaks into HTTP layer; untestable; hard to change transport.
+**Instead:** Handler → App Service → Domain → Repository. Handler only: bind, validate, call service, shape response.
 
-**What:** Handlers directly querying the database, checking authorization inline, computing nutrition, etc.
-**Why bad:** Untestable without spinning up HTTP server. Duplicated logic when multiple endpoints need the same checks (e.g., "nutritionist owns client").
-**Instead:** Handlers call service methods. Services contain all business logic. Repositories handle data access. Test services with mock repositories.
+### Anti-Pattern 4: Single Giant Tracking Aggregate
+**What:** One `TrackingRecord` aggregate with all 6 log types.
+**Why bad:** Unnecessary coupling; offline sync for one type shouldn't touch others.
+**Instead:** Separate small aggregates per tracking type — each has its own repository and table.
 
-### Anti-Pattern 3: Single Massive SQL JOIN for Plan Tree
+### Anti-Pattern 5: UTC-only Date Logic
+**What:** `time.Now().UTC().Truncate(24*time.Hour)` for "today" comparisons.
+**Why bad:** At midnight Tehran (20:30 UTC), this gives the wrong date for all Tehran-timezone logic.
+**Instead:** Always use `TodayTehran()` which converts to `Asia/Tehran` before date extraction.
 
-**What:** `SELECT * FROM diet_plans JOIN plan_days JOIN meals JOIN meal_options JOIN meal_option_items JOIN foods` — a single query joining 6 tables.
-**Why bad:** Cartesian product explosion. A plan with 7 days × 5 meals × 3 options × 4 items = 420 leaf rows, but the JOIN produces rows with redundant plan/day/meal columns. Result set becomes huge, deserialization is complex, and the query planner may struggle with this.
-**Instead:** 2–3 focused queries (plan+days, meals+options+items, medications) assembled in application code.
-
-### Anti-Pattern 4: Storing Sync Queue in localStorage
-
-**What:** Using `localStorage` for the offline sync queue instead of IndexedDB.
-**Why bad:** localStorage has a 5–10MB limit, is synchronous (blocks main thread), and can be cleared by the browser without warning. A queue of messages with attachments or a cached diet plan can easily exceed this.
-**Instead:** Dexie.js with IndexedDB provides structured storage, async access, and much larger capacity (typically 50–100MB+).
-
-### Anti-Pattern 5: WebSocket for Messaging
-
-**What:** Implementing WebSocket for real-time messaging instead of polling.
-**Why bad for this project:** Adds significant complexity (connection management, reconnection, Docker/Traefik WebSocket proxy config, offline handling) for a feature where 10-second latency is acceptable. Only ~500 concurrent users. WebSocket connection pooling on a single server is wasted infrastructure.
-**Instead:** 10-second polling with `GET /api/messages/new?since=` is simple, stateless, and works perfectly with the existing REST architecture and offline queue.
-
-### Anti-Pattern 6: Direct File Serving from Upload Directory
-
-**What:** Mapping `/data/uploads/` directly as a static file route.
-**Why bad:** No authentication. Any user can access any other user's lab results or message attachments by guessing file paths.
-**Instead:** Serve files through authenticated Go handler endpoints that verify the requesting user has permission to access the file.
-
----
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Type | Adapter Pattern | Fallback |
-|---------|-----------------|----------------|----------|
-| SMS Gateway (Kavenegar) | HTTP API call from Go | Interface `sms.Sender` with mock + real impl | Mock adapter logs to stdout in dev |
-| Let's Encrypt (ACME) | Traefik auto-config | Docker labels on Traefik container | Self-signed cert for local dev |
-| Web Push (VAPID) | `webpush-go` library | Direct library call in notification service | Log notification to stdout in dev |
-
-### Internal Service Communication
-
-| From | To | Method | Notes |
-|------|-----|--------|-------|
-| Nuxt PWA | Go API | REST JSON over HTTPS | All communication via `/api/*` routes |
-| Go API | PostgreSQL | pgxpool TCP | Connection pool (25 max conns for 500 concurrent users) |
-| Go API | File Storage | OS filesystem | `/data/uploads/` Docker volume mount |
-| Service Worker | Go API | REST (from SW fetch handler) | Same API, but from SW context for background sync |
-| Service Worker | Browser | Push API + Notification API | Receives push events, shows notifications |
-| Reminder Worker | Push Subscriptions | Web Push protocol | Outbound HTTPS to push endpoints (browser vendor servers) |
-
-### Key Database Indexes (Build-Order Critical)
-
-These indexes directly affect query performance for core features and should be created with their respective migration:
-
-| Table | Index | Purpose | Phase |
-|-------|-------|---------|-------|
-| `users` | `(mobile) WHERE mobile IS NOT NULL` | OTP lookup | 1 |
-| `users` | `(nutritionist_id) WHERE role='client'` | Client list for nutritionist | 1 |
-| `foods.name` | GIN `gin_trgm_ops` | Persian fuzzy text search | 2 |
-| `foods` | `(is_active)` | Active food filter | 2 |
-| `diet_plans` | `(client_id) WHERE status='active'` UNIQUE | One active plan per client | 3 |
-| `plan_days` | `(diet_plan_id, day_number)` | Plan tree loading | 3 |
-| `meals` | `(plan_day_id, display_order)` | Meal ordering in plan | 3 |
-| `meal_options` | `(meal_id, option_number)` | Option ordering | 3 |
-| `meal_option_items` | `(meal_option_id)` | Batch loading items per option | 3 |
-| All tracking tables | `(client_id, date)` | Date-range queries | 4 |
-| All tracking tables | `(local_id) UNIQUE` | Offline dedup | 4 |
-| `messages` | `(sender_id, sent_at)` | Polling query | 5 |
-| `messages` | `(receiver_id, sent_at)` | Polling query | 5 |
-| `messages` | `(receiver_id) WHERE read_at IS NULL` | Unread count | 5 |
+### Anti-Pattern 6: Loading Full DietPlan Aggregate on Every Request
+**What:** Loading the entire plan (all days, meals, options, items) just to check if a plan is active.
+**Why bad:** Huge DB join for a simple status check.
+**Instead:** Separate query methods — `FindActiveByClientID()` returns a lightweight summary; `FindByIDFull()` loads the complete aggregate only when needed (plan builder view).
 
 ---
 
 ## Scalability Considerations
 
-| Concern | At 50 users (launch) | At 500 concurrent users (target) | At 10K clients |
-|---------|---------------------|----------------------------------|----------------|
-| **DB connections** | pgxpool: 10 max | pgxpool: 25 max | pgxpool: 50 max, consider PgBouncer |
-| **Plan loading** | 2–3 queries, <100ms | Same, <200ms | Same, cache hot plans with ETag |
-| **Message polling** | Negligible | ~50 polls/sec at peak | Add `last_activity` index, consider SSE |
-| **Push notifications** | Direct send in goroutine | Buffered channel, 10 workers | Dedicated notification queue (Redis) |
-| **File storage** | Local disk adequate | Local disk adequate (~50GB/yr) | S3-compatible (MinIO) if >200GB |
-| **Search** | pg_trgm fine for 1K foods | pg_trgm fine for 10K foods | pg_trgm fine for 100K; beyond → dedicated search |
-| **Offline sync** | Trivial | FIFO queue handles burst | Consider batch sync API endpoint |
+| Concern | At 50 nutritionists / 500 concurrent | At 10K clients |
+|---------|--------------------------------------|----------------|
+| DB connections | pgxpool (max 20 connections) sufficient | Add PgBouncer |
+| Redis | Single node, 256MB sufficient | Sentinel for HA |
+| File storage | Local Hetzner disk, path in DB | Move to object store (S3-compatible) |
+| Full-text search | pg_trgm on foods table | Already sufficient at this scale |
+| Diet plan load | Full aggregate load manageable | Add Redis caching for active plan |
+| Push notifications | Synchronous webpush call | Move to async job queue (Asynq) |
+| Polling chat | 10s interval × 500 users = 50 req/s | Redis pub/sub or long-poll upgrade |
 
-**Bottom line:** The target scale (50 nutritionists, 10K clients, 500 concurrent) is well within PostgreSQL + single Go server capability. No microservices, no Redis, no message broker needed. Keep it simple.
-
----
-
-## Suggested Build Order (Dependency Graph)
-
-The architecture drives a clear build order based on data dependencies:
-
-```
-Phase 1: Foundation
-  ├── Go project structure (cmd/, internal/{handler,service,repository,model,middleware}/)
-  ├── PostgreSQL + migrations system + users table
-  ├── Gin router skeleton with middleware chain
-  ├── JWT auth + OTP flow
-  ├── Nuxt 4 project with layouts, auth pages, RTL setup
-  └── Docker Compose (Go + PG + Traefik)
-       │
-       ▼
-Phase 2: Core Data Domain
-  ├── foods table + pg_trgm search + food_categories junction
-  ├── medications table
-  ├── Food/Medication CRUD (all 3 layers)
-  ├── Super Admin panel (frontend)
-  └── NutritionLabel, FoodPicker, SearchInput components
-       │
-       ▼
-Phase 3: Diet Plan Engine  ← MOST COMPLEX, highest risk
-  ├── 5 new tables: diet_plans, plan_days, meals, meal_options, meal_option_items
-  ├── 2 more tables: prescribed_medications, exercise_recommendations
-  ├── Aggregate root loading pattern (batch queries)
-  ├── Nutrition computation service
-  ├── Plan builder UI (nutritionist) — most complex frontend component
-  └── Plan viewer UI (client)
-       │
-       ├─────────────────────┐
-       ▼                     ▼
-Phase 4: Tracking       Phase 5: Communication
-  ├── 6 tracking tables    ├── messages table
-  ├── local_id dedup       ├── food_requests table
-  ├── Tracking CRUD        ├── lab_results table
-  ├── Daily dashboard      ├── Chat UI + 10s polling
-  ├── Weight charts        ├── File upload handler
-  └── (Chart.js)           ├── Food request workflow
-                           └── Client mgmt dashboard
-       │                     │
-       └─────────┬───────────┘
-                 ▼
-Phase 6: Offline & PWA
-  ├── Service Worker (@vite-pwa/nuxt)
-  ├── Dexie.js schema + IndexedDB stores
-  ├── Sync queue (useApi offline wrapper)
-  ├── Sync manager (useSyncManager)
-  ├── Push notifications (webpush-go + SW handler)
-  ├── Reminder worker (background goroutine)
-  └── Notification preferences
-       │
-       ▼
-Phase 7: Hardening & Launch
-  ├── Security audit (row-level auth, SQL injection, XSS)
-  ├── Performance (EXPLAIN ANALYZE, load testing)
-  ├── Monitoring (Grafana + Loki)
-  └── Backup verification
-```
-
-**Key dependency insight:** Phases 4 and 5 can run in parallel after Phase 3 because they share no data model dependencies. Phase 6 (offline) must come after all data entry features (Phases 4+5) exist, because the offline layer wraps their API calls.
-
-**Highest risk phase:** Phase 3 (Diet Plan Engine). It has the most complex data model (5-level nesting), the highest-risk query patterns (N+1 trap), and the most complex frontend component (plan builder). Allocate extra time and do a design spike on the aggregate loading pattern before starting implementation.
+Current scale targets (50 nutritionists, ~10,000 clients, ~500 concurrent) are comfortably served by the single-binary architecture with a single Postgres instance and single Redis node.
 
 ---
 
 ## Sources
 
-- **Gin web framework documentation** — Context7 `/websites/gin-gonic_en`: Route grouping, middleware, model binding/validation patterns. **HIGH confidence.**
-- **pgx v5 PostgreSQL driver** — Context7 `/websites/pkg_go_dev_github_com_jackc_pgx_v5`: SendBatch for multi-query round-trips, pgxpool connection management, transaction patterns. **HIGH confidence.**
-- **Nuxt 4 documentation** — Context7 `/websites/nuxt_4_x`: Directory structure (`app/` as srcDir), composables, middleware, Pinia state management, server directory. **HIGH confidence.**
-- **Dexie.js documentation** — Context7 `/websites/dexie`: Schema versioning, table definitions, query patterns for IndexedDB. **HIGH confidence.**
-- **NutriTrack PRD** — Sections 8 (Tech Stack), 9 (Data Model), 6 (Offline Strategy), 7 (Notifications): Definitive source for all data entities, relationships, and architectural decisions. **HIGH confidence.**
-- **NutriTrack docs/phases.md** — Implementation guidance on batch loading, pg_trgm search, sync manager pattern, polling vs WebSocket decision. **HIGH confidence.**
+- Go DDD community patterns: [https://github.com/marcusolsson/goddd](https://github.com/marcusolsson/goddd) — MEDIUM confidence (reference implementation)
+- Gin framework docs: [https://gin-gonic.com/docs/](https://gin-gonic.com/docs/) — HIGH confidence
+- sqlc docs: [https://docs.sqlc.dev/](https://docs.sqlc.dev/) — HIGH confidence
+- golang-migrate: [https://github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate) — HIGH confidence
+- webpush-go: [https://github.com/SherClockHolmes/webpush-go](https://github.com/SherClockHolmes/webpush-go) — HIGH confidence
+- zerolog: [https://github.com/rs/zerolog](https://github.com/rs/zerolog) — HIGH confidence
+- envconfig: [https://github.com/kelseyhightower/envconfig](https://github.com/kelseyhightower/envconfig) — HIGH confidence
+- Persian pg_trgm: PostgreSQL docs — HIGH confidence (pg_trgm works on Unicode/Persian text)
+- DDD aggregate design: "Implementing Domain-Driven Design" (Vernon) — HIGH confidence (canonical source)
