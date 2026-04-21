@@ -119,6 +119,10 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.POST("/plans/:id/days/:day_id/meals/:meal_id/options/:option_id/items",                  planHandler.AddItem)
 		protected.DELETE("/plans/:id/days/:day_id/meals/:meal_id/options/:option_id/items/:item_id",       planHandler.RemoveItem)
 		protected.DELETE("/plans/:id",                                                                     planHandler.DeletePlan)
+		protected.POST("/plans/:id/days/:day_id/exercises",                                                planHandler.AddExercise)
+		protected.DELETE("/plans/:id/days/:day_id/exercises/:exercise_id",                                 planHandler.RemoveExercise)
+		protected.POST("/plans/:id/days/:day_id/prescriptions",                                            planHandler.AddPrescription)
+		protected.DELETE("/plans/:id/days/:day_id/prescriptions/:prescription_id",                         planHandler.RemovePrescription)
 	}
 
 	// 404 handler

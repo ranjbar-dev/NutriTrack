@@ -133,6 +133,18 @@ func (s *DietPlanService) GetFullPlan(ctx context.Context, planID, callerID uuid
 		}
 		day.Meals = meals
 		day.TotalRange = computeDayRange(day.Meals)
+
+		exercises, err := s.planRepo.ListExercises(ctx, day.ID)
+		if err != nil {
+			return nil, err
+		}
+		day.Exercises = exercises
+
+		prescriptions, err := s.planRepo.ListPrescriptionsWithMedication(ctx, day.ID)
+		if err != nil {
+			return nil, err
+		}
+		day.Prescriptions = prescriptions
 	}
 	plan.Days = days
 
@@ -350,8 +362,7 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 }
 
 // RemoveItem removes a food item from a meal option.
-func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.UUID, callerRole string) error {
-	item, err := s.planRepo.FindItemByID(ctx, itemID)
+func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.UUID, callerRole string) error {	item, err := s.planRepo.FindItemByID(ctx, itemID)
 	if err != nil {
 		return err
 	}
@@ -396,4 +407,170 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 	}
 
 	return s.planRepo.DeleteItem(ctx, itemID)
+}
+
+// AddExerciseRequest contains fields required to add an exercise recommendation to a diet plan day.
+type AddExerciseRequest struct {
+	DayID                uuid.UUID
+	ExerciseName         string
+	DurationMinutes      int
+	Description          string
+	CaloriesBurnEstimate int
+	CallerID             uuid.UUID
+	CallerRole           string
+}
+
+// AddPrescriptionRequest contains fields required to add a medication prescription to a diet plan day.
+type AddPrescriptionRequest struct {
+	DayID        uuid.UUID
+	MedicationID uuid.UUID
+	Dosage       string
+	Frequency    string
+	Times        []string
+	Instructions string
+	StartDate    *time.Time
+	EndDate      *time.Time
+	CallerID     uuid.UUID
+	CallerRole   string
+}
+
+// AddExercise adds an exercise recommendation to a diet plan day.
+func (s *DietPlanService) AddExercise(ctx context.Context, req AddExerciseRequest) (*entity.ExerciseRecommendation, error) {
+	day, err := s.planRepo.FindDayByID(ctx, req.DayID)
+	if err != nil {
+		return nil, err
+	}
+	if day == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return nil, err
+	}
+	if plan == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+		return nil, shared.ErrForbidden
+	}
+
+	ex := &entity.ExerciseRecommendation{
+		DayID:                req.DayID,
+		ExerciseName:         req.ExerciseName,
+		DurationMinutes:      req.DurationMinutes,
+		Description:          req.Description,
+		CaloriesBurnEstimate: req.CaloriesBurnEstimate,
+	}
+
+	if err := s.planRepo.AddExercise(ctx, ex); err != nil {
+		return nil, err
+	}
+	return ex, nil
+}
+
+// RemoveExercise removes an exercise recommendation.
+func (s *DietPlanService) RemoveExercise(ctx context.Context, exerciseID, callerID uuid.UUID, callerRole string) error {
+	ex, err := s.planRepo.FindExerciseByID(ctx, exerciseID)
+	if err != nil {
+		return err
+	}
+	if ex == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	day, err := s.planRepo.FindDayByID(ctx, ex.DayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+
+	return s.planRepo.DeleteExercise(ctx, exerciseID)
+}
+
+// AddPrescription adds a medication prescription to a diet plan day.
+func (s *DietPlanService) AddPrescription(ctx context.Context, req AddPrescriptionRequest) (*entity.PrescribedMedication, error) {
+	day, err := s.planRepo.FindDayByID(ctx, req.DayID)
+	if err != nil {
+		return nil, err
+	}
+	if day == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return nil, err
+	}
+	if plan == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+		return nil, shared.ErrForbidden
+	}
+
+	rx := &entity.PrescribedMedication{
+		DayID:        req.DayID,
+		MedicationID: req.MedicationID,
+		Dosage:       req.Dosage,
+		Frequency:    req.Frequency,
+		Times:        req.Times,
+		Instructions: req.Instructions,
+		StartDate:    req.StartDate,
+		EndDate:      req.EndDate,
+	}
+
+	if err := s.planRepo.AddPrescription(ctx, rx); err != nil {
+		return nil, err
+	}
+	return rx, nil
+}
+
+// RemovePrescription removes a medication prescription.
+func (s *DietPlanService) RemovePrescription(ctx context.Context, prescriptionID, callerID uuid.UUID, callerRole string) error {
+	rx, err := s.planRepo.FindPrescriptionByID(ctx, prescriptionID)
+	if err != nil {
+		return err
+	}
+	if rx == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	day, err := s.planRepo.FindDayByID(ctx, rx.DayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+
+	return s.planRepo.DeletePrescription(ctx, prescriptionID)
 }

@@ -30,11 +30,13 @@ func dietPlanToDomain(p db.DietPlan) *entity.DietPlan {
 // dietPlanDayToDomain converts a sqlc DietPlanDay row to a domain entity.
 func dietPlanDayToDomain(d db.DietPlanDay) *entity.DietPlanDay {
 	return &entity.DietPlanDay{
-		ID:        d.ID,
-		PlanID:    d.PlanID,
-		DayNumber: int(d.DayNumber),
-		Meals:     []*entity.DietMeal{},
-		CreatedAt: d.CreatedAt,
+		ID:            d.ID,
+		PlanID:        d.PlanID,
+		DayNumber:     int(d.DayNumber),
+		Meals:         []*entity.DietMeal{},
+		Exercises:     []*entity.ExerciseRecommendation{},
+		Prescriptions: []*entity.PrescribedMedication{},
+		CreatedAt:     d.CreatedAt,
 	}
 }
 
@@ -110,6 +112,40 @@ func float64ToNumeric(f float64) pgtype.Numeric {
 	var n pgtype.Numeric
 	_ = n.Scan(strconv.FormatFloat(f, 'f', 2, 64))
 	return n
+}
+
+// exerciseToDomain converts a sqlc ExerciseRecommendation row to a domain entity.
+func exerciseToDomain(e db.ExerciseRecommendation) *entity.ExerciseRecommendation {
+	return &entity.ExerciseRecommendation{
+		ID:                   e.ID,
+		DayID:                e.DayID,
+		ExerciseName:         e.ExerciseName,
+		DurationMinutes:      int(e.DurationMinutes),
+		Description:          e.Description,
+		CaloriesBurnEstimate: int(e.CaloriesBurnEstimate),
+		CreatedAt:            e.CreatedAt,
+	}
+}
+
+// prescriptionWithMedToDomain converts a join row to a domain PrescribedMedication with medication snapshot.
+func prescriptionWithMedToDomain(r db.ListDayPrescribedMedicationsWithMedicationRow) *entity.PrescribedMedication {
+	return &entity.PrescribedMedication{
+		ID:           r.ID,
+		DayID:        r.DayID,
+		MedicationID: r.MedicationID,
+		Medication: &entity.MedicationSnapshot{
+			ID:   r.MedicationID,
+			Name: r.MedicationName,
+			Unit: r.MedicationUnit,
+		},
+		Dosage:       r.Dosage,
+		Frequency:    r.Frequency,
+		Times:        r.Times,
+		Instructions: r.Instructions,
+		StartDate:    r.StartDate,
+		EndDate:      r.EndDate,
+		CreatedAt:    r.CreatedAt,
+	}
 }
 
 // mealOptionItemWithFoodToDomain converts a join row to a domain entity with food snapshot and computed nutrition.

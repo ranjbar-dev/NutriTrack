@@ -105,6 +105,29 @@ CreatedAt      time.Time   `json:"created_at"`
 UpdatedAt      time.Time   `json:"updated_at"`
 }
 
+type ExerciseRecommendation struct {
+ID                   uuid.UUID `json:"id"`
+DayID                uuid.UUID `json:"day_id"`
+ExerciseName         string    `json:"exercise_name"`
+DurationMinutes      int32     `json:"duration_minutes"`
+Description          string    `json:"description"`
+CaloriesBurnEstimate int32     `json:"calories_burn_estimate"`
+CreatedAt            time.Time `json:"created_at"`
+}
+
+type DayPrescribedMedication struct {
+ID           uuid.UUID  `json:"id"`
+DayID        uuid.UUID  `json:"day_id"`
+MedicationID uuid.UUID  `json:"medication_id"`
+Dosage       string     `json:"dosage"`
+Frequency    string     `json:"frequency"`
+Times        []string   `json:"times"`
+Instructions string     `json:"instructions"`
+StartDate    *time.Time `json:"start_date"`
+EndDate      *time.Time `json:"end_date"`
+CreatedAt    time.Time  `json:"created_at"`
+}
+
 type User struct {
 ID             uuid.UUID      `json:"id"`
 Role           string         `json:"role"`

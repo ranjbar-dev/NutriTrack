@@ -40,4 +40,16 @@ type DietPlanRepository interface {
 	DeleteItem(ctx context.Context, id uuid.UUID) error
 	DeleteItemsByOption(ctx context.Context, optionID uuid.UUID) error
 	ListItemsWithFood(ctx context.Context, optionID uuid.UUID) ([]*entity.MealOptionItem, error)
+
+	// Exercise operations
+	AddExercise(ctx context.Context, ex *entity.ExerciseRecommendation) error
+	FindExerciseByID(ctx context.Context, id uuid.UUID) (*entity.ExerciseRecommendation, error)
+	ListExercises(ctx context.Context, dayID uuid.UUID) ([]*entity.ExerciseRecommendation, error)
+	DeleteExercise(ctx context.Context, id uuid.UUID) error
+
+	// Prescription operations
+	AddPrescription(ctx context.Context, rx *entity.PrescribedMedication) error
+	FindPrescriptionByID(ctx context.Context, id uuid.UUID) (*entity.PrescribedMedication, error)
+	ListPrescriptionsWithMedication(ctx context.Context, dayID uuid.UUID) ([]*entity.PrescribedMedication, error)
+	DeletePrescription(ctx context.Context, id uuid.UUID) error
 }

@@ -61,12 +61,14 @@ func (p *DietPlan) IsActive() bool {
 }
 
 type DietPlanDay struct {
-	ID         uuid.UUID
-	PlanID     uuid.UUID
-	DayNumber  int
-	Meals      []*DietMeal
-	TotalRange *NutritionalRange
-	CreatedAt  time.Time
+	ID            uuid.UUID
+	PlanID        uuid.UUID
+	DayNumber     int
+	Meals         []*DietMeal
+	TotalRange    *NutritionalRange
+	Exercises     []*ExerciseRecommendation
+	Prescriptions []*PrescribedMedication
+	CreatedAt     time.Time
 }
 
 type DietMeal struct {
@@ -99,4 +101,37 @@ type MealOptionItem struct {
 	Food      *FoodSnapshot
 	Computed  *NutritionalSummary
 	CreatedAt time.Time
+}
+
+// ExerciseRecommendation is a day-level exercise suggestion.
+type ExerciseRecommendation struct {
+	ID                   uuid.UUID
+	DayID                uuid.UUID
+	ExerciseName         string
+	DurationMinutes      int
+	Description          string
+	CaloriesBurnEstimate int
+	CreatedAt            time.Time
+}
+
+// MedicationSnapshot carries medication reference data for a prescription.
+type MedicationSnapshot struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Unit string    `json:"unit"`
+}
+
+// PrescribedMedication is a day-level medication prescription.
+type PrescribedMedication struct {
+	ID           uuid.UUID
+	DayID        uuid.UUID
+	MedicationID uuid.UUID
+	Medication   *MedicationSnapshot
+	Dosage       string
+	Frequency    string
+	Times        []string   // "HH:MM" strings
+	Instructions string
+	StartDate    *time.Time
+	EndDate      *time.Time
+	CreatedAt    time.Time
 }

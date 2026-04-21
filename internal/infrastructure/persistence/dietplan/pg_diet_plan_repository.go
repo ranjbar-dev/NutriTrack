@@ -356,3 +356,117 @@ func (r *PgDietPlanRepository) ListItemsWithFood(ctx context.Context, optionID u
 	}
 	return items, nil
 }
+
+// AddExercise inserts a new exercise recommendation and populates the entity with DB-generated fields.
+func (r *PgDietPlanRepository) AddExercise(ctx context.Context, ex *entity.ExerciseRecommendation) error {
+	created, err := r.queries.CreateExerciseRecommendation(ctx, db.CreateExerciseRecommendationParams{
+		DayID:                ex.DayID,
+		ExerciseName:         ex.ExerciseName,
+		DurationMinutes:      int32(ex.DurationMinutes),
+		Description:          ex.Description,
+		CaloriesBurnEstimate: int32(ex.CaloriesBurnEstimate),
+	})
+	if err != nil {
+		return shared.ErrInternal
+	}
+	ex.ID = created.ID
+	ex.CreatedAt = created.CreatedAt
+	return nil
+}
+
+// FindExerciseByID retrieves an exercise recommendation by its ID. Returns nil, nil when not found.
+func (r *PgDietPlanRepository) FindExerciseByID(ctx context.Context, id uuid.UUID) (*entity.ExerciseRecommendation, error) {
+	row, err := r.queries.GetExerciseRecommendation(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, shared.ErrInternal
+	}
+	return exerciseToDomain(row), nil
+}
+
+// ListExercises returns all exercise recommendations for a day.
+func (r *PgDietPlanRepository) ListExercises(ctx context.Context, dayID uuid.UUID) ([]*entity.ExerciseRecommendation, error) {
+	rows, err := r.queries.ListExerciseRecommendations(ctx, dayID)
+	if err != nil {
+		return nil, shared.ErrInternal
+	}
+	result := make([]*entity.ExerciseRecommendation, len(rows))
+	for i, row := range rows {
+		result[i] = exerciseToDomain(row)
+	}
+	return result, nil
+}
+
+// DeleteExercise removes an exercise recommendation by ID.
+func (r *PgDietPlanRepository) DeleteExercise(ctx context.Context, id uuid.UUID) error {
+	if err := r.queries.DeleteExerciseRecommendation(ctx, id); err != nil {
+		return shared.ErrInternal
+	}
+	return nil
+}
+
+// AddPrescription inserts a new prescribed medication and populates the entity with DB-generated fields.
+func (r *PgDietPlanRepository) AddPrescription(ctx context.Context, rx *entity.PrescribedMedication) error {
+	created, err := r.queries.CreateDayPrescribedMedication(ctx, db.CreateDayPrescribedMedicationParams{
+		DayID:        rx.DayID,
+		MedicationID: rx.MedicationID,
+		Dosage:       rx.Dosage,
+		Frequency:    rx.Frequency,
+		Times:        rx.Times,
+		Instructions: rx.Instructions,
+		StartDate:    rx.StartDate,
+		EndDate:      rx.EndDate,
+	})
+	if err != nil {
+		return shared.ErrInternal
+	}
+	rx.ID = created.ID
+	rx.CreatedAt = created.CreatedAt
+	return nil
+}
+
+// FindPrescriptionByID retrieves a prescribed medication by its ID. Returns nil, nil when not found.
+func (r *PgDietPlanRepository) FindPrescriptionByID(ctx context.Context, id uuid.UUID) (*entity.PrescribedMedication, error) {
+	row, err := r.queries.GetDayPrescribedMedication(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, shared.ErrInternal
+	}
+	return &entity.PrescribedMedication{
+		ID:           row.ID,
+		DayID:        row.DayID,
+		MedicationID: row.MedicationID,
+		Dosage:       row.Dosage,
+		Frequency:    row.Frequency,
+		Times:        row.Times,
+		Instructions: row.Instructions,
+		StartDate:    row.StartDate,
+		EndDate:      row.EndDate,
+		CreatedAt:    row.CreatedAt,
+	}, nil
+}
+
+// ListPrescriptionsWithMedication returns all prescribed medications for a day joined with medication data.
+func (r *PgDietPlanRepository) ListPrescriptionsWithMedication(ctx context.Context, dayID uuid.UUID) ([]*entity.PrescribedMedication, error) {
+	rows, err := r.queries.ListDayPrescribedMedicationsWithMedication(ctx, dayID)
+	if err != nil {
+		return nil, shared.ErrInternal
+	}
+	result := make([]*entity.PrescribedMedication, len(rows))
+	for i, row := range rows {
+		result[i] = prescriptionWithMedToDomain(row)
+	}
+	return result, nil
+}
+
+// DeletePrescription removes a prescribed medication by ID.
+func (r *PgDietPlanRepository) DeletePrescription(ctx context.Context, id uuid.UUID) error {
+	if err := r.queries.DeleteDayPrescribedMedication(ctx, id); err != nil {
+		return shared.ErrInternal
+	}
+	return nil
+}

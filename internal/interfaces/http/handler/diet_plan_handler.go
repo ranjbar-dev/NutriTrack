@@ -325,12 +325,220 @@ return
 dto.NoContent(c)
 }
 
+// addExerciseRequest is the request body for adding an exercise recommendation to a plan day.
+type addExerciseRequest struct {
+	ExerciseName         string `json:"exercise_name"`
+	DurationMinutes      int    `json:"duration_minutes"`
+	Description          string `json:"description"`
+	CaloriesBurnEstimate int    `json:"calories_burn_estimate"`
+}
+
+// addPrescriptionRequest is the request body for adding a medication prescription to a plan day.
+type addPrescriptionRequest struct {
+	MedicationID string   `json:"medication_id"`
+	Dosage       string   `json:"dosage"`
+	Frequency    string   `json:"frequency"`
+	Times        []string `json:"times"`
+	Instructions string   `json:"instructions"`
+	StartDate    string   `json:"start_date"` // "2006-01-02" or ""
+	EndDate      string   `json:"end_date"`
+}
+
 // addItemRequest is the request body for adding a food item to a meal option.
 type addItemRequest struct {
 FoodID   string  `json:"food_id"`
 Quantity float64 `json:"quantity"`
 Unit     string  `json:"unit"`
 Notes    string  `json:"notes"`
+}
+
+// AddExercise handles POST /plans/:id/days/:day_id/exercises
+func (h *DietPlanHandler) AddExercise(c *gin.Context) {
+dayIDStr := c.Param("day_id")
+dayID, err := uuid.Parse(dayIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+var req addExerciseRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+ex, svcErr := h.service.AddExercise(c.Request.Context(), appDietPlan.AddExerciseRequest{
+DayID:                dayID,
+ExerciseName:         req.ExerciseName,
+DurationMinutes:      req.DurationMinutes,
+Description:          req.Description,
+CaloriesBurnEstimate: req.CaloriesBurnEstimate,
+CallerID:             callerIDVal.(uuid.UUID),
+CallerRole:           callerRoleVal.(string),
+})
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.Created(c, gin.H{
+"id":                     ex.ID,
+"day_id":                 ex.DayID,
+"exercise_name":          ex.ExerciseName,
+"duration_minutes":       ex.DurationMinutes,
+"description":            ex.Description,
+"calories_burn_estimate": ex.CaloriesBurnEstimate,
+"created_at":             ex.CreatedAt,
+})
+}
+
+// RemoveExercise handles DELETE /plans/:id/days/:day_id/exercises/:exercise_id
+func (h *DietPlanHandler) RemoveExercise(c *gin.Context) {
+exerciseIDStr := c.Param("exercise_id")
+exerciseID, err := uuid.Parse(exerciseIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+svcErr := h.service.RemoveExercise(c.Request.Context(),
+exerciseID,
+callerIDVal.(uuid.UUID),
+callerRoleVal.(string),
+)
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.NoContent(c)
+}
+
+// AddPrescription handles POST /plans/:id/days/:day_id/prescriptions
+func (h *DietPlanHandler) AddPrescription(c *gin.Context) {
+dayIDStr := c.Param("day_id")
+dayID, err := uuid.Parse(dayIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+var req addPrescriptionRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+medicationID, err := uuid.Parse(req.MedicationID)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+var startDate *time.Time
+if req.StartDate != "" {
+t, err := time.Parse("2006-01-02", req.StartDate)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+startDate = &t
+}
+
+var endDate *time.Time
+if req.EndDate != "" {
+t, err := time.Parse("2006-01-02", req.EndDate)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+endDate = &t
+}
+
+times := req.Times
+if times == nil {
+times = []string{}
+}
+
+rx, svcErr := h.service.AddPrescription(c.Request.Context(), appDietPlan.AddPrescriptionRequest{
+DayID:        dayID,
+MedicationID: medicationID,
+Dosage:       req.Dosage,
+Frequency:    req.Frequency,
+Times:        times,
+Instructions: req.Instructions,
+StartDate:    startDate,
+EndDate:      endDate,
+CallerID:     callerIDVal.(uuid.UUID),
+CallerRole:   callerRoleVal.(string),
+})
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.Created(c, gin.H{
+"id":            rx.ID,
+"day_id":        rx.DayID,
+"medication_id": rx.MedicationID,
+"dosage":        rx.Dosage,
+"frequency":     rx.Frequency,
+"times":         rx.Times,
+"instructions":  rx.Instructions,
+"start_date":    rx.StartDate,
+"end_date":      rx.EndDate,
+"created_at":    rx.CreatedAt,
+})
+}
+
+// RemovePrescription handles DELETE /plans/:id/days/:day_id/prescriptions/:prescription_id
+func (h *DietPlanHandler) RemovePrescription(c *gin.Context) {
+prescriptionIDStr := c.Param("prescription_id")
+prescriptionID, err := uuid.Parse(prescriptionIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+svcErr := h.service.RemovePrescription(c.Request.Context(),
+prescriptionID,
+callerIDVal.(uuid.UUID),
+callerRoleVal.(string),
+)
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.NoContent(c)
 }
 
 // AddItem handles POST /plans/:id/days/:day_id/meals/:meal_id/options/:option_id/items
@@ -459,10 +667,12 @@ meals[j] = map[string]any{
 }
 }
 days[i] = map[string]any{
-"id":          day.ID,
-"day_number":  day.DayNumber,
-"total_range": day.TotalRange,
-"meals":       meals,
+"id":            day.ID,
+"day_number":    day.DayNumber,
+"total_range":   day.TotalRange,
+"meals":         meals,
+"exercises":     exercisesToSlice(day.Exercises),
+"prescriptions": prescriptionsToSlice(day.Prescriptions),
 }
 }
 
@@ -501,6 +711,49 @@ m["food"] = map[string]any{
 "id":   item.Food.ID,
 "name": item.Food.Name,
 "unit": item.Food.Unit,
+}
+}
+result[i] = m
+}
+return result
+}
+
+// exercisesToSlice converts a slice of ExerciseRecommendation entities to a slice of maps for JSON response.
+func exercisesToSlice(exercises []*entity.ExerciseRecommendation) []any {
+result := make([]any, len(exercises))
+for i, e := range exercises {
+result[i] = map[string]any{
+"id":                     e.ID,
+"exercise_name":          e.ExerciseName,
+"duration_minutes":       e.DurationMinutes,
+"description":            e.Description,
+"calories_burn_estimate": e.CaloriesBurnEstimate,
+"created_at":             e.CreatedAt,
+}
+}
+return result
+}
+
+// prescriptionsToSlice converts a slice of PrescribedMedication entities to a slice of maps for JSON response.
+func prescriptionsToSlice(prescriptions []*entity.PrescribedMedication) []any {
+result := make([]any, len(prescriptions))
+for i, rx := range prescriptions {
+m := map[string]any{
+"id":            rx.ID,
+"medication_id": rx.MedicationID,
+"dosage":        rx.Dosage,
+"frequency":     rx.Frequency,
+"times":         rx.Times,
+"instructions":  rx.Instructions,
+"start_date":    rx.StartDate,
+"end_date":      rx.EndDate,
+"created_at":    rx.CreatedAt,
+}
+if rx.Medication != nil {
+m["medication"] = map[string]any{
+"id":   rx.Medication.ID,
+"name": rx.Medication.Name,
+"unit": rx.Medication.Unit,
 }
 }
 result[i] = m
