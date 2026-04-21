@@ -236,3 +236,16 @@ ArmCm        *pgtype.Numeric `db:"arm_cm"`
 Notes        string          `db:"notes"`
 CreatedAt    time.Time       `db:"created_at"`
 }
+
+// LabResult represents a lab result file upload.
+type LabResult struct {
+	ID             uuid.UUID `db:"id"`
+	ClientID       uuid.UUID `db:"client_id"`
+	NutritionistID uuid.UUID `db:"nutritionist_id"`
+	FilePath       string    `db:"file_path"`
+	OriginalName   string    `db:"original_name"`
+	FileType       string    `db:"file_type"`
+	FileSize       int64     `db:"file_size"`
+	Notes          string    `db:"notes"`
+	CreatedAt      time.Time `db:"created_at"`
+}

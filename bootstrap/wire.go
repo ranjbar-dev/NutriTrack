@@ -6,12 +6,14 @@ import (
 	appAuth "github.com/ranjbar-dev/nutritrack/internal/application/auth"
 	appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
+	appLabResult "github.com/ranjbar-dev/nutritrack/internal/application/labresult"
 	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
 	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	pgDietPlan "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/dietplan"
 	foodRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/food"
+	labResultRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/labresult"
 	medRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/medication"
 	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
@@ -36,6 +38,7 @@ type Container struct {
 	MedicationService    *appMed.MedicationService
 	DietPlanService      *appDietPlan.DietPlanService
 	TrackingService      *appTracking.TrackingService
+	LabResultService     *appLabResult.LabResultService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -70,6 +73,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	planSvc := appDietPlan.NewDietPlanService(pgPlanRepo, userRepo)
 	pgTrackingRepo := trackInfra.NewPgTrackingRepository(db)
 	trackingSvc := appTracking.NewTrackingService(pgTrackingRepo, userRepo)
+	pgLabResultRepo := labResultRepo.NewPgLabResultRepository(db)
+	labResultSvc := appLabResult.NewLabResultService(pgLabResultRepo, userRepo, localStorage)
 
 	return &Container{
 		AuthService:         authService,
@@ -85,5 +90,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		MedicationService:   medSvc,
 		DietPlanService:     planSvc,
 		TrackingService:     trackingSvc,
+		LabResultService:    labResultSvc,
 	}
 }

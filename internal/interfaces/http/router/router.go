@@ -139,6 +139,12 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.POST("/tracking/body",       trackingHandler.LogBody)
 		protected.POST("/tracking/sync",       trackingHandler.BulkSync)
 		protected.GET("/clients/:id/tracking", trackingHandler.GetTracking)
+
+		// Lab results — clients and nutritionists upload/download lab result files
+		labResultHandler := handler.NewLabResultHandler(container.LabResultService)
+		protected.POST("/clients/:id/lab-results", labResultHandler.Upload)
+		protected.GET("/clients/:id/lab-results",  labResultHandler.List)
+		protected.GET("/lab-results/:id/download", labResultHandler.Download)
 	}
 
 	// 404 handler

@@ -42,3 +42,26 @@ func (s *LocalStorage) SaveAvatar(src io.Reader, ext string) (string, error) {
 
 	return fmt.Sprintf("%s/avatars/%s", s.BaseURL, filename), nil
 }
+
+// SaveLabResult saves a file to <basePath>/lab-results/<uuid>.<ext> and returns the filesystem path.
+func (s *LocalStorage) SaveLabResult(src io.Reader, ext string) (string, error) {
+	dir := filepath.Join(s.BasePath, "lab-results")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	filename := fmt.Sprintf("%s.%s", uuid.NewString(), ext)
+	fullPath := filepath.Join(dir, filename)
+
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(f, src); err != nil {
+		return "", err
+	}
+
+	return fullPath, nil
+}

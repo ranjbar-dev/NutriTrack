@@ -167,6 +167,13 @@ var ErrInvalidFileType = &AppError{
 	HTTPStatus: http.StatusUnprocessableEntity,
 }
 
+// --- Lab result errors ---
+var ErrLabResultNotFound = &AppError{
+	Code:       "LAB_RESULT_NOT_FOUND",
+	Message:    "نتیجه آزمایش یافت نشد",
+	HTTPStatus: http.StatusNotFound,
+}
+
 // WithMessage returns a new AppError with a custom Persian message (for dynamic error context)
 func (e *AppError) WithMessage(msg string) *AppError {
 	return &AppError{
