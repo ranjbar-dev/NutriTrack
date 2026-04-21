@@ -59,6 +59,9 @@ Protein        pgtype.Numeric `json:"protein"`
 Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
 Fat            pgtype.Numeric `json:"fat"`
 Fiber          pgtype.Numeric `json:"fiber"`
+Sugar          pgtype.Numeric `json:"sugar"`
+Sodium         pgtype.Numeric `json:"sodium"`
+Amount         pgtype.Numeric `json:"amount"`
 CreatedBy      pgtype.UUID    `json:"created_by"`
 IsActive       bool           `json:"is_active"`
 CreatedAt      time.Time      `json:"created_at"`
@@ -239,15 +242,19 @@ CreatedAt    time.Time       `db:"created_at"`
 
 // LabResult represents a lab result file upload.
 type LabResult struct {
-	ID             uuid.UUID `db:"id"`
-	ClientID       uuid.UUID `db:"client_id"`
-	NutritionistID uuid.UUID `db:"nutritionist_id"`
-	FilePath       string    `db:"file_path"`
-	OriginalName   string    `db:"original_name"`
-	FileType       string    `db:"file_type"`
-	FileSize       int64     `db:"file_size"`
-	Notes          string    `db:"notes"`
-	CreatedAt      time.Time `db:"created_at"`
+	ID             uuid.UUID  `db:"id"`
+	ClientID       uuid.UUID  `db:"client_id"`
+	NutritionistID uuid.UUID  `db:"nutritionist_id"`
+	Title          string     `db:"title"`
+	ResultType     string     `db:"result_type"`
+	TestDate       *time.Time `db:"test_date"`
+	FilePath       string     `db:"file_path"`
+	OriginalName   string     `db:"original_name"`
+	FileType       string     `db:"file_type"`
+	FileSize       int64      `db:"file_size"`
+	Link           *string    `db:"link"`
+	Notes          string     `db:"notes"`
+	CreatedAt      time.Time  `db:"created_at"`
 }
 
 // Message represents a chat message between a client and a nutritionist.

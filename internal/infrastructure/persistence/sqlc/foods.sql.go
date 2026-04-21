@@ -6,10 +6,10 @@
 package db
 
 import (
-	"context"
+"context"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+"github.com/google/uuid"
+"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addFoodCategory = `-- name: AddFoodCategory :exec
@@ -17,13 +17,13 @@ INSERT INTO food_category_mappings (food_id, category_id) VALUES ($1, $2) ON CON
 `
 
 type AddFoodCategoryParams struct {
-	FoodID     uuid.UUID `json:"food_id"`
-	CategoryID uuid.UUID `json:"category_id"`
+FoodID     uuid.UUID `json:"food_id"`
+CategoryID uuid.UUID `json:"category_id"`
 }
 
 func (q *Queries) AddFoodCategory(ctx context.Context, arg AddFoodCategoryParams) error {
-	_, err := q.db.Exec(ctx, addFoodCategory, arg.FoodID, arg.CategoryID)
-	return err
+_, err := q.db.Exec(ctx, addFoodCategory, arg.FoodID, arg.CategoryID)
+return err
 }
 
 const countSearchFoods = `-- name: CountSearchFoods :one
@@ -37,10 +37,10 @@ WHERE is_active = true
 `
 
 func (q *Queries) CountSearchFoods(ctx context.Context, query string) (int64, error) {
-	row := q.db.QueryRow(ctx, countSearchFoods, query)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+row := q.db.QueryRow(ctx, countSearchFoods, query)
+var count int64
+err := row.Scan(&count)
+return count, err
 }
 
 const countSearchFoodsByCategory = `-- name: CountSearchFoodsByCategory :one
@@ -56,64 +56,73 @@ WHERE f.is_active = true
 `
 
 type CountSearchFoodsByCategoryParams struct {
-	CategoryID uuid.UUID `json:"category_id"`
-	Query      string    `json:"query"`
+CategoryID uuid.UUID `json:"category_id"`
+Query      string    `json:"query"`
 }
 
 func (q *Queries) CountSearchFoodsByCategory(ctx context.Context, arg CountSearchFoodsByCategoryParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countSearchFoodsByCategory, arg.CategoryID, arg.Query)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+row := q.db.QueryRow(ctx, countSearchFoodsByCategory, arg.CategoryID, arg.Query)
+var count int64
+err := row.Scan(&count)
+return count, err
 }
 
 const createFood = `-- name: CreateFood :one
-INSERT INTO foods (name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, created_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, created_by, is_active, created_at, updated_at
+INSERT INTO foods (name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, sugar, sodium, amount, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, sugar, sodium, amount, created_by, is_active, created_at, updated_at
 `
 
 type CreateFoodParams struct {
-	Name           string         `json:"name"`
-	NameNormalized string         `json:"name_normalized"`
-	Unit           string         `json:"unit"`
-	Calories       pgtype.Numeric `json:"calories"`
-	Protein        pgtype.Numeric `json:"protein"`
-	Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
-	Fat            pgtype.Numeric `json:"fat"`
-	Fiber          pgtype.Numeric `json:"fiber"`
-	CreatedBy      pgtype.UUID    `json:"created_by"`
+Name           string         `json:"name"`
+NameNormalized string         `json:"name_normalized"`
+Unit           string         `json:"unit"`
+Calories       pgtype.Numeric `json:"calories"`
+Protein        pgtype.Numeric `json:"protein"`
+Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
+Fat            pgtype.Numeric `json:"fat"`
+Fiber          pgtype.Numeric `json:"fiber"`
+Sugar          pgtype.Numeric `json:"sugar"`
+Sodium         pgtype.Numeric `json:"sodium"`
+Amount         pgtype.Numeric `json:"amount"`
+CreatedBy      pgtype.UUID    `json:"created_by"`
 }
 
 func (q *Queries) CreateFood(ctx context.Context, arg CreateFoodParams) (Food, error) {
-	row := q.db.QueryRow(ctx, createFood,
-		arg.Name,
-		arg.NameNormalized,
-		arg.Unit,
-		arg.Calories,
-		arg.Protein,
-		arg.Carbohydrate,
-		arg.Fat,
-		arg.Fiber,
-		arg.CreatedBy,
-	)
-	var i Food
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.NameNormalized,
-		&i.Unit,
-		&i.Calories,
-		&i.Protein,
-		&i.Carbohydrate,
-		&i.Fat,
-		&i.Fiber,
-		&i.CreatedBy,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+row := q.db.QueryRow(ctx, createFood,
+arg.Name,
+arg.NameNormalized,
+arg.Unit,
+arg.Calories,
+arg.Protein,
+arg.Carbohydrate,
+arg.Fat,
+arg.Fiber,
+arg.Sugar,
+arg.Sodium,
+arg.Amount,
+arg.CreatedBy,
+)
+var i Food
+err := row.Scan(
+&i.ID,
+&i.Name,
+&i.NameNormalized,
+&i.Unit,
+&i.Calories,
+&i.Protein,
+&i.Carbohydrate,
+&i.Fat,
+&i.Fiber,
+&i.Sugar,
+&i.Sodium,
+&i.Amount,
+&i.CreatedBy,
+&i.IsActive,
+&i.CreatedAt,
+&i.UpdatedAt,
+)
+return i, err
 }
 
 const deactivateFood = `-- name: DeactivateFood :exec
@@ -121,8 +130,8 @@ UPDATE foods SET is_active = false, updated_at = NOW() WHERE id = $1
 `
 
 func (q *Queries) DeactivateFood(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deactivateFood, id)
-	return err
+_, err := q.db.Exec(ctx, deactivateFood, id)
+return err
 }
 
 const deleteFood = `-- name: DeleteFood :exec
@@ -130,33 +139,36 @@ DELETE FROM foods WHERE id = $1
 `
 
 func (q *Queries) DeleteFood(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteFood, id)
-	return err
+_, err := q.db.Exec(ctx, deleteFood, id)
+return err
 }
 
 const getFoodByID = `-- name: GetFoodByID :one
-SELECT id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, created_by, is_active, created_at, updated_at FROM foods WHERE id = $1 LIMIT 1
+SELECT id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, sugar, sodium, amount, created_by, is_active, created_at, updated_at FROM foods WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetFoodByID(ctx context.Context, id uuid.UUID) (Food, error) {
-	row := q.db.QueryRow(ctx, getFoodByID, id)
-	var i Food
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.NameNormalized,
-		&i.Unit,
-		&i.Calories,
-		&i.Protein,
-		&i.Carbohydrate,
-		&i.Fat,
-		&i.Fiber,
-		&i.CreatedBy,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+row := q.db.QueryRow(ctx, getFoodByID, id)
+var i Food
+err := row.Scan(
+&i.ID,
+&i.Name,
+&i.NameNormalized,
+&i.Unit,
+&i.Calories,
+&i.Protein,
+&i.Carbohydrate,
+&i.Fat,
+&i.Fiber,
+&i.Sugar,
+&i.Sodium,
+&i.Amount,
+&i.CreatedBy,
+&i.IsActive,
+&i.CreatedAt,
+&i.UpdatedAt,
+)
+return i, err
 }
 
 const getFoodCategories = `-- name: GetFoodCategories :many
@@ -167,23 +179,23 @@ WHERE fcm.food_id = $1
 `
 
 func (q *Queries) GetFoodCategories(ctx context.Context, foodID uuid.UUID) ([]FoodCategory, error) {
-	rows, err := q.db.Query(ctx, getFoodCategories, foodID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []FoodCategory{}
-	for rows.Next() {
-		var i FoodCategory
-		if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+rows, err := q.db.Query(ctx, getFoodCategories, foodID)
+if err != nil {
+return nil, err
+}
+defer rows.Close()
+items := []FoodCategory{}
+for rows.Next() {
+var i FoodCategory
+if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
+return nil, err
+}
+items = append(items, i)
+}
+if err := rows.Err(); err != nil {
+return nil, err
+}
+return items, nil
 }
 
 const removeFoodCategories = `-- name: RemoveFoodCategories :exec
@@ -191,12 +203,12 @@ DELETE FROM food_category_mappings WHERE food_id = $1
 `
 
 func (q *Queries) RemoveFoodCategories(ctx context.Context, foodID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, removeFoodCategories, foodID)
-	return err
+_, err := q.db.Exec(ctx, removeFoodCategories, foodID)
+return err
 }
 
 const searchFoods = `-- name: SearchFoods :many
-SELECT id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, created_by, is_active, created_at, updated_at FROM foods
+SELECT id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, sugar, sodium, amount, created_by, is_active, created_at, updated_at FROM foods
 WHERE is_active = true
   AND (
     $1::text = ''
@@ -210,47 +222,50 @@ LIMIT $3::int OFFSET $2::int
 `
 
 type SearchFoodsParams struct {
-	Query string `json:"query"`
-	Off   int32  `json:"off"`
-	Lim   int32  `json:"lim"`
+Query string `json:"query"`
+Off   int32  `json:"off"`
+Lim   int32  `json:"lim"`
 }
 
 func (q *Queries) SearchFoods(ctx context.Context, arg SearchFoodsParams) ([]Food, error) {
-	rows, err := q.db.Query(ctx, searchFoods, arg.Query, arg.Off, arg.Lim)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Food{}
-	for rows.Next() {
-		var i Food
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.NameNormalized,
-			&i.Unit,
-			&i.Calories,
-			&i.Protein,
-			&i.Carbohydrate,
-			&i.Fat,
-			&i.Fiber,
-			&i.CreatedBy,
-			&i.IsActive,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+rows, err := q.db.Query(ctx, searchFoods, arg.Query, arg.Off, arg.Lim)
+if err != nil {
+return nil, err
+}
+defer rows.Close()
+items := []Food{}
+for rows.Next() {
+var i Food
+if err := rows.Scan(
+&i.ID,
+&i.Name,
+&i.NameNormalized,
+&i.Unit,
+&i.Calories,
+&i.Protein,
+&i.Carbohydrate,
+&i.Fat,
+&i.Fiber,
+&i.Sugar,
+&i.Sodium,
+&i.Amount,
+&i.CreatedBy,
+&i.IsActive,
+&i.CreatedAt,
+&i.UpdatedAt,
+); err != nil {
+return nil, err
+}
+items = append(items, i)
+}
+if err := rows.Err(); err != nil {
+return nil, err
+}
+return items, nil
 }
 
 const searchFoodsByCategory = `-- name: SearchFoodsByCategory :many
-SELECT f.id, f.name, f.name_normalized, f.unit, f.calories, f.protein, f.carbohydrate, f.fat, f.fiber, f.created_by, f.is_active, f.created_at, f.updated_at FROM foods f
+SELECT f.id, f.name, f.name_normalized, f.unit, f.calories, f.protein, f.carbohydrate, f.fat, f.fiber, f.sugar, f.sodium, f.amount, f.created_by, f.is_active, f.created_at, f.updated_at FROM foods f
 JOIN food_category_mappings fcm ON f.id = fcm.food_id
 WHERE f.is_active = true
   AND fcm.category_id = $1::uuid
@@ -266,49 +281,52 @@ LIMIT $4::int OFFSET $3::int
 `
 
 type SearchFoodsByCategoryParams struct {
-	CategoryID uuid.UUID `json:"category_id"`
-	Query      string    `json:"query"`
-	Off        int32     `json:"off"`
-	Lim        int32     `json:"lim"`
+CategoryID uuid.UUID `json:"category_id"`
+Query      string    `json:"query"`
+Off        int32     `json:"off"`
+Lim        int32     `json:"lim"`
 }
 
 func (q *Queries) SearchFoodsByCategory(ctx context.Context, arg SearchFoodsByCategoryParams) ([]Food, error) {
-	rows, err := q.db.Query(ctx, searchFoodsByCategory,
-		arg.CategoryID,
-		arg.Query,
-		arg.Off,
-		arg.Lim,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Food{}
-	for rows.Next() {
-		var i Food
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.NameNormalized,
-			&i.Unit,
-			&i.Calories,
-			&i.Protein,
-			&i.Carbohydrate,
-			&i.Fat,
-			&i.Fiber,
-			&i.CreatedBy,
-			&i.IsActive,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+rows, err := q.db.Query(ctx, searchFoodsByCategory,
+arg.CategoryID,
+arg.Query,
+arg.Off,
+arg.Lim,
+)
+if err != nil {
+return nil, err
+}
+defer rows.Close()
+items := []Food{}
+for rows.Next() {
+var i Food
+if err := rows.Scan(
+&i.ID,
+&i.Name,
+&i.NameNormalized,
+&i.Unit,
+&i.Calories,
+&i.Protein,
+&i.Carbohydrate,
+&i.Fat,
+&i.Fiber,
+&i.Sugar,
+&i.Sodium,
+&i.Amount,
+&i.CreatedBy,
+&i.IsActive,
+&i.CreatedAt,
+&i.UpdatedAt,
+); err != nil {
+return nil, err
+}
+items = append(items, i)
+}
+if err := rows.Err(); err != nil {
+return nil, err
+}
+return items, nil
 }
 
 const updateFood = `-- name: UpdateFood :one
@@ -321,50 +339,62 @@ SET name            = $2,
     carbohydrate    = $7,
     fat             = $8,
     fiber           = $9,
+    sugar           = $10,
+    sodium          = $11,
+    amount          = $12,
     updated_at      = NOW()
 WHERE id = $1
-RETURNING id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, created_by, is_active, created_at, updated_at
+RETURNING id, name, name_normalized, unit, calories, protein, carbohydrate, fat, fiber, sugar, sodium, amount, created_by, is_active, created_at, updated_at
 `
 
 type UpdateFoodParams struct {
-	ID             uuid.UUID      `json:"id"`
-	Name           string         `json:"name"`
-	NameNormalized string         `json:"name_normalized"`
-	Unit           string         `json:"unit"`
-	Calories       pgtype.Numeric `json:"calories"`
-	Protein        pgtype.Numeric `json:"protein"`
-	Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
-	Fat            pgtype.Numeric `json:"fat"`
-	Fiber          pgtype.Numeric `json:"fiber"`
+ID             uuid.UUID      `json:"id"`
+Name           string         `json:"name"`
+NameNormalized string         `json:"name_normalized"`
+Unit           string         `json:"unit"`
+Calories       pgtype.Numeric `json:"calories"`
+Protein        pgtype.Numeric `json:"protein"`
+Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
+Fat            pgtype.Numeric `json:"fat"`
+Fiber          pgtype.Numeric `json:"fiber"`
+Sugar          pgtype.Numeric `json:"sugar"`
+Sodium         pgtype.Numeric `json:"sodium"`
+Amount         pgtype.Numeric `json:"amount"`
 }
 
 func (q *Queries) UpdateFood(ctx context.Context, arg UpdateFoodParams) (Food, error) {
-	row := q.db.QueryRow(ctx, updateFood,
-		arg.ID,
-		arg.Name,
-		arg.NameNormalized,
-		arg.Unit,
-		arg.Calories,
-		arg.Protein,
-		arg.Carbohydrate,
-		arg.Fat,
-		arg.Fiber,
-	)
-	var i Food
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.NameNormalized,
-		&i.Unit,
-		&i.Calories,
-		&i.Protein,
-		&i.Carbohydrate,
-		&i.Fat,
-		&i.Fiber,
-		&i.CreatedBy,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+row := q.db.QueryRow(ctx, updateFood,
+arg.ID,
+arg.Name,
+arg.NameNormalized,
+arg.Unit,
+arg.Calories,
+arg.Protein,
+arg.Carbohydrate,
+arg.Fat,
+arg.Fiber,
+arg.Sugar,
+arg.Sodium,
+arg.Amount,
+)
+var i Food
+err := row.Scan(
+&i.ID,
+&i.Name,
+&i.NameNormalized,
+&i.Unit,
+&i.Calories,
+&i.Protein,
+&i.Carbohydrate,
+&i.Fat,
+&i.Fiber,
+&i.Sugar,
+&i.Sodium,
+&i.Amount,
+&i.CreatedBy,
+&i.IsActive,
+&i.CreatedAt,
+&i.UpdatedAt,
+)
+return i, err
 }

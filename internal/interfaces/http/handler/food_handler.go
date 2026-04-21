@@ -31,6 +31,9 @@ type foodRequest struct {
 	Carbohydrate float64     `json:"carbohydrate"  binding:"gte=0"`
 	Fat          float64     `json:"fat"           binding:"gte=0"`
 	Fiber        float64     `json:"fiber"         binding:"gte=0"`
+	Sugar        float64     `json:"sugar"         binding:"gte=0"`
+	Sodium       float64     `json:"sodium"        binding:"gte=0"`
+	Amount       float64     `json:"amount"        binding:"gte=0"`
 	CategoryIDs  []uuid.UUID `json:"category_ids"`
 }
 
@@ -52,6 +55,9 @@ func (h *FoodHandler) Create(c *gin.Context) {
 		Carbohydrate: req.Carbohydrate,
 		Fat:          req.Fat,
 		Fiber:        req.Fiber,
+		Sugar:        req.Sugar,
+		Sodium:       req.Sodium,
+		Amount:       req.Amount,
 		CategoryIDs:  req.CategoryIDs,
 		CallerID:     callerID,
 		CallerRole:   callerRole,
@@ -134,6 +140,9 @@ func (h *FoodHandler) Update(c *gin.Context) {
 		Carbohydrate: req.Carbohydrate,
 		Fat:          req.Fat,
 		Fiber:        req.Fiber,
+		Sugar:        req.Sugar,
+		Sodium:       req.Sodium,
+		Amount:       req.Amount,
 		CategoryIDs:  req.CategoryIDs,
 		CallerID:     callerID,
 		CallerRole:   callerRole,
@@ -146,7 +155,7 @@ func (h *FoodHandler) Update(c *gin.Context) {
 	dto.OK(c, toFoodResponse(food))
 }
 
-// Delete handles DELETE /api/v1/foods/:id.
+// Delete handles DELETE/api/v1/foods/:id.
 func (h *FoodHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -205,6 +214,9 @@ func toFoodResponse(f *entity.Food) gin.H {
 		"carbohydrate": f.Carbohydrate,
 		"fat":          f.Fat,
 		"fiber":        f.Fiber,
+		"sugar":        f.Sugar,
+		"sodium":       f.Sodium,
+		"amount":       f.Amount,
 		"is_active":    f.IsActive,
 		"categories":   cats,
 		"created_at":   f.CreatedAt,

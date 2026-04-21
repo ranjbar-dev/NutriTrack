@@ -38,6 +38,9 @@ func (r *PgFoodRepository) Create(ctx context.Context, food *entity.Food) error 
 		Carbohydrate:   float64ToNumeric(food.Carbohydrate),
 		Fat:            float64ToNumeric(food.Fat),
 		Fiber:          float64ToNumeric(food.Fiber),
+		Sugar:          float64ToNumeric(food.Sugar),
+		Sodium:         float64ToNumeric(food.Sodium),
+		Amount:         float64ToNumeric(food.Amount),
 		CreatedBy:      uuidToPgtypeUUID(food.CreatedBy),
 	})
 	if err != nil {
@@ -98,6 +101,9 @@ func (r *PgFoodRepository) Update(ctx context.Context, food *entity.Food) error 
 		Carbohydrate:   float64ToNumeric(food.Carbohydrate),
 		Fat:            float64ToNumeric(food.Fat),
 		Fiber:          float64ToNumeric(food.Fiber),
+		Sugar:          float64ToNumeric(food.Sugar),
+		Sodium:         float64ToNumeric(food.Sodium),
+		Amount:         float64ToNumeric(food.Amount),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

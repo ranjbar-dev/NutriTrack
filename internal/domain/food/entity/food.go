@@ -17,6 +17,9 @@ type Food struct {
 	Carbohydrate   float64
 	Fat            float64
 	Fiber          float64
+	Sugar          float64
+	Sodium         float64
+	Amount         float64
 	CreatedBy      *uuid.UUID
 	IsActive       bool
 	Categories     []FoodCategory

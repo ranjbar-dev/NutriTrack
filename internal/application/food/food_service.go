@@ -18,6 +18,9 @@ type CreateFoodRequest struct {
 	Carbohydrate float64
 	Fat          float64
 	Fiber        float64
+	Sugar        float64
+	Sodium       float64
+	Amount       float64
 	CategoryIDs  []uuid.UUID
 	CallerID     uuid.UUID
 	CallerRole   string
@@ -33,6 +36,9 @@ type UpdateFoodRequest struct {
 	Carbohydrate float64
 	Fat          float64
 	Fiber        float64
+	Sugar        float64
+	Sodium       float64
+	Amount       float64
 	CategoryIDs  []uuid.UUID
 	CallerID     uuid.UUID
 	CallerRole   string
@@ -81,6 +87,9 @@ func (s *FoodService) CreateFood(ctx context.Context, req CreateFoodRequest) (*e
 		Carbohydrate:   req.Carbohydrate,
 		Fat:            req.Fat,
 		Fiber:          req.Fiber,
+		Sugar:          req.Sugar,
+		Sodium:         req.Sodium,
+		Amount:         req.Amount,
 		CreatedBy:      &req.CallerID,
 		Categories:     categories,
 		IsActive:       true,
@@ -174,6 +183,9 @@ func (s *FoodService) UpdateFood(ctx context.Context, req UpdateFoodRequest) (*e
 	food.Carbohydrate = req.Carbohydrate
 	food.Fat = req.Fat
 	food.Fiber = req.Fiber
+	food.Sugar = req.Sugar
+	food.Sodium = req.Sodium
+	food.Amount = req.Amount
 	food.Categories = categories
 
 	if err := s.foodRepo.Update(ctx, food); err != nil {
