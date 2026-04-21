@@ -137,7 +137,18 @@ func (s *NutritionistService) Update(ctx context.Context, req UpdateNutritionist
 	return user, nil
 }
 
-// SetStatus activates or deactivates a nutritionist.
+// GetClients returns a paginated list of clients for the given nutritionist (admin-scoped).
+func (s *NutritionistService) GetClients(ctx context.Context, nutritionistID uuid.UUID, limit, offset int32) ([]*entity.User, int64, error) {
+	users, err := s.userRepo.FindClientsByNutritionist(ctx, nutritionistID, limit, offset)
+	if err != nil {
+		return nil, 0, shared.ErrInternal
+	}
+	total, err := s.userRepo.CountClientsByNutritionist(ctx, nutritionistID)
+	if err != nil {
+		return nil, 0, shared.ErrInternal
+	}
+	return users, total, nil
+}
 func (s *NutritionistService) SetStatus(ctx context.Context, id uuid.UUID, active bool) error {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {

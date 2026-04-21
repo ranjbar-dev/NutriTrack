@@ -148,6 +148,29 @@ func (h *NutritionistHandler) SetStatus(c *gin.Context) {
 	dto.OK(c, gin.H{"message": "وضعیت متخصص تغذیه با موفقیت به‌روز شد"})
 }
 
+// GetClients handles GET /api/v1/admin/nutritionists/:id/clients.
+func (h *NutritionistHandler) GetClients(c *gin.Context) {
+	nutritionistID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	pg := dto.ParsePagination(c)
+
+	users, total, err := h.svc.GetClients(c.Request.Context(), nutritionistID, pg.Limit(), pg.Offset())
+	if err != nil {
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+
+	resp := make([]gin.H, len(users))
+	for i, u := range users {
+		resp[i] = toClientResponse(u)
+	}
+	dto.Paginated(c, resp, total, pg.Page, pg.PageSize)
+}
+
 // toNutritionistResponse converts a domain User to a JSON-serialisable map.
 func toNutritionistResponse(u *entity.User) gin.H {
 	return gin.H{
