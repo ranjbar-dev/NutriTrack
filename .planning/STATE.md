@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 07-01-PLAN.md (message domain, conversation endpoints, attachment upload, unread count)
-last_updated: "2026-04-21T19:57:00.000Z"
+status: completed
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-04-21T19:07:52.928Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 12
+  completed_plans: 15
   percent: 0
 ---
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 06 P01 | 25m | 8 tasks | 19 files |
 | Phase 06 P03 | 20m | 14 tasks | 15 files |
 | Phase 07 P01 | 15m | 14 tasks | 15 files |
+| Phase 07 P04 | 15m | 11 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
   - io.Reader nil pattern for optional attachment: var attachReader io.Reader; assign f only when file present (Phase 7 Plan 01)
   - SaveAttachment returns URL path (same as SaveAvatar); conversation ordered ASC by created_at (Phase 7 Plan 01)
   - MarkRead called after listing conversation — auto-marks other party's messages as read on fetch (Phase 7 Plan 01)
+- Used UPSERT ON CONFLICT(user_id) for notification preferences — no pre-check needed
 
 ### Pending Todos
 
@@ -110,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T19:57:00.000Z
-Stopped at: Completed 07-01-PLAN.md (message domain, conversation endpoints, attachment upload, unread count)
+Last session: 2026-04-21T19:07:52.917Z
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None
