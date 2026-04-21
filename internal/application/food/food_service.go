@@ -53,7 +53,12 @@ func NewFoodService(foodRepo repository.FoodRepository, categoryRepo repository.
 }
 
 // CreateFood creates a new food item.
+// Only nutritionists and super admins may create foods.
 func (s *FoodService) CreateFood(ctx context.Context, req CreateFoodRequest) (*entity.Food, error) {
+	if req.CallerRole != "nutritionist" && req.CallerRole != "superadmin" {
+		return nil, shared.ErrForbidden
+	}
+
 	normalized := shared.NormalizePersian(req.Name)
 
 	categories := make([]entity.FoodCategory, 0, len(req.CategoryIDs))

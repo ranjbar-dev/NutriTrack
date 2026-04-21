@@ -225,7 +225,15 @@ func (s *AuthService) RefreshToken(ctx context.Context, req RefreshRequest) (*Au
 	}, nil
 }
 
-// Logout revokes the refresh token.
+// RevokeToken adds a token JTI to the blacklist with the given TTL.
+// Called on logout to enable immediate access token invalidation.
+func (s *AuthService) RevokeToken(ctx context.Context, jti string, ttl time.Duration) error {
+	if jti == "" || ttl <= 0 {
+		return nil
+	}
+	return s.blacklist.Revoke(ctx, jti, ttl)
+}
+
 func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	claims, err := s.jwtService.ValidateRefreshToken(refreshToken)
 	if err != nil {

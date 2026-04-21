@@ -15,9 +15,10 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Port     string `mapstructure:"PORT"`
-	Env      string `mapstructure:"ENV"`
-	TimeZone string `mapstructure:"TIMEZONE"`
+	Port               string `mapstructure:"PORT"`
+	Env                string `mapstructure:"ENV"`
+	TimeZone           string `mapstructure:"TIMEZONE"`
+	CORSAllowedOrigins string `mapstructure:"CORS_ALLOWED_ORIGINS"`
 }
 
 type DatabaseConfig struct {

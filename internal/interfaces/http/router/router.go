@@ -21,7 +21,7 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 	r := gin.New()
 
 	// Global middleware chain (order matters)
-	r.Use(middleware.CORS())
+	r.Use(middleware.CORS(cfg.App.CORSAllowedOrigins))
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
@@ -47,14 +47,14 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 	authGroup := v1.Group("/auth")
 	{
 		authGroup.POST("/login",      authHandler.Login)
-		authGroup.POST("/otp/send",   authHandler.SendOTP)
+		authGroup.POST("/otp/send",   middleware.RateLimitByIP(rdb, 60), authHandler.SendOTP)
 		authGroup.POST("/otp/verify", authHandler.VerifyOTP)
 		authGroup.POST("/refresh",    authHandler.Refresh)
 	}
 
 	// --- Protected routes (require JWT) ---
 	protected := v1.Group("")
-	protected.Use(middleware.RequireAuth(container.JWTService))
+	protected.Use(middleware.RequireAuth(container.JWTService, container.TokenBlacklist))
 	{
 		protected.POST("/auth/logout", authHandler.Logout)
 		protected.GET("/auth/me",      authHandler.Me)

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ranjbar-dev/nutritrack/internal/application/auth"
@@ -139,8 +140,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Access token expiry is short (15 min), so we don't blacklist it here.
-	_ = c.GetHeader("Authorization")
+	// Also revoke the current access token immediately so it cannot be reused
+	// after logout, even within its remaining validity window.
+	if jtiVal, exists := c.Get(middleware.AuthTokenJTIKey); exists {
+		if jti, ok := jtiVal.(string); ok && jti != "" {
+			_ = h.authService.RevokeToken(c.Request.Context(), jti, 24*time.Hour)
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "با موفقیت خارج شدید"})
 }
