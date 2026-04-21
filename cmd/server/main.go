@@ -39,6 +39,12 @@ func main() {
 	defer db.Close()
 	log.Info().Msg("postgres connected")
 
+	// Run database migrations
+	if err := bootstrap.RunMigrations(cfg.Database.MigrationDSN()); err != nil {
+		log.Fatal().Err(err).Msg("failed to run migrations")
+	}
+	log.Info().Msg("migrations complete")
+
 	rdb, err := bootstrap.NewRedisClient(&cfg.Redis)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to redis")
