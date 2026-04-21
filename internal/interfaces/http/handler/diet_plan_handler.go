@@ -623,6 +623,162 @@ return
 dto.NoContent(c)
 }
 
+// updatePlanRequest is the request body for updating a diet plan's metadata.
+type updatePlanRequest struct {
+	Title              string `json:"title"`
+	Notes              string `json:"notes"`
+	DailyWaterTargetML int    `json:"daily_water_target_ml"`
+}
+
+// GetActivePlan handles GET /plans/active — returns the caller's own active plan with full tree
+func (h *DietPlanHandler) GetActivePlan(c *gin.Context) {
+	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+	plan, svcErr := h.service.GetActivePlan(
+		c.Request.Context(),
+		callerIDVal.(uuid.UUID),
+		callerRoleVal.(string),
+	)
+	if svcErr != nil {
+		if appErr, ok := svcErr.(*shared.AppError); ok {
+			dto.Abort(c, appErr)
+			return
+		}
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+	dto.OK(c, planFullToMap(plan))
+}
+
+// UpdatePlan handles PATCH /plans/:id — updates plan metadata
+func (h *DietPlanHandler) UpdatePlan(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := uuid.Parse(planIDStr)
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+	var req updatePlanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	plan, svcErr := h.service.UpdatePlan(c.Request.Context(), appDietPlan.UpdatePlanRequest{
+		PlanID:             planID,
+		Title:              req.Title,
+		Notes:              req.Notes,
+		DailyWaterTargetML: req.DailyWaterTargetML,
+		CallerID:           callerIDVal.(uuid.UUID),
+		CallerRole:         callerRoleVal.(string),
+	})
+	if svcErr != nil {
+		if appErr, ok := svcErr.(*shared.AppError); ok {
+			dto.Abort(c, appErr)
+			return
+		}
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+
+	dto.OK(c, planToMap(plan))
+}
+
+// DeleteDay handles DELETE /plans/:id/days/:day_id
+func (h *DietPlanHandler) DeleteDay(c *gin.Context) {
+	dayIDStr := c.Param("day_id")
+	dayID, err := uuid.Parse(dayIDStr)
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+	svcErr := h.service.DeleteDay(
+		c.Request.Context(),
+		dayID,
+		callerIDVal.(uuid.UUID),
+		callerRoleVal.(string),
+	)
+	if svcErr != nil {
+		if appErr, ok := svcErr.(*shared.AppError); ok {
+			dto.Abort(c, appErr)
+			return
+		}
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+
+	dto.NoContent(c)
+}
+
+// DeleteMeal handles DELETE /plans/:id/days/:day_id/meals/:meal_id
+func (h *DietPlanHandler) DeleteMeal(c *gin.Context) {
+	mealIDStr := c.Param("meal_id")
+	mealID, err := uuid.Parse(mealIDStr)
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+	svcErr := h.service.DeleteMeal(
+		c.Request.Context(),
+		mealID,
+		callerIDVal.(uuid.UUID),
+		callerRoleVal.(string),
+	)
+	if svcErr != nil {
+		if appErr, ok := svcErr.(*shared.AppError); ok {
+			dto.Abort(c, appErr)
+			return
+		}
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+
+	dto.NoContent(c)
+}
+
+// DeleteOption handles DELETE /plans/:id/days/:day_id/meals/:meal_id/options/:option_id
+func (h *DietPlanHandler) DeleteOption(c *gin.Context) {
+	optionIDStr := c.Param("option_id")
+	optionID, err := uuid.Parse(optionIDStr)
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+	svcErr := h.service.DeleteOption(
+		c.Request.Context(),
+		optionID,
+		callerIDVal.(uuid.UUID),
+		callerRoleVal.(string),
+	)
+	if svcErr != nil {
+		if appErr, ok := svcErr.(*shared.AppError); ok {
+			dto.Abort(c, appErr)
+			return
+		}
+		dto.Abort(c, shared.ErrInternal)
+		return
+	}
+
+	dto.NoContent(c)
+}
+
 // --- Response helpers ---
 
 // planToMap builds a flat plan response map.

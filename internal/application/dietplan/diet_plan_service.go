@@ -542,6 +542,137 @@ func (s *DietPlanService) AddPrescription(ctx context.Context, req AddPrescripti
 	return rx, nil
 }
 
+// UpdatePlanRequest contains fields required to update a diet plan's metadata.
+type UpdatePlanRequest struct {
+	PlanID             uuid.UUID
+	Title              string
+	Notes              string
+	DailyWaterTargetML int
+	CallerID           uuid.UUID
+	CallerRole         string
+}
+
+// GetActivePlan retrieves the active diet plan for a client with full tree.
+// callerID is the authenticated user requesting access.
+func (s *DietPlanService) GetActivePlan(ctx context.Context, callerID uuid.UUID, callerRole string) (*entity.DietPlan, error) {
+	plan, err := s.planRepo.FindActiveByClientID(ctx, callerID)
+	if err != nil {
+		return nil, err
+	}
+	if plan == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+	return s.GetFullPlan(ctx, plan.ID, callerID, callerRole)
+}
+
+// UpdatePlan updates plan metadata. Only the nutritionist owner or superadmin may update.
+func (s *DietPlanService) UpdatePlan(ctx context.Context, req UpdatePlanRequest) (*entity.DietPlan, error) {
+	plan, err := s.planRepo.FindByID(ctx, req.PlanID)
+	if err != nil {
+		return nil, err
+	}
+	if plan == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+		return nil, shared.ErrForbidden
+	}
+	plan.Title = req.Title
+	plan.Notes = req.Notes
+	plan.DailyWaterTargetML = req.DailyWaterTargetML
+	if err := s.planRepo.Update(ctx, plan); err != nil {
+		return nil, err
+	}
+	return plan, nil
+}
+
+// DeleteDay removes a day from a plan. Only the nutritionist owner or superadmin may delete.
+func (s *DietPlanService) DeleteDay(ctx context.Context, dayID, callerID uuid.UUID, callerRole string) error {
+	day, err := s.planRepo.FindDayByID(ctx, dayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+	return s.planRepo.DeleteDay(ctx, dayID)
+}
+
+// DeleteMeal removes a meal from a day. Only the nutritionist owner or superadmin may delete.
+func (s *DietPlanService) DeleteMeal(ctx context.Context, mealID, callerID uuid.UUID, callerRole string) error {
+	meal, err := s.planRepo.FindMealByID(ctx, mealID)
+	if err != nil {
+		return err
+	}
+	if meal == nil {
+		return shared.ErrPlanNotFound
+	}
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+	return s.planRepo.DeleteMeal(ctx, mealID)
+}
+
+// DeleteOption removes a meal option. Only the nutritionist owner or superadmin may delete.
+func (s *DietPlanService) DeleteOption(ctx context.Context, optionID, callerID uuid.UUID, callerRole string) error {
+	option, err := s.planRepo.FindOptionByID(ctx, optionID)
+	if err != nil {
+		return err
+	}
+	if option == nil {
+		return shared.ErrPlanNotFound
+	}
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	if err != nil {
+		return err
+	}
+	if meal == nil {
+		return shared.ErrPlanNotFound
+	}
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+	return s.planRepo.DeleteOption(ctx, optionID)
+}
+
 // RemovePrescription removes a medication prescription.
 func (s *DietPlanService) RemovePrescription(ctx context.Context, prescriptionID, callerID uuid.UUID, callerRole string) error {
 	rx, err := s.planRepo.FindPrescriptionByID(ctx, prescriptionID)
