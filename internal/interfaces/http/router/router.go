@@ -14,11 +14,15 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 	}
 
 	r := gin.New()
+
+	// Global middleware (order matters)
+	r.Use(middleware.CORS())
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
+	r.Use(middleware.ErrorHandler())
 
-	// Health check (public)
+	// Health check (public, no auth)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
@@ -27,9 +31,9 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		})
 	})
 
-	// API v1 group
+	// API v1 — protected route groups registered by phases 2+
 	v1 := r.Group("/api/v1")
-	_ = v1 // route groups will be registered here by subsequent phases
+	_ = v1
 
 	// 404 handler
 	r.NoRoute(middleware.NotFound())
