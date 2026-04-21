@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 05-03-PLAN.md (exercises + prescriptions)
-last_updated: "2026-04-21T15:11:49.479Z"
+status: in_progress
+stopped_at: Completed 06-01-PLAN.md (tracking domain aggregates + infrastructure)
+last_updated: "2026-04-21T16:00:00.000Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21)
 
 **Core value:** A nutritionist must be able to create a diet plan and assign it to a client — everything else serves this workflow.
-**Current focus:** Phase 5 — Diet Plan Domain
+**Current focus:** Phase 6 — Daily Tracking & Lab Results
 
 ## Current Position
 
-Phase: 5 of 8 (Diet Plan Domain)
+Phase: 6 of 8 (Daily Tracking & Lab Results)
 Plan: 1 of N in current phase
-Status: Plan 05-01 complete — ready for 05-02
+Status: Plan 06-01 complete — ready for 06-02
 Last activity: 2026-04-21
 
 Progress: [░░░░░░░░░░] 0%
@@ -58,7 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 05 P01 | 25m | 10 tasks | 22 files |
 | Phase 05 P02 | 15m | 12 tasks | 10 files |
-| Phase 05 P03 | 15m | 12 tasks | 14 files |
+| Phase 06 P01 | 25m | 8 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - Hand-wrote sqlc generated files for exercise/prescription queries instead of running sqlc generate (Windows mmap lock)
 - Used *time.Time for nullable date columns per sqlc.yaml emit_pointers_for_null_types override
 
+  - xmax trick in upsert queries detects insert vs conflict without extra SELECT (Phase 6)
+  - ON CONFLICT DO UPDATE SET client_id = EXCLUDED.client_id ensures row always returned via RETURNING (Phase 6)
+
 ### Pending Todos
 
 None yet.
@@ -102,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T15:11:49.466Z
-Stopped at: Completed 05-03-PLAN.md (exercises + prescriptions)
+Last session: 2026-04-21T16:00:00.000Z
+Stopped at: Completed 06-01-PLAN.md (tracking domain aggregates + infrastructure)
 Resume file: None
