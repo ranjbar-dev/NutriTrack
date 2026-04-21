@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
@@ -147,7 +145,7 @@ func (h *NutritionistHandler) SetStatus(c *gin.Context) {
 		dto.Abort(c, appErr)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "وضعیت متخصص تغذیه با موفقیت به‌روز شد"})
+	dto.OK(c, gin.H{"message": "وضعیت متخصص تغذیه با موفقیت به‌روز شد"})
 }
 
 // toNutritionistResponse converts a domain User to a JSON-serialisable map.

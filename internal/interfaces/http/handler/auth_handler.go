@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"strings"
 	"time"
 
@@ -148,7 +147,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "با موفقیت خارج شدید"})
+	dto.OK(c, gin.H{"message": "با موفقیت خارج شدید"})
 }
 
 // Me handles GET /api/v1/auth/me (authenticated — returns current user info).
