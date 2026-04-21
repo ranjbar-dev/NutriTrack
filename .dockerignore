@@ -1,0 +1,7 @@
+.git
+.planning
+.env
+*.md
+docs/
+tmp/
+.DS_Store

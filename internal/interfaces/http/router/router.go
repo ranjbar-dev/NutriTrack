@@ -20,7 +20,11 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 
 	// Health check (public)
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "nutritrack"})
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"service": "nutritrack",
+			"version": "1.0.0",
+		})
 	})
 
 	// API v1 group
