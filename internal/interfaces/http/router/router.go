@@ -99,6 +99,14 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/food-categories", catHandler.ListAll)
 		adminGroup.POST("/food-categories",        catHandler.Create)
 		adminGroup.DELETE("/food-categories/:id",  catHandler.Delete)
+
+		// Medications: any authenticated user; role-based logic is in the service
+		medHandler := handler.NewMedicationHandler(container.MedicationService)
+		protected.POST("/medications",       medHandler.Create)
+		protected.GET("/medications",        medHandler.Search)
+		protected.GET("/medications/:id",    medHandler.GetOne)
+		protected.PATCH("/medications/:id",  medHandler.Update)
+		protected.DELETE("/medications/:id", medHandler.Delete)
 	}
 
 	// 404 handler

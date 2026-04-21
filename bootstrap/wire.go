@@ -5,9 +5,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	appAuth "github.com/ranjbar-dev/nutritrack/internal/application/auth"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
+	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	foodRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/food"
+	medRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/medication"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/sms"
@@ -27,6 +29,7 @@ type Container struct {
 	AvatarService        *appUser.AvatarService
 	FoodService          *appFood.FoodService
 	FoodCategoryService  *appFood.FoodCategoryService
+	MedicationService    *appMed.MedicationService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -55,6 +58,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	avatarSvc := appUser.NewAvatarService(userRepo, localStorage)
 	foodSvc := appFood.NewFoodService(pgFoodRepo, pgCategoryRepo)
 	catSvc := appFood.NewFoodCategoryService(pgCategoryRepo)
+	pgMedRepo := medRepo.NewPgMedicationRepository(db)
+	medSvc := appMed.NewMedicationService(pgMedRepo)
 
 	return &Container{
 		AuthService:         authService,
@@ -67,5 +72,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		AvatarService:       avatarSvc,
 		FoodService:         foodSvc,
 		FoodCategoryService: catSvc,
+		MedicationService:   medSvc,
 	}
 }

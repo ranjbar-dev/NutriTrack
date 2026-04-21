@@ -5,54 +5,66 @@
 package db
 
 import (
-	"time"
+"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+"github.com/google/uuid"
+"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Food struct {
-	ID             uuid.UUID      `json:"id"`
-	Name           string         `json:"name"`
-	NameNormalized string         `json:"name_normalized"`
-	Unit           string         `json:"unit"`
-	Calories       pgtype.Numeric `json:"calories"`
-	Protein        pgtype.Numeric `json:"protein"`
-	Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
-	Fat            pgtype.Numeric `json:"fat"`
-	Fiber          pgtype.Numeric `json:"fiber"`
-	CreatedBy      pgtype.UUID    `json:"created_by"`
-	IsActive       bool           `json:"is_active"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+ID             uuid.UUID      `json:"id"`
+Name           string         `json:"name"`
+NameNormalized string         `json:"name_normalized"`
+Unit           string         `json:"unit"`
+Calories       pgtype.Numeric `json:"calories"`
+Protein        pgtype.Numeric `json:"protein"`
+Carbohydrate   pgtype.Numeric `json:"carbohydrate"`
+Fat            pgtype.Numeric `json:"fat"`
+Fiber          pgtype.Numeric `json:"fiber"`
+CreatedBy      pgtype.UUID    `json:"created_by"`
+IsActive       bool           `json:"is_active"`
+CreatedAt      time.Time      `json:"created_at"`
+UpdatedAt      time.Time      `json:"updated_at"`
 }
 
 type FoodCategory struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+ID        uuid.UUID `json:"id"`
+Name      string    `json:"name"`
+CreatedAt time.Time `json:"created_at"`
 }
 
 type FoodCategoryMapping struct {
-	FoodID     uuid.UUID `json:"food_id"`
-	CategoryID uuid.UUID `json:"category_id"`
+FoodID     uuid.UUID `json:"food_id"`
+CategoryID uuid.UUID `json:"category_id"`
+}
+
+type Medication struct {
+ID             uuid.UUID   `json:"id"`
+Name           string      `json:"name"`
+NameNormalized string      `json:"name_normalized"`
+Description    string      `json:"description"`
+Unit           string      `json:"unit"`
+CreatedBy      pgtype.UUID `json:"created_by"`
+IsActive       bool        `json:"is_active"`
+CreatedAt      time.Time   `json:"created_at"`
+UpdatedAt      time.Time   `json:"updated_at"`
 }
 
 type User struct {
-	ID             uuid.UUID      `json:"id"`
-	Role           string         `json:"role"`
-	Mobile         string         `json:"mobile"`
-	Email          *string        `json:"email"`
-	PasswordHash   *string        `json:"password_hash"`
-	FirstName      string         `json:"first_name"`
-	LastName       string         `json:"last_name"`
-	Gender         *string        `json:"gender"`
-	BirthDate      pgtype.Date    `json:"birth_date"`
-	Height         pgtype.Numeric `json:"height"`
-	Weight         pgtype.Numeric `json:"weight"`
-	AvatarUrl      *string        `json:"avatar_url"`
-	IsActive       bool           `json:"is_active"`
-	NutritionistID pgtype.UUID    `json:"nutritionist_id"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+ID             uuid.UUID      `json:"id"`
+Role           string         `json:"role"`
+Mobile         string         `json:"mobile"`
+Email          *string        `json:"email"`
+PasswordHash   *string        `json:"password_hash"`
+FirstName      string         `json:"first_name"`
+LastName       string         `json:"last_name"`
+Gender         *string        `json:"gender"`
+BirthDate      pgtype.Date    `json:"birth_date"`
+Height         pgtype.Numeric `json:"height"`
+Weight         pgtype.Numeric `json:"weight"`
+AvatarUrl      *string        `json:"avatar_url"`
+IsActive       bool           `json:"is_active"`
+NutritionistID pgtype.UUID    `json:"nutritionist_id"`
+CreatedAt      time.Time      `json:"created_at"`
+UpdatedAt      time.Time      `json:"updated_at"`
 }
