@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-04-21)
 
 **Core value:** A nutritionist must be able to create a diet plan and assign it to a client — everything else serves this workflow.
-**Current focus:** Phase 3 — Client Management
+**Current focus:** Phase 4 — Food Domain
 
 ## Current Position
 
-Phase: 3 of 8 (Client Management)
-Plan: 2 of 2 in current phase
+Phase: 4 of 8 (Food Domain)
+Plan: 1 of 1 in current phase
 Status: Complete
-Last activity: 2026-04-21 — Plan 03-03 complete (Profile picture upload with magic byte MIME validation)
+Last activity: 2026-04-21 — Plan 04-01 complete (Food domain aggregate, pg_trgm search, CRUD handlers)
 
-Progress: [████░░░░░░] 30%
+Progress: [█████░░░░░] 40%
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: [████░░░░░░] 30%
 | 01 Foundation | 4/4 | ✅ Complete |
 | 02 Auth | 1/4 | ✅ Complete |
 | 03 Client Management | 2/2 | ✅ Complete |
+| 04 Food Domain | 1/1 | ✅ Complete |
 
 **Recent Trend:**
 - Last 5 plans: 01-03, 01-04, 02-01, 03-01, 03-02
@@ -51,6 +52,8 @@ Recent decisions affecting current work:
 - [Phase 3]: BelongsTo ownership check performed in service layer, not handler, to enforce DDD boundary
 - [Phase 3]: birth_date parsed as "2006-01-02" string in handler; stored as *time.Time in domain entity
 - [Phase 3]: Magic byte validation (not Content-Type) for avatar uploads — prevents MIME spoofing
+- [Phase 4]: Soft delete (is_active=false) for nutritionist-owned foods; hard DELETE for superadmin only
+- [Phase 4]: name_normalized column + gin_trgm_ops index for Persian similarity search; NormalizePersian applied at insert AND search time
 - [Phase 5]: DietPlan split into two aggregates (DietPlan + MealOptionItems) to avoid 6-table JOIN on item-level operations
 
 ### Pending Todos
@@ -69,6 +72,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21 — Plan 03-03 complete
-Stopped at: Plan 03-03 committed (cbe3bb0) — avatar upload complete
-Resume file: .planning/phases/03-clients/03-03-SUMMARY.md
+Last session: 2026-04-21 — Plan 04-01 complete
+Stopped at: Plan 04-01 committed (0a71f49) — food domain aggregate, pg_trgm search, CRUD handlers
+Resume file: .planning/phases/04-food/04-01-SUMMARY.md
