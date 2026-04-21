@@ -2,40 +2,47 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createLabResult = `-- name: CreateLabResult :one
-INSERT INTO lab_results (client_id, nutritionist_id, file_path, original_name, file_type, file_size, notes)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, client_id, nutritionist_id, file_path, original_name, file_type, file_size, notes, created_at`
+INSERT INTO lab_results (client_id, nutritionist_id, title, result_type, test_date, file_path, original_name, file_type, file_size, link, notes)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, client_id, nutritionist_id, title, result_type, test_date, file_path, original_name, file_type, file_size, link, notes, created_at`
 
 // CreateLabResultParams holds parameters for creating a lab result record.
 type CreateLabResultParams struct {
-	ClientID       uuid.UUID `db:"client_id"`
-	NutritionistID uuid.UUID `db:"nutritionist_id"`
-	FilePath       string    `db:"file_path"`
-	OriginalName   string    `db:"original_name"`
-	FileType       string    `db:"file_type"`
-	FileSize       int64     `db:"file_size"`
-	Notes          string    `db:"notes"`
+	ClientID       uuid.UUID  `db:"client_id"`
+	NutritionistID uuid.UUID  `db:"nutritionist_id"`
+	Title          string     `db:"title"`
+	ResultType     string     `db:"result_type"`
+	TestDate       *time.Time `db:"test_date"`
+	FilePath       string     `db:"file_path"`
+	OriginalName   string     `db:"original_name"`
+	FileType       string     `db:"file_type"`
+	FileSize       int64      `db:"file_size"`
+	Link           *string    `db:"link"`
+	Notes          string     `db:"notes"`
 }
 
 // CreateLabResult inserts a new lab result record and returns the created row.
 func (q *Queries) CreateLabResult(ctx context.Context, arg CreateLabResultParams) (LabResult, error) {
 	row := q.db.QueryRow(ctx, createLabResult,
-		arg.ClientID, arg.NutritionistID, arg.FilePath, arg.OriginalName, arg.FileType, arg.FileSize, arg.Notes,
+		arg.ClientID, arg.NutritionistID, arg.Title, arg.ResultType, arg.TestDate,
+		arg.FilePath, arg.OriginalName, arg.FileType, arg.FileSize, arg.Link, arg.Notes,
 	)
 	var i LabResult
 	err := row.Scan(
-		&i.ID, &i.ClientID, &i.NutritionistID, &i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Notes, &i.CreatedAt,
+		&i.ID, &i.ClientID, &i.NutritionistID, &i.Title, &i.ResultType, &i.TestDate,
+		&i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Link, &i.Notes, &i.CreatedAt,
 	)
 	return i, err
 }
 
 const getLabResultByID = `-- name: GetLabResultByID :one
-SELECT id, client_id, nutritionist_id, file_path, original_name, file_type, file_size, notes, created_at
+SELECT id, client_id, nutritionist_id, title, result_type, test_date, file_path, original_name, file_type, file_size, link, notes, created_at
 FROM lab_results WHERE id = $1`
 
 // GetLabResultByID retrieves a lab result by its ID.
@@ -43,7 +50,8 @@ func (q *Queries) GetLabResultByID(ctx context.Context, id uuid.UUID) (LabResult
 	row := q.db.QueryRow(ctx, getLabResultByID, id)
 	var i LabResult
 	err := row.Scan(
-		&i.ID, &i.ClientID, &i.NutritionistID, &i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Notes, &i.CreatedAt,
+		&i.ID, &i.ClientID, &i.NutritionistID, &i.Title, &i.ResultType, &i.TestDate,
+		&i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Link, &i.Notes, &i.CreatedAt,
 	)
 	return i, err
 }
@@ -56,7 +64,7 @@ type ListLabResultsByClientIDParams struct {
 }
 
 const listLabResultsByClientID = `-- name: ListLabResultsByClientID :many
-SELECT id, client_id, nutritionist_id, file_path, original_name, file_type, file_size, notes, created_at
+SELECT id, client_id, nutritionist_id, title, result_type, test_date, file_path, original_name, file_type, file_size, link, notes, created_at
 FROM lab_results WHERE client_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
 // ListLabResultsByClientID returns paginated lab results for a client.
@@ -70,7 +78,8 @@ func (q *Queries) ListLabResultsByClientID(ctx context.Context, arg ListLabResul
 	for rows.Next() {
 		var i LabResult
 		if err := rows.Scan(
-			&i.ID, &i.ClientID, &i.NutritionistID, &i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Notes, &i.CreatedAt,
+			&i.ID, &i.ClientID, &i.NutritionistID, &i.Title, &i.ResultType, &i.TestDate,
+			&i.FilePath, &i.OriginalName, &i.FileType, &i.FileSize, &i.Link, &i.Notes, &i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

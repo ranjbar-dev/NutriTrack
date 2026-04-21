@@ -25,10 +25,14 @@ func (r *PgLabResultRepository) Create(ctx context.Context, result *entity.LabRe
 	row, err := r.queries.CreateLabResult(ctx, db.CreateLabResultParams{
 		ClientID:       result.ClientID,
 		NutritionistID: result.NutritionistID,
+		Title:          result.Title,
+		ResultType:     result.ResultType,
+		TestDate:       result.TestDate,
 		FilePath:       result.FilePath,
 		OriginalName:   result.OriginalName,
 		FileType:       result.FileType,
 		FileSize:       result.FileSize,
+		Link:           result.Link,
 		Notes:          result.Notes,
 	})
 	if err != nil {

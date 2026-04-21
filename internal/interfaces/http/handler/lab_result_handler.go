@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,7 +24,8 @@ func NewLabResultHandler(service *appLabResult.LabResultService) *LabResultHandl
 }
 
 // Upload handles POST /clients/:id/lab-results
-// Accepts multipart/form-data with field "file" (PDF/JPEG/PNG, max 10 MB) and optional "notes".
+// Accepts multipart/form-data. "file" field is optional; if absent, "link" form field is used.
+// Required form fields: title, result_type. Optional: test_date (YYYY-MM-DD), notes, link.
 func (h *LabResultHandler) Upload(c *gin.Context) {
 	clientIDStr := c.Param("id")
 	clientID, err := uuid.Parse(clientIDStr)
@@ -35,34 +37,64 @@ func (h *LabResultHandler) Upload(c *gin.Context) {
 	callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
 	callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
 
-	// Parse multipart file — enforce 10 MB limit at the framework level
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10*1024*1024+512)
-	fileHeader, err := c.FormFile("file")
-	if err != nil {
+	// Parse multipart — enforce 10 MB limit at the framework level
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10*1024*1024+4096)
+	if err := c.Request.ParseMultipartForm(10 * 1024 * 1024); err != nil {
+		// Not multipart; treat as validation error
 		dto.Abort(c, shared.ErrValidation)
 		return
 	}
 
-	if fileHeader.Size > 10*1024*1024 {
-		dto.Abort(c, shared.ErrFileTooLarge)
-		return
+	title := c.PostForm("title")
+	resultType := c.PostForm("result_type")
+	notes := c.PostForm("notes")
+
+	var testDate *time.Time
+	if tdStr := c.PostForm("test_date"); tdStr != "" {
+		t, err := time.Parse("2006-01-02", tdStr)
+		if err != nil {
+			dto.Abort(c, shared.ErrValidation)
+			return
+		}
+		testDate = &t
 	}
 
-	file, err := fileHeader.Open()
-	if err != nil {
-		dto.Abort(c, shared.ErrInternal)
-		return
+	req := appLabResult.SubmitLabResultRequest{
+		Title:      title,
+		ResultType: resultType,
+		TestDate:   testDate,
+		Notes:      notes,
 	}
-	defer file.Close()
 
-	result, svcErr := h.service.UploadLabResult(
+	// Check if file was uploaded
+	fileHeader, fileErr := c.FormFile("file")
+	if fileErr == nil {
+		if fileHeader.Size > 10*1024*1024 {
+			dto.Abort(c, shared.ErrFileTooLarge)
+			return
+		}
+		file, err := fileHeader.Open()
+		if err != nil {
+			dto.Abort(c, shared.ErrInternal)
+			return
+		}
+		defer file.Close()
+		req.File = file
+		req.FileOrigName = fileHeader.Filename
+		req.FileSize = fileHeader.Size
+	} else {
+		// No file — check for link
+		if linkStr := c.PostForm("link"); linkStr != "" {
+			req.Link = &linkStr
+		}
+	}
+
+	result, svcErr := h.service.SubmitLabResult(
 		c.Request.Context(),
 		clientID,
 		callerIDVal.(uuid.UUID),
 		callerRoleVal.(string),
-		file,
-		fileHeader.Filename,
-		fileHeader.Size,
+		req,
 	)
 	if svcErr != nil {
 		if appErr, ok := svcErr.(*shared.AppError); ok {
@@ -142,19 +174,33 @@ func (h *LabResultHandler) Download(c *gin.Context) {
 		return
 	}
 
+	// If link-only result, redirect to the link
+	if result.FilePath == "" && result.Link != nil {
+		c.Redirect(http.StatusFound, *result.Link)
+		return
+	}
+
 	// Serve the file as an attachment
 	c.FileAttachment(result.FilePath, result.OriginalName)
 }
 
 func labResultToMap(r *labresultEntity.LabResult) map[string]any {
-	return map[string]any{
+	m := map[string]any{
 		"id":              r.ID,
 		"client_id":       r.ClientID,
 		"nutritionist_id": r.NutritionistID,
+		"title":           r.Title,
+		"result_type":     r.ResultType,
+		"test_date":       nil,
 		"original_name":   r.OriginalName,
 		"file_type":       r.FileType,
 		"file_size":       r.FileSize,
+		"link":            r.Link,
 		"notes":           r.Notes,
 		"created_at":      r.CreatedAt,
 	}
+	if r.TestDate != nil {
+		m["test_date"] = r.TestDate.Format("2006-01-02")
+	}
+	return m
 }

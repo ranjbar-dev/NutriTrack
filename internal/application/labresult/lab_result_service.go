@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/labresult/entity"
@@ -71,31 +72,30 @@ func detectMIME(r io.Reader) (string, io.Reader, error) {
 	return mime, full, nil
 }
 
-// UploadLabResult validates and stores a lab result file for a client.
-// src is the raw file content. fileSize is the size in bytes (pre-checked by caller).
-func (s *LabResultService) UploadLabResult(
+// SubmitLabResultRequest holds parameters for submitting a lab result via file or link.
+type SubmitLabResultRequest struct {
+	Title        string
+	ResultType   string // blood_test, urine_test, thyroid, hormone, allergy, other
+	TestDate     *time.Time
+	Notes        string
+	// File upload path (optional — one of File or Link must be provided)
+	File         io.Reader
+	FileOrigName string
+	FileSize     int64
+	// Link path (optional — takes effect when File is nil)
+	Link         *string
+}
+
+// SubmitLabResult validates and stores a lab result (file or link) for a client.
+func (s *LabResultService) SubmitLabResult(
 	ctx context.Context,
 	clientID uuid.UUID,
 	callerID uuid.UUID,
 	callerRole string,
-	src io.Reader,
-	originalName string,
-	fileSize int64,
+	req SubmitLabResultRequest,
 ) (*entity.LabResult, error) {
-	const maxSize = 10 * 1024 * 1024 // 10 MB
-	if fileSize > maxSize {
-		return nil, shared.ErrFileTooLarge
-	}
-
-	// Detect MIME type via magic bytes; get unified reader
-	mimeType, fullReader, err := detectMIME(src)
-	if err != nil {
-		return nil, err
-	}
-
-	ext, ok := allowedMIME[mimeType]
-	if !ok {
-		return nil, shared.ErrInvalidFileType
+	if req.File == nil && req.Link == nil {
+		return nil, shared.ErrValidation
 	}
 
 	// Load client to verify access and get NutritionistID
@@ -132,23 +132,65 @@ func (s *LabResultService) UploadLabResult(
 		return nil, shared.ErrForbidden
 	}
 
-	// Save file to local storage
-	filePath, err := s.storage.SaveLabResult(fullReader, ext)
-	if err != nil {
-		return nil, err
-	}
-
 	result := &entity.LabResult{
 		ClientID:       clientID,
 		NutritionistID: nutritionistID,
-		FilePath:       filePath,
-		OriginalName:   originalName,
-		FileType:       mimeType,
-		FileSize:       fileSize,
-		Notes:          "",
+		Title:          req.Title,
+		ResultType:     req.ResultType,
+		TestDate:       req.TestDate,
+		Notes:          req.Notes,
+		Link:           req.Link,
+	}
+
+	if req.File != nil {
+		const maxSize = 10 * 1024 * 1024 // 10 MB
+		if req.FileSize > maxSize {
+			return nil, shared.ErrFileTooLarge
+		}
+
+		// Detect MIME type via magic bytes; get unified reader
+		mimeType, fullReader, err := detectMIME(req.File)
+		if err != nil {
+			return nil, err
+		}
+
+		ext, ok := allowedMIME[mimeType]
+		if !ok {
+			return nil, shared.ErrInvalidFileType
+		}
+
+		// Save file to local storage
+		filePath, err := s.storage.SaveLabResult(fullReader, ext)
+		if err != nil {
+			return nil, err
+		}
+
+		result.FilePath = filePath
+		result.OriginalName = req.FileOrigName
+		result.FileType = mimeType
+		result.FileSize = req.FileSize
 	}
 
 	return s.repo.Create(ctx, result)
+}
+
+// UploadLabResult is kept for backward compatibility; delegates to SubmitLabResult.
+func (s *LabResultService) UploadLabResult(
+	ctx context.Context,
+	clientID uuid.UUID,
+	callerID uuid.UUID,
+	callerRole string,
+	src io.Reader,
+	originalName string,
+	fileSize int64,
+) (*entity.LabResult, error) {
+	return s.SubmitLabResult(ctx, clientID, callerID, callerRole, SubmitLabResultRequest{
+		Title:        originalName,
+		ResultType:   "other",
+		File:         src,
+		FileOrigName: originalName,
+		FileSize:     fileSize,
+	})
 }
 
 // ListClientLabResults returns paginated lab results for a client.
