@@ -165,6 +165,11 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		pushHandler := handler.NewPushHandler(container.PushService)
 		protected.POST("/push/subscribe",   pushHandler.Subscribe)
 		protected.DELETE("/push/subscribe", pushHandler.Unsubscribe)
+
+		// Notification preferences — user controls which notifications they receive
+		notifHandler := handler.NewNotificationHandler(container.NotificationService)
+		protected.PATCH("/notifications/preferences", notifHandler.UpdatePreferences)
+		protected.GET("/notifications/preferences",   notifHandler.GetPreferences)
 	}
 
 	// 404 handler

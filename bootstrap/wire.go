@@ -10,6 +10,7 @@ import (
 	appLabResult "github.com/ranjbar-dev/nutritrack/internal/application/labresult"
 	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
 	appMessage "github.com/ranjbar-dev/nutritrack/internal/application/message"
+	appNotif "github.com/ranjbar-dev/nutritrack/internal/application/notification"
 	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
 	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
@@ -20,6 +21,7 @@ import (
 	labResultRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/labresult"
 	medRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/medication"
 	msgInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/message"
+	notifInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/notification"
 	pushInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/push"
 	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
@@ -48,6 +50,7 @@ type Container struct {
 	MessageService       *appMessage.MessageService
 	FoodRequestService   *appFoodRequest.FoodRequestService
 	PushService          *appPush.PushService
+	NotificationService  *appNotif.NotificationService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -90,6 +93,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	foodRequestSvc := appFoodRequest.NewFoodRequestService(pgFoodRequestRepo, userRepo, foodSvc)
 	pgPushRepo := pushInfra.NewPgPushSubscriptionRepository(db)
 	pushSvc := appPush.NewPushService(pgPushRepo, cfg.VAPID.PublicKey, cfg.VAPID.PrivateKey)
+	pgNotifPrefRepo := notifInfra.NewPgNotificationPreferenceRepository(db)
+	notifSvc := appNotif.NewNotificationService(pgNotifPrefRepo)
 
 	return &Container{
 		AuthService:         authService,
@@ -109,5 +114,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		MessageService:      messageSvc,
 		FoodRequestService:  foodRequestSvc,
 		PushService:         pushSvc,
+		NotificationService: notifSvc,
 	}
 }

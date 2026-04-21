@@ -200,6 +200,13 @@ var ErrFoodRequestNotOwned = &AppError{
 	HTTPStatus: http.StatusForbidden,
 }
 
+// --- Notification errors ---
+var ErrNotificationPreferenceNotFound = &AppError{
+	Code:       "NOTIFICATION_PREFERENCE_NOT_FOUND",
+	Message:    "تنظیمات اعلان یافت نشد",
+	HTTPStatus: http.StatusNotFound,
+}
+
 // WithMessage returns a new AppError with a custom Persian message (for dynamic error context)
 func (e *AppError) WithMessage(msg string) *AppError {
 	return &AppError{

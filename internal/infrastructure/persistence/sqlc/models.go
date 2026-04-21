@@ -286,3 +286,15 @@ type PushSubscription struct {
 	Auth      string    `db:"auth"`
 	CreatedAt time.Time `db:"created_at"`
 }
+
+// NotificationPreference represents a user's notification preference settings.
+type NotificationPreference struct {
+	ID             uuid.UUID `db:"id"`
+	UserID         uuid.UUID `db:"user_id"`
+	MealReminders  bool      `db:"meal_reminders"`
+	WaterReminders bool      `db:"water_reminders"`
+	MessageAlerts  bool      `db:"message_alerts"`
+	DietUpdates    bool      `db:"diet_updates"`
+	CreatedAt      time.Time `db:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at"`
+}
