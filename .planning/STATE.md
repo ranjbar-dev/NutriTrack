@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: "Completed 05-01-PLAN.md: diet plan aggregate + days/meals/options + CreateWithArchive atomic transaction"
-last_updated: "2026-04-21T18:09:00.000Z"
+status: completed
+stopped_at: "Completed 05-02-PLAN.md: meal option items + nutritional totals"
+last_updated: "2026-04-21T14:56:46.388Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 05 P01 | 25m | 10 tasks | 22 files |
+| Phase 05 P02 | 15m | 12 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 5]: scheduled_time stored as pgtype.Time, mapped to HH:MM string at domain boundary
 - FoodCategory.CreatedAt added to domain entity to support Create response
 - categoryID passed as *uuid.UUID for backward-compatible optional filter on food search
+- Hand-wrote sqlc JOIN function (ListMealOptionItemsWithFood) to avoid Windows mmap lock
+- Nutritional totals bubble-up: item-sum→option, option-min/max→meal, meal-sum→day
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T18:09:00.000Z
-Stopped at: Completed 05-01-PLAN.md: diet plan aggregate + days/meals/options + CreateWithArchive atomic transaction
+Last session: 2026-04-21T14:56:46.373Z
+Stopped at: Completed 05-02-PLAN.md: meal option items + nutritional totals
 Resume file: None
