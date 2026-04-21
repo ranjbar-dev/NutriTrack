@@ -36,6 +36,9 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		})
 	})
 
+	// Serve uploaded files (avatars etc.) from local filesystem
+	r.Static("/uploads", "./uploads")
+
 	// API v1
 	v1 := r.Group("/api/v1")
 
@@ -55,6 +58,10 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 	{
 		protected.POST("/auth/logout", authHandler.Logout)
 		protected.GET("/auth/me",      authHandler.Me)
+
+		// Avatar upload (access control is service-level)
+		avatarHandler := handler.NewAvatarHandler(container.AvatarService)
+		protected.PUT("/users/:id/avatar", avatarHandler.Upload)
 
 		// Super admin: nutritionist management
 		nutHandler := handler.NewNutritionistHandler(container.NutritionistService)

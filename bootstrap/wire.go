@@ -9,6 +9,7 @@ import (
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/sms"
+	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/storage"
 	"github.com/ranjbar-dev/nutritrack/configs"
 )
 
@@ -20,6 +21,8 @@ type Container struct {
 	TokenBlacklist       *redisInfra.TokenBlacklist
 	NutritionistService  *appUser.NutritionistService
 	ClientService        *appUser.ClientService
+	LocalStorage         *storage.LocalStorage
+	AvatarService        *appUser.AvatarService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -42,6 +45,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	authService := appAuth.NewAuthService(userRepo, otpStore, tokenBlacklist, jwtService, smsProvider)
 	nutSvc := appUser.NewNutritionistService(userRepo)
 	clientSvc := appUser.NewClientService(userRepo)
+	localStorage := storage.NewLocalStorage("uploads", "/uploads")
+	avatarSvc := appUser.NewAvatarService(userRepo, localStorage)
 
 	return &Container{
 		AuthService:         authService,
@@ -50,5 +55,7 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		TokenBlacklist:      tokenBlacklist,
 		NutritionistService: nutSvc,
 		ClientService:       clientSvc,
+		LocalStorage:        localStorage,
+		AvatarService:       avatarSvc,
 	}
 }
