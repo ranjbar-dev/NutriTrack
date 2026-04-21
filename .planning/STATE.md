@@ -1,75 +1,69 @@
----
-gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Launch
-status: complete
-stopped_at: v1.0 Launch shipped; waiting for any future milestone definition
-last_updated: "2026-04-20T11:30:00+03:30"
-last_activity: 2026-04-20
-progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 48
-  completed_plans: 48
-  percent: 100
----
-
 # Project State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md`
+See: .planning/PROJECT.md (updated 2026-04-21)
 
-**Core value:** Digitalize the nutritionist–client workflow in Iran with a Persian, mobile-first, offline-capable PWA.
-**Current focus:** Milestone closed — no active phase.
+**Core value:** A nutritionist must be able to create a diet plan and assign it to a client — everything else serves this workflow.
+**Current focus:** Phase 1 — Foundation
 
 ## Current Position
 
-Milestone: **v1.0 Launch**
-Phase: **Complete**
-Plan: **48 of 48 complete**
-Status: **Shipped**
-Last activity: **2026-04-20**
+Phase: 1 of 8 (Foundation)
+Plan: 0 of 4 in current phase
+Status: Ready to plan
+Last activity: 2026-04-21 — Roadmap and state initialized
 
-Progress: **[██████████] 100%**
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-- Total phases completed: 7
-- Total plans completed: 48
-- Milestone archive: `.planning/milestones/v1.0-ROADMAP.md`
-- Requirements archive: `.planning/milestones/v1.0-REQUIREMENTS.md`
+**Velocity:**
+- Total plans completed: 0
+- Average duration: — min
+- Total execution time: 0 hours
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+- Last 5 plans: —
+- Trend: —
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
 ### Decisions
 
-- Gin remained the backend framework for the full milestone
-- Client-only offline support and polling chat stayed aligned with product constraints
-- Launch hardening shipped as a distinct final phase covering security, observability, backups, and UX polish
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [Phase 1]: `import _ "time/tzdata"` in main.go + `apk add tzdata` in Dockerfile — required for Asia/Tehran on Alpine; fixed offset breaks DST
+- [Phase 1]: Migration 001 MUST contain `CREATE EXTENSION IF NOT EXISTS pg_trgm` — Persian search depends on it; not retrofittable without downtime
+- [Phase 1]: Persian AppError catalog centralised in `pkg/apperror/` — never hardcode Persian strings in handlers
+- [Phase 2]: OTP attempt counter uses Redis atomic INCR (not GET+SET) to prevent race condition on rate limit bypass
+- [Phase 5]: DietPlan split into two aggregates (DietPlan + MealOptionItems) to avoid 6-table JOIN on item-level operations
 
 ### Pending Todos
 
-None.
+None yet.
 
 ### Blockers/Concerns
 
-- Real-device Android/iOS launch-path validation still needs physical-device execution
-- Backup restore proof still needs a live staging run
-- Load/3G performance evidence still needs staging traffic capture
-- Live Grafana/Loki dashboards still need real traffic verification
+None yet.
 
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| launch-evidence | Real-device Android/iOS validation | pending manual execution | 2026-04-20 |
-| launch-evidence | Staging backup restore exercise | pending manual execution | 2026-04-20 |
-| launch-evidence | Staging load / 3G performance capture | pending manual execution | 2026-04-20 |
-| launch-evidence | Live observability proof | pending manual execution | 2026-04-20 |
+| *(none)* | | | |
 
 ## Session Continuity
 
-Last session: 2026-04-20
-Stopped at: v1.0 Launch closed and archived
+Last session: 2026-04-21
+Stopped at: Roadmap created — ready to begin Phase 1 planning
 Resume file: None
