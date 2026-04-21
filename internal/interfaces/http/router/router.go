@@ -67,6 +67,17 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 			adminGroup.PATCH("/nutritionists/:id",        nutHandler.Update)
 			adminGroup.PATCH("/nutritionists/:id/status", nutHandler.SetStatus)
 		}
+
+		// Nutritionist: client management
+		clientHandler := handler.NewClientHandler(container.ClientService)
+		clientGroup := protected.Group("/clients")
+		clientGroup.Use(middleware.RequireRole(middleware.RoleNutritionist))
+		{
+			clientGroup.POST("",      clientHandler.RegisterClient)
+			clientGroup.GET("",       clientHandler.ListClients)
+			clientGroup.GET("/:id",   clientHandler.GetClientProfile)
+			clientGroup.PATCH("/:id", clientHandler.UpdateClient)
+		}
 	}
 
 	// 404 handler

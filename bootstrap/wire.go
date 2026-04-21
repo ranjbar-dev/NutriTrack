@@ -19,6 +19,7 @@ type Container struct {
 	OTPStore             *redisInfra.OTPStore
 	TokenBlacklist       *redisInfra.TokenBlacklist
 	NutritionistService  *appUser.NutritionistService
+	ClientService        *appUser.ClientService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -40,6 +41,7 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	// Application layer
 	authService := appAuth.NewAuthService(userRepo, otpStore, tokenBlacklist, jwtService, smsProvider)
 	nutSvc := appUser.NewNutritionistService(userRepo)
+	clientSvc := appUser.NewClientService(userRepo)
 
 	return &Container{
 		AuthService:         authService,
@@ -47,5 +49,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		OTPStore:            otpStore,
 		TokenBlacklist:      tokenBlacklist,
 		NutritionistService: nutSvc,
+		ClientService:       clientSvc,
 	}
 }
