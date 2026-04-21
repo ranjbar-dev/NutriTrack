@@ -1,25 +1,28 @@
-﻿package handler
+package handler
 
 import (
-"time"
+	"context"
+	"time"
 
-"github.com/gin-gonic/gin"
-"github.com/google/uuid"
-appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
-"github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/entity"
-"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
-"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
-"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
+	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
+	"github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/entity"
+	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
 )
 
 // DietPlanHandler handles HTTP requests for diet plan management.
 type DietPlanHandler struct {
-service *appDietPlan.DietPlanService
+	service *appDietPlan.DietPlanService
+	pushSvc *appPush.PushService
 }
 
 // NewDietPlanHandler creates a new DietPlanHandler.
-func NewDietPlanHandler(service *appDietPlan.DietPlanService) *DietPlanHandler {
-return &DietPlanHandler{service: service}
+func NewDietPlanHandler(service *appDietPlan.DietPlanService, pushSvc *appPush.PushService) *DietPlanHandler {
+	return &DietPlanHandler{service: service, pushSvc: pushSvc}
 }
 
 // createPlanRequest is the request body for creating a diet plan.
@@ -97,6 +100,13 @@ return
 }
 
 dto.Created(c, planToMap(plan))
+
+	if h.pushSvc != nil {
+		go func() {
+			ctx := context.Background()
+			_ = h.pushSvc.Send(ctx, clientID, "برنامه غذایی جدید", "یک برنامه غذایی جدید برای شما تعریف شد.")
+		}()
+	}
 }
 
 // ListClientPlans handles GET /clients/:id/plans
