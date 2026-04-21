@@ -93,6 +93,7 @@ func (s *JWTService) generateToken(userID uuid.UUID, role string, tokenType Toke
 		Role:   role,
 		Type:   tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(), // JTI — unique per token, required for blacklisting
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(expiry),
