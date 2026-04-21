@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 06-03-PLAN.md (lab results upload/download)
-last_updated: "2026-04-21T19:35:00.000Z"
+stopped_at: Completed 07-01-PLAN.md (message domain, conversation endpoints, attachment upload, unread count)
+last_updated: "2026-04-21T19:57:00.000Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-21)
 
 ## Current Position
 
-Phase: 6 of 8 (Daily Tracking & Lab Results)
+Phase: 7 of 8 (Messaging, Food Requests & Notifications)
 Plan: 1 of N in current phase
-Status: Plan 06-03 complete — ready for next plan
+Status: Plan 07-01 complete — ready for next plan
 Last activity: 2026-04-21
 
 Progress: [░░░░░░░░░░] 0%
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P02 | 15m | 12 tasks | 10 files |
 | Phase 06 P01 | 25m | 8 tasks | 19 files |
 | Phase 06 P03 | 20m | 14 tasks | 15 files |
+| Phase 07 P01 | 15m | 14 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,9 @@ Recent decisions affecting current work:
 
   - Magic-byte MIME detection for lab result uploads — same hasMagic pattern as avatar (Phase 6 Plan 03)
   - SaveLabResult returns filesystem path (not URL) — download served via c.FileAttachment directly (Phase 6 Plan 03)
+  - io.Reader nil pattern for optional attachment: var attachReader io.Reader; assign f only when file present (Phase 7 Plan 01)
+  - SaveAttachment returns URL path (same as SaveAvatar); conversation ordered ASC by created_at (Phase 7 Plan 01)
+  - MarkRead called after listing conversation — auto-marks other party's messages as read on fetch (Phase 7 Plan 01)
 
 ### Pending Todos
 
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T16:00:00.000Z
-Stopped at: Completed 06-01-PLAN.md (tracking domain aggregates + infrastructure)
+Last session: 2026-04-21T19:57:00.000Z
+Stopped at: Completed 07-01-PLAN.md (message domain, conversation endpoints, attachment upload, unread count)
 Resume file: None

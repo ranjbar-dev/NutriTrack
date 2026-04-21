@@ -175,7 +175,7 @@ reminders.
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: Message domain aggregate, conversation/pagination sqlc queries, read_at tracking, unread count, file attachment upload (magic byte validation)
+- [x] 07-01: Message domain aggregate, conversation/pagination sqlc queries, read_at tracking, unread count, file attachment upload (magic byte validation)
 - [ ] 07-02: Food request domain aggregate (pending → approved/rejected lifecycle), approve handler creates food item in transaction
 - [ ] 07-03: VAPID push infrastructure (webpush-go, VAPID key storage, device token registration), event-driven push on message + plan assignment + food request status change
 - [ ] 07-04: Notification scheduler (goroutine-based, Asia/Tehran-aware), meal reminders + medication reminders, notification preferences CRUD
@@ -215,5 +215,5 @@ Plans:
 | 4. Food & Medication Databases | 0/3 | Not started | - |
 | 5. Diet Plan Management | 0/4 | Not started | - |
 | 6. Daily Tracking & Lab Results | 0/3 | Not started | - |
-| 7. Messaging, Food Requests & Notifications | 0/4 | Not started | - |
+| 7. Messaging, Food Requests & Notifications | 1/4 | 🔄 In Progress | - |
 | 8. Admin, Stats & Hardening | 0/4 | Not started | - |
