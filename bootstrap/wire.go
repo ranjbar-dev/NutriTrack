@@ -4,6 +4,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	appAuth "github.com/ranjbar-dev/nutritrack/internal/application/auth"
+	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
@@ -13,10 +14,11 @@ import (
 
 // Container holds all application-level singletons wired together.
 type Container struct {
-	AuthService    *appAuth.AuthService
-	JWTService     *appAuth.JWTService
-	OTPStore       *redisInfra.OTPStore
-	TokenBlacklist *redisInfra.TokenBlacklist
+	AuthService          *appAuth.AuthService
+	JWTService           *appAuth.JWTService
+	OTPStore             *redisInfra.OTPStore
+	TokenBlacklist       *redisInfra.TokenBlacklist
+	NutritionistService  *appUser.NutritionistService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -37,11 +39,13 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 
 	// Application layer
 	authService := appAuth.NewAuthService(userRepo, otpStore, tokenBlacklist, jwtService, smsProvider)
+	nutSvc := appUser.NewNutritionistService(userRepo)
 
 	return &Container{
-		AuthService:    authService,
-		JWTService:     jwtService,
-		OTPStore:       otpStore,
-		TokenBlacklist: tokenBlacklist,
+		AuthService:         authService,
+		JWTService:          jwtService,
+		OTPStore:            otpStore,
+		TokenBlacklist:      tokenBlacklist,
+		NutritionistService: nutSvc,
 	}
 }

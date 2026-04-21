@@ -55,6 +55,18 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 	{
 		protected.POST("/auth/logout", authHandler.Logout)
 		protected.GET("/auth/me",      authHandler.Me)
+
+		// Super admin: nutritionist management
+		nutHandler := handler.NewNutritionistHandler(container.NutritionistService)
+		adminGroup := protected.Group("/admin")
+		adminGroup.Use(middleware.RequireRole(middleware.RoleSuperAdmin))
+		{
+			adminGroup.POST("/nutritionists",             nutHandler.Create)
+			adminGroup.GET("/nutritionists",              nutHandler.List)
+			adminGroup.GET("/nutritionists/:id",          nutHandler.Get)
+			adminGroup.PATCH("/nutritionists/:id",        nutHandler.Update)
+			adminGroup.PATCH("/nutritionists/:id/status", nutHandler.SetStatus)
+		}
 	}
 
 	// 404 handler
