@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -114,3 +115,45 @@ func (q *Queries) ListMealOptionItems(ctx context.Context, optionID uuid.UUID) (
 	}
 	return items, nil
 }
+
+// ListMealOptionItemsWithFoodRow is the result row for the ListMealOptionItemsWithFood query.
+type ListMealOptionItemsWithFoodRow struct {
+	ID               uuid.UUID      `json:"id"`
+	OptionID         uuid.UUID      `json:"option_id"`
+	FoodID           uuid.UUID      `json:"food_id"`
+	Quantity         pgtype.Numeric `json:"quantity"`
+	Unit             string         `json:"unit"`
+	Notes            string         `json:"notes"`
+	CreatedAt        time.Time      `json:"created_at"`
+	FoodName         string         `json:"food_name"`
+	FoodUnit         string         `json:"food_unit"`
+	FoodCalories     pgtype.Numeric `json:"food_calories"`
+	FoodProtein      pgtype.Numeric `json:"food_protein"`
+	FoodCarbohydrate pgtype.Numeric `json:"food_carbohydrate"`
+	FoodFat          pgtype.Numeric `json:"food_fat"`
+	FoodFiber        pgtype.Numeric `json:"food_fiber"`
+}
+
+const listMealOptionItemsWithFood = `SELECT moi.id, moi.option_id, moi.food_id, moi.quantity, moi.unit, moi.notes, moi.created_at, f.name AS food_name, f.unit AS food_unit, f.calories AS food_calories, f.protein AS food_protein, f.carbohydrate AS food_carbohydrate, f.fat AS food_fat, f.fiber AS food_fiber FROM meal_option_items moi JOIN foods f ON moi.food_id = f.id WHERE moi.option_id = $1 ORDER BY moi.created_at`
+
+// ListMealOptionItemsWithFood returns items for an option joined with food data.
+func (q *Queries) ListMealOptionItemsWithFood(ctx context.Context, optionID uuid.UUID) ([]ListMealOptionItemsWithFoodRow, error) {
+	rows, err := q.db.Query(ctx, listMealOptionItemsWithFood, optionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMealOptionItemsWithFoodRow
+	for rows.Next() {
+		var i ListMealOptionItemsWithFoodRow
+		if err := rows.Scan(
+			&i.ID, &i.OptionID, &i.FoodID, &i.Quantity, &i.Unit, &i.Notes, &i.CreatedAt,
+			&i.FoodName, &i.FoodUnit, &i.FoodCalories, &i.FoodProtein, &i.FoodCarbohydrate, &i.FoodFat, &i.FoodFiber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
+}
+

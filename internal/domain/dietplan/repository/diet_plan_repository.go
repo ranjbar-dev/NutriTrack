@@ -39,4 +39,5 @@ type DietPlanRepository interface {
 	ListItems(ctx context.Context, optionID uuid.UUID) ([]*entity.MealOptionItem, error)
 	DeleteItem(ctx context.Context, id uuid.UUID) error
 	DeleteItemsByOption(ctx context.Context, optionID uuid.UUID) error
+	ListItemsWithFood(ctx context.Context, optionID uuid.UUID) ([]*entity.MealOptionItem, error)
 }

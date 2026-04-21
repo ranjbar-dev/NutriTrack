@@ -325,6 +325,96 @@ return
 dto.NoContent(c)
 }
 
+// addItemRequest is the request body for adding a food item to a meal option.
+type addItemRequest struct {
+FoodID   string  `json:"food_id"`
+Quantity float64 `json:"quantity"`
+Unit     string  `json:"unit"`
+Notes    string  `json:"notes"`
+}
+
+// AddItem handles POST /plans/:id/days/:day_id/meals/:meal_id/options/:option_id/items
+func (h *DietPlanHandler) AddItem(c *gin.Context) {
+optionIDStr := c.Param("option_id")
+optionID, err := uuid.Parse(optionIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+var req addItemRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+foodID, err := uuid.Parse(req.FoodID)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+item, svcErr := h.service.AddItem(c.Request.Context(), appDietPlan.AddItemRequest{
+OptionID:   optionID,
+FoodID:     foodID,
+Quantity:   req.Quantity,
+Unit:       req.Unit,
+Notes:      req.Notes,
+CallerID:   callerIDVal.(uuid.UUID),
+CallerRole: callerRoleVal.(string),
+})
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.Created(c, gin.H{
+"id":         item.ID,
+"option_id":  item.OptionID,
+"food_id":    item.FoodID,
+"quantity":   item.Quantity,
+"unit":       item.Unit,
+"notes":      item.Notes,
+"created_at": item.CreatedAt,
+})
+}
+
+// RemoveItem handles DELETE /plans/:id/days/:day_id/meals/:meal_id/options/:option_id/items/:item_id
+func (h *DietPlanHandler) RemoveItem(c *gin.Context) {
+itemIDStr := c.Param("item_id")
+itemID, err := uuid.Parse(itemIDStr)
+if err != nil {
+dto.Abort(c, shared.ErrValidation)
+return
+}
+
+callerIDVal, _ := c.Get(middleware.AuthUserIDKey)
+callerRoleVal, _ := c.Get(middleware.AuthUserRoleKey)
+
+svcErr := h.service.RemoveItem(c.Request.Context(),
+itemID,
+callerIDVal.(uuid.UUID),
+callerRoleVal.(string),
+)
+if svcErr != nil {
+if appErr, ok := svcErr.(*shared.AppError); ok {
+dto.Abort(c, appErr)
+return
+}
+dto.Abort(c, shared.ErrInternal)
+return
+}
+
+dto.NoContent(c)
+}
+
 // --- Response helpers ---
 
 // planToMap builds a flat plan response map.
@@ -355,7 +445,8 @@ for k, opt := range meal.Options {
 options[k] = map[string]any{
 "id":            opt.ID,
 "option_number": opt.OptionNumber,
-"items":         opt.Items,
+"totals":        opt.Totals,
+"items":         itemsToSlice(opt.Items),
 }
 }
 meals[j] = map[string]any{
@@ -363,13 +454,15 @@ meals[j] = map[string]any{
 "title":          meal.Title,
 "scheduled_time": meal.ScheduledTime,
 "display_order":  meal.DisplayOrder,
+"total_range":    meal.TotalRange,
 "options":        options,
 }
 }
 days[i] = map[string]any{
-"id":         day.ID,
-"day_number": day.DayNumber,
-"meals":      meals,
+"id":          day.ID,
+"day_number":  day.DayNumber,
+"total_range": day.TotalRange,
+"meals":       meals,
 }
 }
 
@@ -387,4 +480,30 @@ return map[string]any{
 "created_at":            plan.CreatedAt,
 "updated_at":            plan.UpdatedAt,
 }
+}
+
+// itemsToSlice converts a slice of MealOptionItem entities to a slice of maps for JSON response.
+func itemsToSlice(items []*entity.MealOptionItem) []any {
+result := make([]any, len(items))
+for i, item := range items {
+m := map[string]any{
+"id":         item.ID,
+"option_id":  item.OptionID,
+"food_id":    item.FoodID,
+"quantity":   item.Quantity,
+"unit":       item.Unit,
+"notes":      item.Notes,
+"computed":   item.Computed,
+"created_at": item.CreatedAt,
+}
+if item.Food != nil {
+m["food"] = map[string]any{
+"id":   item.Food.ID,
+"name": item.Food.Name,
+"unit": item.Food.Unit,
+}
+}
+result[i] = m
+}
+return result
 }

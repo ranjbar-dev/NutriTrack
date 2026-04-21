@@ -111,3 +111,44 @@ func float64ToNumeric(f float64) pgtype.Numeric {
 	_ = n.Scan(strconv.FormatFloat(f, 'f', 2, 64))
 	return n
 }
+
+// mealOptionItemWithFoodToDomain converts a join row to a domain entity with food snapshot and computed nutrition.
+func mealOptionItemWithFoodToDomain(i db.ListMealOptionItemsWithFoodRow) *entity.MealOptionItem {
+	qty := numericToFloat64(i.Quantity)
+	cal := numericToFloat64(i.FoodCalories)
+	prot := numericToFloat64(i.FoodProtein)
+	carb := numericToFloat64(i.FoodCarbohydrate)
+	fat := numericToFloat64(i.FoodFat)
+	fib := numericToFloat64(i.FoodFiber)
+
+	food := &entity.FoodSnapshot{
+		ID:           i.FoodID,
+		Name:         i.FoodName,
+		Unit:         i.FoodUnit,
+		Calories:     cal,
+		Protein:      prot,
+		Carbohydrate: carb,
+		Fat:          fat,
+		Fiber:        fib,
+	}
+
+	computed := &entity.NutritionalSummary{
+		Calories: cal * qty,
+		Protein:  prot * qty,
+		Carbs:    carb * qty,
+		Fat:      fat * qty,
+		Fiber:    fib * qty,
+	}
+
+	return &entity.MealOptionItem{
+		ID:        i.ID,
+		OptionID:  i.OptionID,
+		FoodID:    i.FoodID,
+		Quantity:  qty,
+		Unit:      i.Unit,
+		Notes:     i.Notes,
+		Food:      food,
+		Computed:  computed,
+		CreatedAt: i.CreatedAt,
+	}
+}

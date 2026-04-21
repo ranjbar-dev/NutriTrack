@@ -120,9 +120,19 @@ func (s *DietPlanService) GetFullPlan(ctx context.Context, planID, callerID uuid
 			if err != nil {
 				return nil, err
 			}
+			for _, option := range options {
+				items, err := s.planRepo.ListItemsWithFood(ctx, option.ID)
+				if err != nil {
+					return nil, err
+				}
+				option.Items = items
+				option.Totals = computeOptionTotals(items)
+			}
 			meal.Options = options
+			meal.TotalRange = computeMealRange(meal.Options)
 		}
 		day.Meals = meals
+		day.TotalRange = computeDayRange(day.Meals)
 	}
 	plan.Days = days
 
@@ -274,4 +284,116 @@ func (s *DietPlanService) DeletePlan(ctx context.Context, planID, callerID uuid.
 	}
 
 	return s.planRepo.Delete(ctx, planID)
+}
+
+// AddItemRequest contains fields required to add a food item to a meal option.
+type AddItemRequest struct {
+	OptionID   uuid.UUID
+	FoodID     uuid.UUID
+	Quantity   float64
+	Unit       string
+	Notes      string
+	CallerID   uuid.UUID
+	CallerRole string
+}
+
+// AddItem adds a food item to a meal option.
+func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*entity.MealOptionItem, error) {
+	// Walk up: option → meal → day → plan for ownership check
+	option, err := s.planRepo.FindOptionByID(ctx, req.OptionID)
+	if err != nil {
+		return nil, err
+	}
+	if option == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	if err != nil {
+		return nil, err
+	}
+	if meal == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	if err != nil {
+		return nil, err
+	}
+	if day == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return nil, err
+	}
+	if plan == nil {
+		return nil, shared.ErrPlanNotFound
+	}
+
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+		return nil, shared.ErrForbidden
+	}
+
+	item := &entity.MealOptionItem{
+		OptionID: req.OptionID,
+		FoodID:   req.FoodID,
+		Quantity: req.Quantity,
+		Unit:     req.Unit,
+		Notes:    req.Notes,
+	}
+	if err := s.planRepo.AddItem(ctx, item); err != nil {
+		return nil, err
+	}
+	return item, nil
+}
+
+// RemoveItem removes a food item from a meal option.
+func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.UUID, callerRole string) error {
+	item, err := s.planRepo.FindItemByID(ctx, itemID)
+	if err != nil {
+		return err
+	}
+	if item == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	option, err := s.planRepo.FindOptionByID(ctx, item.OptionID)
+	if err != nil {
+		return err
+	}
+	if option == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	if err != nil {
+		return err
+	}
+	if meal == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	if err != nil {
+		return err
+	}
+	if day == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	if err != nil {
+		return err
+	}
+	if plan == nil {
+		return shared.ErrPlanNotFound
+	}
+
+	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+		return shared.ErrForbidden
+	}
+
+	return s.planRepo.DeleteItem(ctx, itemID)
 }

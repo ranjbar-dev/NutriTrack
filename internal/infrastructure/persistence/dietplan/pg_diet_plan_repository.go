@@ -343,3 +343,16 @@ func (r *PgDietPlanRepository) DeleteItemsByOption(ctx context.Context, optionID
 	}
 	return nil
 }
+
+// ListItemsWithFood returns items for an option joined with food data.
+func (r *PgDietPlanRepository) ListItemsWithFood(ctx context.Context, optionID uuid.UUID) ([]*entity.MealOptionItem, error) {
+	rows, err := r.queries.ListMealOptionItemsWithFood(ctx, optionID)
+	if err != nil {
+		return nil, shared.ErrInternal
+	}
+	items := make([]*entity.MealOptionItem, len(rows))
+	for i, row := range rows {
+		items[i] = mealOptionItemWithFoodToDomain(row)
+	}
+	return items, nil
+}
