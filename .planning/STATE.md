@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: "Completed 05-02-PLAN.md: meal option items + nutritional totals"
-last_updated: "2026-04-21T14:56:46.388Z"
+stopped_at: Completed 05-03-PLAN.md (exercises + prescriptions)
+last_updated: "2026-04-21T15:11:49.479Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 05 P01 | 25m | 10 tasks | 22 files |
 | Phase 05 P02 | 15m | 12 tasks | 10 files |
+| Phase 05 P03 | 15m | 12 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - categoryID passed as *uuid.UUID for backward-compatible optional filter on food search
 - Hand-wrote sqlc JOIN function (ListMealOptionItemsWithFood) to avoid Windows mmap lock
 - Nutritional totals bubble-up: item-sum→option, option-min/max→meal, meal-sum→day
+- Hand-wrote sqlc generated files for exercise/prescription queries instead of running sqlc generate (Windows mmap lock)
+- Used *time.Time for nullable date columns per sqlc.yaml emit_pointers_for_null_types override
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T14:56:46.373Z
-Stopped at: Completed 05-02-PLAN.md: meal option items + nutritional totals
+Last session: 2026-04-21T15:11:49.466Z
+Stopped at: Completed 05-03-PLAN.md (exercises + prescriptions)
 Resume file: None
