@@ -186,6 +186,40 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 	dto.OK(c, toClientResponse(user))
 }
 
+// SetStatus handles PATCH /api/v1/clients/:id/status.
+func (h *ClientHandler) SetStatus(c *gin.Context) {
+	nutIDRaw, _ := c.Get(middleware.AuthUserIDKey)
+	nutritionistID, ok := nutIDRaw.(uuid.UUID)
+	if !ok {
+		dto.Abort(c, shared.ErrUnauthorized)
+		return
+	}
+
+	clientID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	var req struct {
+		IsActive bool `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		dto.Abort(c, shared.ErrValidation)
+		return
+	}
+
+	if err := h.svc.SetClientStatus(c.Request.Context(), clientID, nutritionistID, req.IsActive); err != nil {
+		appErr, ok := err.(*shared.AppError)
+		if !ok {
+			appErr = shared.ErrInternal
+		}
+		dto.Abort(c, appErr)
+		return
+	}
+	dto.OK(c, gin.H{"message": "وضعیت مراجع با موفقیت به‌روز شد"})
+}
+
 // toClientResponse converts a domain User (client) to a JSON-serialisable map.
 func toClientResponse(u *entity.User) gin.H {
 	var birthDate *string

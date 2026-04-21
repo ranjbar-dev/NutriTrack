@@ -77,6 +77,7 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 			adminGroup.GET("/nutritionists/:id",          nutHandler.Get)
 			adminGroup.PATCH("/nutritionists/:id",        nutHandler.Update)
 			adminGroup.PATCH("/nutritionists/:id/status", nutHandler.SetStatus)
+			adminGroup.GET("/nutritionists/:id/clients", nutHandler.GetClients)
 		}
 
 		// Nutritionist: client management
@@ -87,7 +88,8 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 			clientGroup.POST("",      clientHandler.RegisterClient)
 			clientGroup.GET("",       clientHandler.ListClients)
 			clientGroup.GET("/:id",   clientHandler.GetClientProfile)
-			clientGroup.PATCH("/:id", clientHandler.UpdateClient)
+			clientGroup.PATCH("/:id",        clientHandler.UpdateClient)
+			clientGroup.PATCH("/:id/status", clientHandler.SetStatus)
 		}
 
 		// Foods: available to any authenticated user; role-based logic is in the service
@@ -119,7 +121,7 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		adminGroup.DELETE("/medications/:id", medHandler.Delete)
 
 		// Diet plans: nutritionist creates plans for clients; clients/nutritionists can view
-		planHandler := handler.NewDietPlanHandler(container.DietPlanService)
+		planHandler := handler.NewDietPlanHandler(container.DietPlanService, container.PushService)
 		protected.GET("/plans/active",                                                                     planHandler.GetActivePlan)
 		protected.POST("/clients/:id/plans",                                                               planHandler.CreatePlan)
 		protected.GET("/clients/:id/plans",                                                                planHandler.ListClientPlans)

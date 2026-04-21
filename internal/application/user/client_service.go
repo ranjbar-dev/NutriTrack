@@ -144,7 +144,27 @@ func (s *ClientService) UpdateClient(ctx context.Context, req UpdateClientReques
 	return user, nil
 }
 
-// ListClients returns a paginated list of clients for the given nutritionist.
+// SetClientStatus activates or deactivates a client, enforcing nutritionist ownership.
+func (s *ClientService) SetClientStatus(ctx context.Context, clientID uuid.UUID, nutritionistID uuid.UUID, isActive bool) error {
+	user, err := s.userRepo.FindByID(ctx, clientID)
+	if err != nil {
+		return shared.ErrInternal
+	}
+	if user == nil {
+		return shared.ErrUserNotFound
+	}
+	if !user.IsClient() {
+		return shared.ErrUserNotFound
+	}
+	if !user.BelongsTo(nutritionistID) {
+		return shared.ErrForbidden
+	}
+	user.IsActive = isActive
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return shared.ErrInternal
+	}
+	return nil
+}
 func (s *ClientService) ListClients(ctx context.Context, nutritionistID uuid.UUID, limit, offset int32) ([]*entity.User, int64, error) {
 	users, err := s.userRepo.FindClientsByNutritionist(ctx, nutritionistID, limit, offset)
 	if err != nil {
