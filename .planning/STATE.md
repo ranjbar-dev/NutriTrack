@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-04-21T22:00:00.000Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-04-21T19:32:15.772Z"
 last_activity: 2026-04-21
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
-  completed_plans: 15
+  completed_plans: 18
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 07 P01 | 15m | 14 tasks | 15 files |
 | Phase 07 P04 | 15m | 11 tasks | 14 files |
 | Phase 08 P02 | 10m | 6 tasks | 5 files |
+| Phase 08 P03 | 25 | 11 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,11 @@ Recent decisions affecting current work:
   - SaveAttachment returns URL path (same as SaveAvatar); conversation ordered ASC by created_at (Phase 7 Plan 01)
   - MarkRead called after listing conversation — auto-marks other party's messages as read on fetch (Phase 7 Plan 01)
 - Used UPSERT ON CONFLICT(user_id) for notification preferences — no pre-check needed
+- UUID type fix in RequireAuth: claims.UserID (string) now parsed to uuid.UUID before storing in context
+- Access token revoked on logout: JTI stored in context, Logout handler blacklists it via TokenBlacklist with 24h TTL
+- CORS config-driven via CORS_ALLOWED_ORIGINS env var, defaults to * when unset
+- CachedFoodRepository wraps PgFoodRepository with 5-min food:cache:* Redis cache; invalidated on any write
+- CachedDietPlanRepository caches FindActiveByClientID with 2-min TTL and nil-sentinel pattern
 
 ### Pending Todos
 
@@ -113,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T19:12:37.125Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-04-21T19:32:02.574Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
