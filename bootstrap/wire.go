@@ -7,11 +7,13 @@ import (
 	appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
 	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
+	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	pgDietPlan "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/dietplan"
 	foodRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/food"
 	medRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/medication"
+	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/sms"
@@ -33,6 +35,7 @@ type Container struct {
 	FoodCategoryService  *appFood.FoodCategoryService
 	MedicationService    *appMed.MedicationService
 	DietPlanService      *appDietPlan.DietPlanService
+	TrackingService      *appTracking.TrackingService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
@@ -65,6 +68,8 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	medSvc := appMed.NewMedicationService(pgMedRepo)
 	pgPlanRepo := pgDietPlan.NewPgDietPlanRepository(db)
 	planSvc := appDietPlan.NewDietPlanService(pgPlanRepo, userRepo)
+	pgTrackingRepo := trackInfra.NewPgTrackingRepository(db)
+	trackingSvc := appTracking.NewTrackingService(pgTrackingRepo, userRepo)
 
 	return &Container{
 		AuthService:         authService,
@@ -79,5 +84,6 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 		FoodCategoryService: catSvc,
 		MedicationService:   medSvc,
 		DietPlanService:     planSvc,
+		TrackingService:     trackingSvc,
 	}
 }

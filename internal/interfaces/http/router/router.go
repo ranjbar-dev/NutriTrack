@@ -128,6 +128,17 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.DELETE("/plans/:id/days/:day_id/exercises/:exercise_id",                                 planHandler.RemoveExercise)
 		protected.POST("/plans/:id/days/:day_id/prescriptions",                                            planHandler.AddPrescription)
 		protected.DELETE("/plans/:id/days/:day_id/prescriptions/:prescription_id",                         planHandler.RemovePrescription)
+
+		// Tracking — clients log their daily activity; nutritionists + superadmin can read
+		trackingHandler := handler.NewTrackingHandler(container.TrackingService)
+		protected.POST("/tracking/food",       trackingHandler.LogFood)
+		protected.POST("/tracking/water",      trackingHandler.LogWater)
+		protected.POST("/tracking/sleep",      trackingHandler.LogSleep)
+		protected.POST("/tracking/exercise",   trackingHandler.LogExercise)
+		protected.POST("/tracking/medication", trackingHandler.LogMedication)
+		protected.POST("/tracking/body",       trackingHandler.LogBody)
+		protected.POST("/tracking/sync",       trackingHandler.BulkSync)
+		protected.GET("/clients/:id/tracking", trackingHandler.GetTracking)
 	}
 
 	// 404 handler
