@@ -11,6 +11,7 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	SMS      SMSConfig
+	VAPID    VAPIDConfig
 }
 
 type AppConfig struct {
@@ -54,6 +55,11 @@ type JWTConfig struct {
 type SMSConfig struct {
 	KavenegarAPIKey string `mapstructure:"KAVENEGAR_API_KEY"`
 	OTPTemplate     string `mapstructure:"KAVENEGAR_OTP_TEMPLATE"`
+}
+
+type VAPIDConfig struct {
+	PublicKey  string `mapstructure:"VAPID_PUBLIC_KEY"`
+	PrivateKey string `mapstructure:"VAPID_PRIVATE_KEY"`
 }
 
 func Load() (*Config, error) {

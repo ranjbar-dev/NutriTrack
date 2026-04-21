@@ -276,3 +276,13 @@ type FoodRequest struct {
 	CreatedAt       time.Time  `db:"created_at"`
 	UpdatedAt       time.Time  `db:"updated_at"`
 }
+
+// PushSubscription represents a Web Push subscription stored for a user.
+type PushSubscription struct {
+	ID        uuid.UUID `db:"id"`
+	UserID    uuid.UUID `db:"user_id"`
+	Endpoint  string    `db:"endpoint"`
+	P256dh    string    `db:"p256dh"`
+	Auth      string    `db:"auth"`
+	CreatedAt time.Time `db:"created_at"`
+}

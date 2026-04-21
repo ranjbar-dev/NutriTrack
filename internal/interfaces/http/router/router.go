@@ -147,7 +147,7 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.GET("/lab-results/:id/download", labResultHandler.Download)
 
 		// Messages — client-nutritionist chat
-		messageHandler := handler.NewMessageHandler(container.MessageService)
+		messageHandler := handler.NewMessageHandler(container.MessageService, container.PushService)
 		protected.GET("/messages/unread-count",     messageHandler.GetUnreadCount)
 		protected.GET("/messages",                  messageHandler.GetClientMessages)
 		protected.POST("/messages",                 messageHandler.SendAsClient)
@@ -155,11 +155,16 @@ func New(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *gin.Engine {
 		protected.POST("/clients/:id/messages",     messageHandler.SendAsNutritionist)
 
 		// Food requests — client submits, nutritionist approves/rejects
-		frHandler := handler.NewFoodRequestHandler(container.FoodRequestService)
+		frHandler := handler.NewFoodRequestHandler(container.FoodRequestService, container.PushService)
 		protected.POST("/food-requests",             frHandler.Submit)
 		protected.GET("/food-requests",              frHandler.ListPending)
 		protected.POST("/food-requests/:id/approve", frHandler.Approve)
 		protected.POST("/food-requests/:id/reject",  frHandler.Reject)
+
+		// Push subscriptions — Web Push notification management
+		pushHandler := handler.NewPushHandler(container.PushService)
+		protected.POST("/push/subscribe",   pushHandler.Subscribe)
+		protected.DELETE("/push/subscribe", pushHandler.Unsubscribe)
 	}
 
 	// 404 handler

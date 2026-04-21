@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appFoodRequest "github.com/ranjbar-dev/nutritrack/internal/application/foodrequest"
+	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
 	frEntity "github.com/ranjbar-dev/nutritrack/internal/domain/foodrequest/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
@@ -13,11 +16,12 @@ import (
 // FoodRequestHandler handles HTTP requests for the food-request lifecycle.
 type FoodRequestHandler struct {
 	service *appFoodRequest.FoodRequestService
+	pushSvc *appPush.PushService
 }
 
 // NewFoodRequestHandler creates a new FoodRequestHandler.
-func NewFoodRequestHandler(service *appFoodRequest.FoodRequestService) *FoodRequestHandler {
-	return &FoodRequestHandler{service: service}
+func NewFoodRequestHandler(service *appFoodRequest.FoodRequestService, pushSvc *appPush.PushService) *FoodRequestHandler {
+	return &FoodRequestHandler{service: service, pushSvc: pushSvc}
 }
 
 // Submit handles POST /food-requests — client submits a food request to their nutritionist.
@@ -133,6 +137,13 @@ func (h *FoodRequestHandler) Approve(c *gin.Context) {
 		return
 	}
 
+	if h.pushSvc != nil {
+		clientID := result.ClientID
+		go func() {
+			_ = h.pushSvc.Send(context.Background(), clientID, "درخواست غذا", "درخواست غذای شما تأیید شد")
+		}()
+	}
+
 	dto.OK(c, foodRequestToMap(result))
 }
 
@@ -169,6 +180,13 @@ func (h *FoodRequestHandler) Reject(c *gin.Context) {
 		}
 		dto.Abort(c, shared.ErrInternal)
 		return
+	}
+
+	if h.pushSvc != nil {
+		clientID := result.ClientID
+		go func() {
+			_ = h.pushSvc.Send(context.Background(), clientID, "درخواست غذا", "درخواست غذای شما رد شد")
+		}()
 	}
 
 	dto.OK(c, foodRequestToMap(result))

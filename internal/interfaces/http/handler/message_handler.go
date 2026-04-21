@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appMessage "github.com/ranjbar-dev/nutritrack/internal/application/message"
+	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
 	msgEntity "github.com/ranjbar-dev/nutritrack/internal/domain/message/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
@@ -16,11 +18,12 @@ import (
 // MessageHandler handles HTTP requests for chat messages.
 type MessageHandler struct {
 	service *appMessage.MessageService
+	pushSvc *appPush.PushService
 }
 
 // NewMessageHandler creates a new MessageHandler.
-func NewMessageHandler(service *appMessage.MessageService) *MessageHandler {
-	return &MessageHandler{service: service}
+func NewMessageHandler(service *appMessage.MessageService, pushSvc *appPush.PushService) *MessageHandler {
+	return &MessageHandler{service: service, pushSvc: pushSvc}
 }
 
 // SendAsClient handles POST /messages — client sends to nutritionist.
@@ -76,6 +79,13 @@ func (h *MessageHandler) SendAsClient(c *gin.Context) {
 		}
 		dto.Abort(c, shared.ErrInternal)
 		return
+	}
+
+	if h.pushSvc != nil {
+		receiverID := result.ReceiverID
+		go func() {
+			_ = h.pushSvc.Send(context.Background(), receiverID, "پیام جدید", "یک پیام جدید دریافت کردید")
+		}()
 	}
 
 	dto.Created(c, messageToMap(result, callerIDVal.(uuid.UUID)))
@@ -139,6 +149,13 @@ func (h *MessageHandler) SendAsNutritionist(c *gin.Context) {
 		}
 		dto.Abort(c, shared.ErrInternal)
 		return
+	}
+
+	if h.pushSvc != nil {
+		receiverID := result.ReceiverID
+		go func() {
+			_ = h.pushSvc.Send(context.Background(), receiverID, "پیام جدید", "متخصص تغذیه شما پیام جدید فرستاد")
+		}()
 	}
 
 	dto.Created(c, messageToMap(result, callerIDVal.(uuid.UUID)))
