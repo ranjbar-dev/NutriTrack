@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-04-21)
 Phase: 3 of 8 (Client Management)
 Plan: 2 of 2 in current phase
 Status: Complete
-Last activity: 2026-04-21 — Plan 03-02 complete (Client management — register, list, profile, update)
+Last activity: 2026-04-21 — Plan 03-03 complete (Profile picture upload with magic byte MIME validation)
 
 Progress: [████░░░░░░] 30%
 
@@ -50,6 +50,7 @@ Recent decisions affecting current work:
 - [Phase 2]: OTP attempt counter uses Redis atomic INCR (not GET+SET) to prevent race condition on rate limit bypass
 - [Phase 3]: BelongsTo ownership check performed in service layer, not handler, to enforce DDD boundary
 - [Phase 3]: birth_date parsed as "2006-01-02" string in handler; stored as *time.Time in domain entity
+- [Phase 3]: Magic byte validation (not Content-Type) for avatar uploads — prevents MIME spoofing
 - [Phase 5]: DietPlan split into two aggregates (DietPlan + MealOptionItems) to avoid 6-table JOIN on item-level operations
 
 ### Pending Todos
@@ -68,6 +69,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21 — Plan 03-02 complete
-Stopped at: Plan 03-02 committed (88a9463) — client management complete
-Resume file: .planning/phases/03-clients/03-02-SUMMARY.md
+Last session: 2026-04-21 — Plan 03-03 complete
+Stopped at: Plan 03-03 committed (cbe3bb0) — avatar upload complete
+Resume file: .planning/phases/03-clients/03-03-SUMMARY.md
