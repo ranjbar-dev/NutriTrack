@@ -34,4 +34,28 @@ describe('platform shell role isolation baseline', () => {
     expect(shouldRedirectRolePath('nutritionist', '/admin/dashboard')).toBe(true)
     expect(shouldRedirectRolePath('admin', '/admin')).toBe(false)
   })
+
+  it('renders install banner only in client layout intentional flow', () => {
+    const clientLayout = readWorkspaceFile('app/layouts/client.vue')
+    const authLayout = readWorkspaceFile('app/layouts/auth.vue')
+    const nutritionistLayout = readWorkspaceFile('app/layouts/nutritionist.vue')
+    const adminLayout = readWorkspaceFile('app/layouts/admin.vue')
+
+    expect(clientLayout).toContain('InstallPromptBanner')
+    expect(authLayout).not.toContain('InstallPromptBanner')
+    expect(nutritionistLayout).not.toContain('InstallPromptBanner')
+    expect(adminLayout).not.toContain('InstallPromptBanner')
+  })
+
+  it('allows update and connectivity banners across role layouts', () => {
+    const authLayout = readWorkspaceFile('app/layouts/auth.vue')
+    const clientLayout = readWorkspaceFile('app/layouts/client.vue')
+    const nutritionistLayout = readWorkspaceFile('app/layouts/nutritionist.vue')
+    const adminLayout = readWorkspaceFile('app/layouts/admin.vue')
+
+    for (const layout of [authLayout, clientLayout, nutritionistLayout, adminLayout]) {
+      expect(layout).toContain('UpdateAvailableBanner')
+      expect(layout).toContain('ConnectivityBanner')
+    }
+  })
 })
