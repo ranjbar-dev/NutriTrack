@@ -12,7 +12,7 @@ NutriTrack Client ships as a dependency-first Persian RTL mobile PWA: first esta
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
+- [x] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
 - [ ] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
 - [ ] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
 - [ ] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md - Baseline platform wiring, conservative PWA config, and test harness
 - [x] 01-02-PLAN.md - Persian RTL design tokens, locale formatting, and shared shell primitives
-- [ ] 01-03-PLAN.md - Install/update/connectivity banners and cache-boundary regression guards
+- [x] 01-03-PLAN.md - Install/update/connectivity banners and cache-boundary regression guards
 - [x] 01-04-PLAN.md - Role shell isolation routes, layouts, and middleware enforcement
 **UI hint**: yes
 
@@ -104,7 +104,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Platform Foundation | 3/4 | In progress | 2026-04-22 (01-01, 01-02, 01-04) |
+| 1. Platform Foundation | 4/4 | Completed | 2026-04-22 (01-01, 01-02, 01-04, 01-03) |
 | 2. Authentication & Access Control | 0/TBD | Not started | - |
 | 3. Client Offline Daily Loop | 0/TBD | Not started | - |
 | 4. Messaging, Notifications & Lab Exchange | 0/TBD | Not started | - |
