@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  createBannerStateView,
   createPlatformPwaState,
+  createRefreshAction,
   shouldShowInstallPromptAtIntentionalMoment
 } from '../../app/stores/platform-pwa'
 
@@ -18,6 +20,29 @@ describe('pwa update prompt contracts', () => {
   it('shows install prompt only after an intentional moment', () => {
     expect(shouldShowInstallPromptAtIntentionalMoment('first-paint')).toBe(false)
     expect(shouldShowInstallPromptAtIntentionalMoment('role-shell-ready')).toBe(true)
+  })
+
+  it('derives update and install banner visibility from store flags', () => {
+    const view = createBannerStateView({
+      ...createPlatformPwaState(),
+      needRefresh: true,
+      installReady: true,
+      showInstallPrompt: true
+    })
+
+    expect(view.showUpdateBanner).toBe(true)
+    expect(view.showInstallBanner).toBe(true)
+    expect(view.showConnectivityBanner).toBe(false)
+  })
+
+  it('wires explicit refresh action callback', () => {
+    let refreshed = false
+    const action = createRefreshAction(() => {
+      refreshed = true
+    })
+
+    action.refresh()
+    expect(refreshed).toBe(true)
   })
 
   it('contains conservative runtime cache boundaries in nuxt config', () => {
