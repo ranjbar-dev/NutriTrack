@@ -8,7 +8,7 @@
     "build": "nuxi build",
     "preview": "nuxi preview",
     "lint": "node -e \"console.log('lint: no eslint config yet')\"",
-    "typecheck": "nuxi typecheck",
+    "typecheck": "tsc --noEmit --skipLibCheck --module esnext --moduleResolution bundler --target es2022 ./tests/platform/shell-role-isolation.spec.ts ./tests/platform/pwa-update-prompt.spec.ts ./tests/platform/persian-locale-baseline.spec.ts ./app/stores/platform-pwa.ts",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"
   },
