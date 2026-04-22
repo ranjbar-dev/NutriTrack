@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: completed
+stopped_at: Completed 02-01/02/03/04 plans
+last_updated: "2026-04-23T00:00:00.000Z"
+last_activity: 2026-04-23
+progress:
+  total_phases: 6
+  completed_phases: 2
+  total_plans: 8
+  completed_plans: 8
+  percent: 100
+---
+
 # Project State
 
 ## Project Reference
@@ -9,29 +25,37 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 ## Current Position
 
-Phase: 1 of 6 (Platform Foundation)
+Phase: 2 of 6 (Authentication & Access Control)
 Plan: 4 of 4 in current phase
 Status: Completed
-Last activity: 2026-04-22 — Completed plan 01-03 PWA banners, layout wiring, and cache-boundary guards
+Last activity: 2026-04-23 — Completed plans 02-01 through 02-04
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 47 min
-- Total execution time: 3.2 hours
+
+- Total plans completed: 8
+- Average duration: 38 min
+- Total execution time: 5.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 4 | 189 min | 47 min |
+| 2 | 4 | 118 min | 30 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-02, 01-04, 01-03
+
+- Last 5 plans: 01-03, 02-01, 02-02, 02-03, 02-04
 - Trend: Stable
+
+| Phase 02 P01 | 34 | 2 tasks | 8 files |
+| Phase 02 P02 | 29 | 2 tasks | 6 files |
+| Phase 02 P03 | 24 | 2 tasks | 7 files |
+| Phase 02 P04 | 31 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -45,6 +69,8 @@ Recent decisions affecting current work:
 - Plan 01-03: Restrict install prompt UX to client intentional moments while keeping update and connectivity signals cross-role.
 - Phase 3: Keep offline durability bounded to the client experience rather than extending it into nutritionist or admin surfaces.
 - Phase 5: Treat nutritionist authoring and catalogue workflows as online-first operational work layered on the shared platform foundation.
+- Phase 2 enforces deny-by-default role namespace guard via global middleware and role mapping.
+- Auth failures INVALID_TOKEN/TOKEN_REVOKED/UNAUTHORIZED force logout and role-auth handoff with session-expired marker.
 
 ### Pending Todos
 
@@ -65,6 +91,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-04-22 03:12
-Stopped at: Completed 01-03-PLAN.md and Phase 1
-Resume file: .planning/phases/01-platform-foundation/01-03-SUMMARY.md
+Last session: 2026-04-22T21:18:01.508Z
+Stopped at: Completed 02-01/02/03/04 plans
+Resume file: None

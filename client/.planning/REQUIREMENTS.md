@@ -13,10 +13,10 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: Client can request and verify an OTP using the documented mobile-based authentication flow.
-- [ ] **AUTH-02**: Nutritionist and super admin can log in with email and password.
-- [ ] **AUTH-03**: Authenticated user keeps a valid session across refreshes through token refresh and is redirected safely when the session expires or logs out.
-- [ ] **AUTH-04**: Authenticated user is routed only to pages allowed for their role and user identity.
+- [x] **AUTH-01**: Client can request and verify an OTP using the documented mobile-based authentication flow.
+- [x] **AUTH-02**: Nutritionist and super admin can log in with email and password.
+- [x] **AUTH-03**: Authenticated user keeps a valid session across refreshes through token refresh and is redirected safely when the session expires or logs out.
+- [x] **AUTH-04**: Authenticated user is routed only to pages allowed for their role and user identity.
 
 ### Client Experience
 
@@ -98,10 +98,10 @@
 | PLAT-01 | Phase 1 | Completed (01-04) |
 | PLAT-02 | Phase 1 | Completed (01-01) |
 | PLAT-03 | Phase 1 | Completed (01-02) |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Completed (02-02) |
+| AUTH-02 | Phase 2 | Completed (02-03) |
+| AUTH-03 | Phase 2 | Completed (02-01, 02-04) |
+| AUTH-04 | Phase 2 | Completed (02-04) |
 | CLNT-01 | Phase 3 | Pending |
 | CLNT-02 | Phase 3 | Pending |
 | CLNT-03 | Phase 3 | Pending |

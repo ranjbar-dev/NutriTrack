@@ -13,7 +13,7 @@ NutriTrack Client ships as a dependency-first Persian RTL mobile PWA: first esta
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
-- [ ] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
+- [x] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
 - [ ] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
 - [ ] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
 - [ ] **Phase 5: Nutritionist Workspace & Plan Authoring** - Deliver the nutritionist's client workspace, plan management, catalogue access, and food-request handling.
@@ -46,7 +46,12 @@ Plans:
   2. Nutritionist and super admin can log in with email and password and land in their correct workspaces.
   3. Authenticated user remains signed in across refreshes through token refresh and is redirected safely when the session expires or they log out.
   4. User cannot access pages or data outside the routes allowed for their role and user identity.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [x] 02-01-PLAN.md - Auth core infrastructure, typed session store, and refresh orchestration
+- [x] 02-02-PLAN.md - Client OTP flow screens and OTP verification lifecycle
+- [x] 02-03-PLAN.md - Nutritionist and admin credential auth flows with secure error handling
+- [x] 02-04-PLAN.md - Role route guards, session bootstrap, and logout/reset enforcement
 **UI hint**: yes
 
 ### Phase 3: Client Offline Daily Loop
@@ -105,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Platform Foundation | 4/4 | Completed | 2026-04-22 (01-01, 01-02, 01-04, 01-03) |
-| 2. Authentication & Access Control | 0/TBD | Not started | - |
+| 2. Authentication & Access Control | 4/4 | Completed | 2026-04-23 (02-01, 02-02, 02-03, 02-04) |
 | 3. Client Offline Daily Loop | 0/TBD | Not started | - |
 | 4. Messaging, Notifications & Lab Exchange | 0/TBD | Not started | - |
 | 5. Nutritionist Workspace & Plan Authoring | 0/TBD | Not started | - |
