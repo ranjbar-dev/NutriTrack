@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -19,14 +20,20 @@ type KavenegarAdapter struct {
 	httpClient  *http.Client
 }
 
-func NewKavenegarAdapter(apiKey, otpTemplate string) *KavenegarAdapter {
+func NewKavenegarAdapter(apiKey, otpTemplate string) (*KavenegarAdapter, error) {
+	if strings.TrimSpace(apiKey) == "" {
+		return nil, fmt.Errorf("kavenegar: apiKey is required")
+	}
+	if strings.TrimSpace(otpTemplate) == "" {
+		return nil, fmt.Errorf("kavenegar: otpTemplate is required")
+	}
 	return &KavenegarAdapter{
 		apiKey:      apiKey,
 		otpTemplate: otpTemplate,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-	}
+	}, nil
 }
 
 // SendOTP sends an OTP SMS via Kavenegar VerifyLookup API.

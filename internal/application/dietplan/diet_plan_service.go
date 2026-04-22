@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	dietRepo "github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/entity"
+	dietRepo "github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
 )
@@ -71,16 +71,7 @@ func (s *DietPlanService) CreatePlan(ctx context.Context, req CreatePlanRequest)
 		return nil, shared.ErrUserNotFound
 	}
 
-	plan := &entity.DietPlan{
-		ClientID:           req.ClientID,
-		NutritionistID:     req.NutritionistID,
-		Title:              req.Title,
-		StartDate:          req.StartDate,
-		EndDate:            req.EndDate,
-		Notes:              req.Notes,
-		DailyWaterTargetML: req.DailyWaterTargetML,
-		Status:             entity.PlanStatusActive,
-	}
+	plan := entity.NewDietPlan(req.ClientID, req.NutritionistID, req.Title, req.StartDate, req.EndDate, req.Notes, req.DailyWaterTargetML)
 
 	if err := s.planRepo.CreateWithArchive(ctx, plan); err != nil {
 		return nil, err
@@ -100,53 +91,53 @@ func (s *DietPlanService) GetFullPlan(ctx context.Context, planID, callerID uuid
 	}
 
 	// Authorization: caller must be the nutritionist, the client, or a superadmin.
-	if callerRole != "superadmin" && callerID != plan.NutritionistID && callerID != plan.ClientID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() && callerID != plan.ClientID() {
 		return nil, shared.ErrForbidden
 	}
 
 	// Load full tree.
-	days, err := s.planRepo.ListDays(ctx, plan.ID)
+	days, err := s.planRepo.ListDays(ctx, plan.ID())
 	if err != nil {
 		return nil, err
 	}
 
 	for _, day := range days {
-		meals, err := s.planRepo.ListMeals(ctx, day.ID)
+		meals, err := s.planRepo.ListMeals(ctx, day.ID())
 		if err != nil {
 			return nil, err
 		}
 		for _, meal := range meals {
-			options, err := s.planRepo.ListOptions(ctx, meal.ID)
+			options, err := s.planRepo.ListOptions(ctx, meal.ID())
 			if err != nil {
 				return nil, err
 			}
 			for _, option := range options {
-				items, err := s.planRepo.ListItemsWithFood(ctx, option.ID)
+				items, err := s.planRepo.ListItemsWithFood(ctx, option.ID())
 				if err != nil {
 					return nil, err
 				}
-				option.Items = items
-				option.Totals = computeOptionTotals(items)
+				option.SetItems(items)
+				option.SetTotals(option.ComputeTotals())
 			}
-			meal.Options = options
-			meal.TotalRange = computeMealRange(meal.Options)
+			meal.SetOptions(options)
+			meal.SetTotalRange(meal.ComputeTotalRange())
 		}
-		day.Meals = meals
-		day.TotalRange = computeDayRange(day.Meals)
+		day.SetMeals(meals)
+		day.SetTotalRange(day.ComputeTotalRange())
 
-		exercises, err := s.planRepo.ListExercises(ctx, day.ID)
+		exercises, err := s.planRepo.ListExercises(ctx, day.ID())
 		if err != nil {
 			return nil, err
 		}
-		day.Exercises = exercises
+		day.SetExercises(exercises)
 
-		prescriptions, err := s.planRepo.ListPrescriptionsWithMedication(ctx, day.ID)
+		prescriptions, err := s.planRepo.ListPrescriptionsWithMedication(ctx, day.ID())
 		if err != nil {
 			return nil, err
 		}
-		day.Prescriptions = prescriptions
+		day.SetPrescriptions(prescriptions)
 	}
-	plan.Days = days
+	plan.SetDays(days)
 
 	return plan, nil
 }
@@ -162,14 +153,11 @@ func (s *DietPlanService) AddDay(ctx context.Context, req AddDayRequest) (*entit
 	}
 
 	// Only nutritionist owner or superadmin may add days.
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	day := &entity.DietPlanDay{
-		PlanID:    req.PlanID,
-		DayNumber: req.DayNumber,
-	}
+	day := entity.NewDietPlanDay(req.PlanID, req.DayNumber)
 
 	if err := s.planRepo.AddDay(ctx, day); err != nil {
 		return nil, err
@@ -189,7 +177,7 @@ func (s *DietPlanService) AddMeal(ctx context.Context, req AddMealRequest) (*ent
 	}
 
 	// Fetch plan for ownership check.
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return nil, err
 	}
@@ -197,16 +185,11 @@ func (s *DietPlanService) AddMeal(ctx context.Context, req AddMealRequest) (*ent
 		return nil, shared.ErrPlanNotFound
 	}
 
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	meal := &entity.DietMeal{
-		DayID:         req.DayID,
-		Title:         req.Title,
-		ScheduledTime: req.ScheduledTime,
-		DisplayOrder:  req.DisplayOrder,
-	}
+	meal := entity.NewDietMeal(req.DayID, req.Title, req.ScheduledTime, req.DisplayOrder)
 
 	if err := s.planRepo.AddMeal(ctx, meal); err != nil {
 		return nil, err
@@ -226,7 +209,7 @@ func (s *DietPlanService) AddOption(ctx context.Context, req AddOptionRequest) (
 	}
 
 	// Fetch day and plan for ownership check.
-	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID())
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +217,7 @@ func (s *DietPlanService) AddOption(ctx context.Context, req AddOptionRequest) (
 		return nil, shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return nil, err
 	}
@@ -242,14 +225,11 @@ func (s *DietPlanService) AddOption(ctx context.Context, req AddOptionRequest) (
 		return nil, shared.ErrPlanNotFound
 	}
 
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	option := &entity.MealOption{
-		MealID:       req.MealID,
-		OptionNumber: req.OptionNumber,
-	}
+	option := entity.NewMealOption(req.MealID, req.OptionNumber)
 
 	if err := s.planRepo.AddOption(ctx, option); err != nil {
 		return nil, err
@@ -291,7 +271,7 @@ func (s *DietPlanService) DeletePlan(ctx context.Context, planID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 
@@ -320,7 +300,7 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 		return nil, shared.ErrPlanNotFound
 	}
 
-	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID())
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +308,7 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 		return nil, shared.ErrPlanNotFound
 	}
 
-	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID())
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +316,7 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 		return nil, shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return nil, err
 	}
@@ -344,17 +324,11 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 		return nil, shared.ErrPlanNotFound
 	}
 
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	item := &entity.MealOptionItem{
-		OptionID: req.OptionID,
-		FoodID:   req.FoodID,
-		Quantity: req.Quantity,
-		Unit:     req.Unit,
-		Notes:    req.Notes,
-	}
+	item := entity.NewMealOptionItem(req.OptionID, req.FoodID, req.Quantity, req.Unit, req.Notes)
 	if err := s.planRepo.AddItem(ctx, item); err != nil {
 		return nil, err
 	}
@@ -362,7 +336,8 @@ func (s *DietPlanService) AddItem(ctx context.Context, req AddItemRequest) (*ent
 }
 
 // RemoveItem removes a food item from a meal option.
-func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.UUID, callerRole string) error {	item, err := s.planRepo.FindItemByID(ctx, itemID)
+func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.UUID, callerRole string) error {
+	item, err := s.planRepo.FindItemByID(ctx, itemID)
 	if err != nil {
 		return err
 	}
@@ -370,7 +345,7 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	option, err := s.planRepo.FindOptionByID(ctx, item.OptionID)
+	option, err := s.planRepo.FindOptionByID(ctx, item.OptionID())
 	if err != nil {
 		return err
 	}
@@ -378,7 +353,7 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID())
 	if err != nil {
 		return err
 	}
@@ -386,7 +361,7 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID())
 	if err != nil {
 		return err
 	}
@@ -394,7 +369,7 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
@@ -402,7 +377,7 @@ func (s *DietPlanService) RemoveItem(ctx context.Context, itemID, callerID uuid.
 		return shared.ErrPlanNotFound
 	}
 
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 
@@ -444,7 +419,7 @@ func (s *DietPlanService) AddExercise(ctx context.Context, req AddExerciseReques
 		return nil, shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return nil, err
 	}
@@ -452,17 +427,11 @@ func (s *DietPlanService) AddExercise(ctx context.Context, req AddExerciseReques
 		return nil, shared.ErrPlanNotFound
 	}
 
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	ex := &entity.ExerciseRecommendation{
-		DayID:                req.DayID,
-		ExerciseName:         req.ExerciseName,
-		DurationMinutes:      req.DurationMinutes,
-		Description:          req.Description,
-		CaloriesBurnEstimate: req.CaloriesBurnEstimate,
-	}
+	ex := entity.NewExerciseRecommendation(req.DayID, req.ExerciseName, req.DurationMinutes, req.Description, req.CaloriesBurnEstimate)
 
 	if err := s.planRepo.AddExercise(ctx, ex); err != nil {
 		return nil, err
@@ -480,7 +449,7 @@ func (s *DietPlanService) RemoveExercise(ctx context.Context, exerciseID, caller
 		return shared.ErrPlanNotFound
 	}
 
-	day, err := s.planRepo.FindDayByID(ctx, ex.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, ex.DayID())
 	if err != nil {
 		return err
 	}
@@ -488,7 +457,7 @@ func (s *DietPlanService) RemoveExercise(ctx context.Context, exerciseID, caller
 		return shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
@@ -496,7 +465,7 @@ func (s *DietPlanService) RemoveExercise(ctx context.Context, exerciseID, caller
 		return shared.ErrPlanNotFound
 	}
 
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 
@@ -513,7 +482,7 @@ func (s *DietPlanService) AddPrescription(ctx context.Context, req AddPrescripti
 		return nil, shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return nil, err
 	}
@@ -521,20 +490,11 @@ func (s *DietPlanService) AddPrescription(ctx context.Context, req AddPrescripti
 		return nil, shared.ErrPlanNotFound
 	}
 
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
 
-	rx := &entity.PrescribedMedication{
-		DayID:        req.DayID,
-		MedicationID: req.MedicationID,
-		Dosage:       req.Dosage,
-		Frequency:    req.Frequency,
-		Times:        req.Times,
-		Instructions: req.Instructions,
-		StartDate:    req.StartDate,
-		EndDate:      req.EndDate,
-	}
+	rx := entity.NewPrescribedMedication(req.DayID, req.MedicationID, req.Dosage, req.Frequency, req.Times, req.Instructions, req.StartDate, req.EndDate)
 
 	if err := s.planRepo.AddPrescription(ctx, rx); err != nil {
 		return nil, err
@@ -562,7 +522,7 @@ func (s *DietPlanService) GetActivePlan(ctx context.Context, callerID uuid.UUID,
 	if plan == nil {
 		return nil, shared.ErrPlanNotFound
 	}
-	return s.GetFullPlan(ctx, plan.ID, callerID, callerRole)
+	return s.GetFullPlan(ctx, plan.ID(), callerID, callerRole)
 }
 
 // UpdatePlan updates plan metadata. Only the nutritionist owner or superadmin may update.
@@ -574,12 +534,12 @@ func (s *DietPlanService) UpdatePlan(ctx context.Context, req UpdatePlanRequest)
 	if plan == nil {
 		return nil, shared.ErrPlanNotFound
 	}
-	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID {
+	if req.CallerRole != "superadmin" && req.CallerID != plan.NutritionistID() {
 		return nil, shared.ErrForbidden
 	}
-	plan.Title = req.Title
-	plan.Notes = req.Notes
-	plan.DailyWaterTargetML = req.DailyWaterTargetML
+	plan.SetTitle(req.Title)
+	plan.SetNotes(req.Notes)
+	plan.SetDailyWaterTargetML(req.DailyWaterTargetML)
 	if err := s.planRepo.Update(ctx, plan); err != nil {
 		return nil, err
 	}
@@ -595,14 +555,14 @@ func (s *DietPlanService) DeleteDay(ctx context.Context, dayID, callerID uuid.UU
 	if day == nil {
 		return shared.ErrPlanNotFound
 	}
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
 	if plan == nil {
 		return shared.ErrPlanNotFound
 	}
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 	return s.planRepo.DeleteDay(ctx, dayID)
@@ -617,21 +577,21 @@ func (s *DietPlanService) DeleteMeal(ctx context.Context, mealID, callerID uuid.
 	if meal == nil {
 		return shared.ErrPlanNotFound
 	}
-	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID())
 	if err != nil {
 		return err
 	}
 	if day == nil {
 		return shared.ErrPlanNotFound
 	}
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
 	if plan == nil {
 		return shared.ErrPlanNotFound
 	}
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 	return s.planRepo.DeleteMeal(ctx, mealID)
@@ -646,28 +606,28 @@ func (s *DietPlanService) DeleteOption(ctx context.Context, optionID, callerID u
 	if option == nil {
 		return shared.ErrPlanNotFound
 	}
-	meal, err := s.planRepo.FindMealByID(ctx, option.MealID)
+	meal, err := s.planRepo.FindMealByID(ctx, option.MealID())
 	if err != nil {
 		return err
 	}
 	if meal == nil {
 		return shared.ErrPlanNotFound
 	}
-	day, err := s.planRepo.FindDayByID(ctx, meal.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, meal.DayID())
 	if err != nil {
 		return err
 	}
 	if day == nil {
 		return shared.ErrPlanNotFound
 	}
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
 	if plan == nil {
 		return shared.ErrPlanNotFound
 	}
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 	return s.planRepo.DeleteOption(ctx, optionID)
@@ -683,7 +643,7 @@ func (s *DietPlanService) RemovePrescription(ctx context.Context, prescriptionID
 		return shared.ErrPlanNotFound
 	}
 
-	day, err := s.planRepo.FindDayByID(ctx, rx.DayID)
+	day, err := s.planRepo.FindDayByID(ctx, rx.DayID())
 	if err != nil {
 		return err
 	}
@@ -691,7 +651,7 @@ func (s *DietPlanService) RemovePrescription(ctx context.Context, prescriptionID
 		return shared.ErrPlanNotFound
 	}
 
-	plan, err := s.planRepo.FindByID(ctx, day.PlanID)
+	plan, err := s.planRepo.FindByID(ctx, day.PlanID())
 	if err != nil {
 		return err
 	}
@@ -699,7 +659,7 @@ func (s *DietPlanService) RemovePrescription(ctx context.Context, prescriptionID
 		return shared.ErrPlanNotFound
 	}
 
-	if callerRole != "superadmin" && callerID != plan.NutritionistID {
+	if callerRole != "superadmin" && callerID != plan.NutritionistID() {
 		return shared.ErrForbidden
 	}
 

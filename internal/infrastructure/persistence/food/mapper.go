@@ -11,40 +11,36 @@ import (
 
 // foodToDomain converts a sqlc Food row to a domain entity (without categories).
 func foodToDomain(f db.Food) *entity.Food {
-	result := &entity.Food{
-		ID:             f.ID,
-		Name:           f.Name,
-		NameNormalized: f.NameNormalized,
-		Unit:           f.Unit,
-		Calories:       numericToFloat64(f.Calories),
-		Protein:        numericToFloat64(f.Protein),
-		Carbohydrate:   numericToFloat64(f.Carbohydrate),
-		Fat:            numericToFloat64(f.Fat),
-		Fiber:          numericToFloat64(f.Fiber),
-		Sugar:          numericToFloat64(f.Sugar),
-		Sodium:         numericToFloat64(f.Sodium),
-		Amount:         numericToFloat64(f.Amount),
-		IsActive:       f.IsActive,
-		Categories:     []entity.FoodCategory{},
-		CreatedAt:      f.CreatedAt,
-		UpdatedAt:      f.UpdatedAt,
-	}
-
+	var createdBy *uuid.UUID
 	if f.CreatedBy.Valid {
 		id := uuid.UUID(f.CreatedBy.Bytes)
-		result.CreatedBy = &id
+		createdBy = &id
 	}
 
-	return result
+	return entity.ReconstructFood(
+		f.ID,
+		f.Name,
+		f.NameNormalized,
+		f.Unit,
+		numericToFloat64(f.Calories),
+		numericToFloat64(f.Protein),
+		numericToFloat64(f.Carbohydrate),
+		numericToFloat64(f.Fat),
+		numericToFloat64(f.Fiber),
+		numericToFloat64(f.Sugar),
+		numericToFloat64(f.Sodium),
+		numericToFloat64(f.Amount),
+		createdBy,
+		f.IsActive,
+		[]entity.FoodCategory{},
+		f.CreatedAt,
+		f.UpdatedAt,
+	)
 }
 
 // categoryToDomain converts a sqlc FoodCategory row to a domain entity.
 func categoryToDomain(c db.FoodCategory) entity.FoodCategory {
-	return entity.FoodCategory{
-		ID:        c.ID,
-		Name:      c.Name,
-		CreatedAt: c.CreatedAt,
-	}
+	return entity.ReconstructFoodCategory(c.ID, c.Name, c.CreatedAt)
 }
 
 // categoriesToDomain converts a slice of sqlc FoodCategory to domain entities.

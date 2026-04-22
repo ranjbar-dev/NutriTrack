@@ -39,14 +39,7 @@ func NewMedicationService(repo medRepo.MedicationRepository) *MedicationService 
 // CreateMedication creates a new medication/supplement entry.
 func (s *MedicationService) CreateMedication(ctx context.Context, req CreateMedicationRequest) (*entity.Medication, error) {
 	normalized := shared.NormalizePersian(req.Name)
-	med := &entity.Medication{
-		Name:           req.Name,
-		NameNormalized: normalized,
-		Description:    req.Description,
-		Unit:           req.Unit,
-		CreatedBy:      &req.CallerID,
-		IsActive:       true,
-	}
+	med := entity.NewMedication(req.Name, normalized, req.Description, req.Unit, &req.CallerID)
 	if err := s.medRepo.Create(ctx, med); err != nil {
 		return nil, err
 	}
@@ -59,7 +52,7 @@ func (s *MedicationService) GetMedication(ctx context.Context, id uuid.UUID) (*e
 	if err != nil {
 		return nil, err
 	}
-	if med == nil || !med.IsActive {
+	if med == nil || !med.IsActive() {
 		return nil, shared.ErrMedicationNotFound
 	}
 	return med, nil
@@ -86,20 +79,20 @@ func (s *MedicationService) UpdateMedication(ctx context.Context, req UpdateMedi
 	if err != nil {
 		return nil, err
 	}
-	if med == nil || !med.IsActive {
+	if med == nil || !med.IsActive() {
 		return nil, shared.ErrMedicationNotFound
 	}
 	if req.CallerRole == "nutritionist" {
-		if med.CreatedBy == nil || *med.CreatedBy != req.CallerID {
+		if med.CreatedBy() == nil || *med.CreatedBy() != req.CallerID {
 			return nil, shared.ErrForbidden
 		}
 	} else if req.CallerRole != "superadmin" {
 		return nil, shared.ErrForbidden
 	}
-	med.Name = req.Name
-	med.NameNormalized = shared.NormalizePersian(req.Name)
-	med.Description = req.Description
-	med.Unit = req.Unit
+	med.SetName(req.Name)
+	med.SetNameNormalized(shared.NormalizePersian(req.Name))
+	med.SetDescription(req.Description)
+	med.SetUnit(req.Unit)
 	if err := s.medRepo.Update(ctx, med); err != nil {
 		return nil, err
 	}
@@ -119,7 +112,7 @@ func (s *MedicationService) DeleteMedication(ctx context.Context, id uuid.UUID, 
 	case "superadmin":
 		return s.medRepo.Delete(ctx, id)
 	case "nutritionist":
-		if med.CreatedBy == nil || *med.CreatedBy != callerID {
+		if med.CreatedBy() == nil || *med.CreatedBy() != callerID {
 			return shared.ErrForbidden
 		}
 		return s.medRepo.Deactivate(ctx, id)

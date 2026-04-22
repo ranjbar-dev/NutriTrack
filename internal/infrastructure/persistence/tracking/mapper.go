@@ -46,97 +46,97 @@ func optNumericToFloat64(n *pgtype.Numeric) *float64 {
 }
 
 func foodLogToDomain(r db.FoodLog) *entity.FoodLog {
-	return &entity.FoodLog{
-		ID:         r.ID,
-		ClientID:   r.ClientID,
-		LocalID:    r.LocalID,
-		LoggedAt:   r.LoggedAt,
-		LoggedDate: r.LoggedDate,
-		FoodID:     r.FoodID,
-		FoodName:   r.FoodName,
-		Quantity:   numericToFloat64(r.Quantity),
-		Unit:       r.Unit,
-		Calories:   numericToFloat64(r.Calories),
-		Protein:    numericToFloat64(r.Protein),
-		Carbs:      numericToFloat64(r.Carbs),
-		Fat:        numericToFloat64(r.Fat),
-		Notes:      r.Notes,
-		CreatedAt:  r.CreatedAt,
-	}
+	return entity.ReconstituteFoodLog(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.LoggedAt,
+		r.LoggedDate,
+		r.FoodID,
+		r.FoodName,
+		numericToFloat64(r.Quantity),
+		r.Unit,
+		numericToFloat64(r.Calories),
+		numericToFloat64(r.Protein),
+		numericToFloat64(r.Carbs),
+		numericToFloat64(r.Fat),
+		r.Notes,
+		r.CreatedAt,
+	)
 }
 
 func waterLogToDomain(r db.WaterLog) *entity.WaterLog {
-	return &entity.WaterLog{
-		ID:         r.ID,
-		ClientID:   r.ClientID,
-		LocalID:    r.LocalID,
-		LoggedAt:   r.LoggedAt,
-		LoggedDate: r.LoggedDate,
-		AmountMl:   int(r.AmountMl),
-		Notes:      r.Notes,
-		CreatedAt:  r.CreatedAt,
-	}
+	return entity.ReconstituteWaterLog(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.LoggedAt,
+		r.LoggedDate,
+		int(r.AmountMl),
+		r.Notes,
+		r.CreatedAt,
+	)
 }
 
 func sleepLogToDomain(r db.SleepLog) *entity.SleepLog {
-	return &entity.SleepLog{
-		ID:              r.ID,
-		ClientID:        r.ClientID,
-		LocalID:         r.LocalID,
-		LoggedDate:      r.LoggedDate,
-		SleepStart:      r.SleepStart,
-		SleepEnd:        r.SleepEnd,
-		DurationMinutes: int(r.DurationMinutes),
-		Quality:         int(r.Quality),
-		Notes:           r.Notes,
-		CreatedAt:       r.CreatedAt,
-	}
+	return entity.ReconstituteSleepLog(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.LoggedDate,
+		r.SleepStart,
+		r.SleepEnd,
+		int(r.DurationMinutes),
+		int(r.Quality),
+		r.Notes,
+		r.CreatedAt,
+	)
 }
 
 func exerciseLogToDomain(r db.ExerciseLog) *entity.ExerciseLog {
-	return &entity.ExerciseLog{
-		ID:              r.ID,
-		ClientID:        r.ClientID,
-		LocalID:         r.LocalID,
-		LoggedAt:        r.LoggedAt,
-		LoggedDate:      r.LoggedDate,
-		ExerciseName:    r.ExerciseName,
-		DurationMinutes: int(r.DurationMinutes),
-		CaloriesBurned:  int(r.CaloriesBurned),
-		Notes:           r.Notes,
-		CreatedAt:       r.CreatedAt,
-	}
+	return entity.ReconstituteExerciseLog(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.LoggedAt,
+		r.LoggedDate,
+		r.ExerciseName,
+		int(r.DurationMinutes),
+		int(r.CaloriesBurned),
+		r.Notes,
+		r.CreatedAt,
+	)
 }
 
 func medicationLogToDomain(r db.MedicationLog) *entity.MedicationLog {
-	return &entity.MedicationLog{
-		ID:             r.ID,
-		ClientID:       r.ClientID,
-		LocalID:        r.LocalID,
-		LoggedAt:       r.LoggedAt,
-		LoggedDate:     r.LoggedDate,
-		MedicationID:   r.MedicationID,
-		MedicationName: r.MedicationName,
-		Dosage:         r.Dosage,
-		Notes:          r.Notes,
-		CreatedAt:      r.CreatedAt,
-	}
+	return entity.ReconstituteMedicationLog(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.LoggedAt,
+		r.LoggedDate,
+		r.MedicationID,
+		r.MedicationName,
+		r.Dosage,
+		r.Notes,
+		r.CreatedAt,
+	)
 }
 
 func bodyMeasurementToDomain(r db.BodyMeasurement) *entity.BodyMeasurement {
-	return &entity.BodyMeasurement{
-		ID:           r.ID,
-		ClientID:     r.ClientID,
-		LocalID:      r.LocalID,
-		MeasuredAt:   r.MeasuredAt,
-		MeasuredDate: r.MeasuredDate,
-		WeightKg:     optNumericToFloat64(r.WeightKg),
-		HeightCm:     optNumericToFloat64(r.HeightCm),
-		WaistCm:      optNumericToFloat64(r.WaistCm),
-		HipCm:        optNumericToFloat64(r.HipCm),
-		ChestCm:      optNumericToFloat64(r.ChestCm),
-		ArmCm:        optNumericToFloat64(r.ArmCm),
-		Notes:        r.Notes,
-		CreatedAt:    r.CreatedAt,
-	}
+	return entity.ReconstituteBodyMeasurement(
+		r.ID,
+		r.ClientID,
+		r.LocalID,
+		r.MeasuredAt,
+		r.MeasuredDate,
+		optNumericToFloat64(r.WeightKg),
+		optNumericToFloat64(r.HeightCm),
+		optNumericToFloat64(r.WaistCm),
+		optNumericToFloat64(r.HipCm),
+		optNumericToFloat64(r.ChestCm),
+		optNumericToFloat64(r.ArmCm),
+		r.Notes,
+		r.CreatedAt,
+	)
 }

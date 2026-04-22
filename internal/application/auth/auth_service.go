@@ -5,20 +5,23 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/user/valueobject"
-	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
+	"github.com/rs/zerolog/log"
 )
 
-const otpLength = 6
+const (
+	otpLength       = 6
+	maxOTPRateLimit = int64(3) // max OTP sends per rate-limit window
+	maxOTPAttempts  = int64(3) // max failed OTP attempts before lock
+)
 
 // AuthService orchestrates all authentication flows.
 type AuthService struct {
 	userRepo    userRepo.UserRepository
 	otpStore    userRepo.OTPRepository
-	blacklist   *redis.TokenBlacklist
+	blacklist   userRepo.TokenBlacklistRepository
 	jwtService  *JWTService
 	smsProvider shared.SMSProvider
 }
@@ -26,7 +29,7 @@ type AuthService struct {
 func NewAuthService(
 	userRepo userRepo.UserRepository,
 	otpStore userRepo.OTPRepository,
-	blacklist *redis.TokenBlacklist,
+	blacklist userRepo.TokenBlacklistRepository,
 	jwtService *JWTService,
 	smsProvider shared.SMSProvider,
 ) *AuthService {
@@ -49,18 +52,18 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*AuthRespons
 	if user == nil {
 		return nil, shared.ErrInvalidCredentials
 	}
-	if !user.IsActive {
+	if !user.GetIsActive() {
 		return nil, shared.ErrForbidden
 	}
 	if user.IsClient() {
 		// Clients use OTP, not password
 		return nil, shared.ErrInvalidCredentials
 	}
-	if !CheckPassword(req.Password, user.PasswordHash) {
+	if !CheckPassword(req.Password, user.GetPasswordHash()) {
 		return nil, shared.ErrInvalidCredentials
 	}
 
-	tokens, err := s.jwtService.GenerateTokenPair(user.ID, user.Role)
+	tokens, err := s.jwtService.GenerateTokenPair(user.GetID(), string(user.GetRole()))
 	if err != nil {
 		log.Error().Err(err).Msg("login: token generation failed")
 		return nil, shared.ErrInternal
@@ -70,8 +73,8 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*AuthRespons
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		TokenType:    "Bearer",
-		UserID:       user.ID,
-		Role:         user.Role,
+		UserID:       user.GetID(),
+		Role:         string(user.GetRole()),
 	}, nil
 }
 
@@ -89,7 +92,7 @@ func (s *AuthService) SendOTP(ctx context.Context, req OTPSendRequest) error {
 		log.Error().Err(err).Msg("sendOTP: incr rate limit failed")
 		return shared.ErrInternal
 	}
-	if count > redis.MaxOTPRateLimit() {
+	if count > maxOTPRateLimit {
 		return shared.ErrOTPRateLimit
 	}
 
@@ -127,7 +130,7 @@ func (s *AuthService) VerifyOTP(ctx context.Context, req OTPVerifyRequest) (*Aut
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
-	if attempts >= redis.MaxOTPAttempts() {
+	if attempts >= maxOTPAttempts {
 		return nil, shared.ErrOTPMaxAttempts
 	}
 
@@ -158,11 +161,11 @@ func (s *AuthService) VerifyOTP(ctx context.Context, req OTPVerifyRequest) (*Aut
 	if user == nil {
 		return nil, shared.ErrUserNotFound
 	}
-	if !user.IsActive {
+	if !user.GetIsActive() {
 		return nil, shared.ErrForbidden
 	}
 
-	tokens, err := s.jwtService.GenerateTokenPair(user.ID, user.Role)
+	tokens, err := s.jwtService.GenerateTokenPair(user.GetID(), string(user.GetRole()))
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
@@ -171,8 +174,8 @@ func (s *AuthService) VerifyOTP(ctx context.Context, req OTPVerifyRequest) (*Aut
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		TokenType:    "Bearer",
-		UserID:       user.ID,
-		Role:         user.Role,
+		UserID:       user.GetID(),
+		Role:         string(user.GetRole()),
 	}, nil
 }
 
@@ -201,7 +204,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req RefreshRequest) (*Au
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
-	if user == nil || !user.IsActive {
+	if user == nil || !user.GetIsActive() {
 		return nil, shared.ErrUnauthorized
 	}
 
@@ -211,7 +214,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req RefreshRequest) (*Au
 		_ = s.blacklist.Revoke(ctx, claims.ID, ttl)
 	}
 
-	tokens, err := s.jwtService.GenerateTokenPair(user.ID, user.Role)
+	tokens, err := s.jwtService.GenerateTokenPair(user.GetID(), string(user.GetRole()))
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
@@ -220,8 +223,8 @@ func (s *AuthService) RefreshToken(ctx context.Context, req RefreshRequest) (*Au
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		TokenType:    "Bearer",
-		UserID:       user.ID,
-		Role:         user.Role,
+		UserID:       user.GetID(),
+		Role:         string(user.GetRole()),
 	}, nil
 }
 

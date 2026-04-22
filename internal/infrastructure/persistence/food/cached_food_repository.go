@@ -73,9 +73,13 @@ func (r *CachedFoodRepository) Search(ctx context.Context, query string, limit, 
 	key := r.searchKey(query, limit, offset)
 
 	if cached, err := r.rdb.Get(ctx, key).Bytes(); err == nil {
-		var foods []*entity.Food
-		if json.Unmarshal(cached, &foods) == nil {
-			return foods, nil
+		var dtos []foodCacheDTO
+		if json.Unmarshal(cached, &dtos) == nil {
+			result := make([]*entity.Food, len(dtos))
+			for i, d := range dtos {
+				result[i] = cacheToFood(d)
+			}
+			return result, nil
 		}
 	}
 
@@ -84,7 +88,11 @@ func (r *CachedFoodRepository) Search(ctx context.Context, query string, limit, 
 		return nil, err
 	}
 
-	if data, mErr := json.Marshal(foods); mErr == nil {
+	dtos := make([]foodCacheDTO, len(foods))
+	for i, f := range foods {
+		dtos[i] = foodToCache(f)
+	}
+	if data, mErr := json.Marshal(dtos); mErr == nil {
 		r.rdb.Set(ctx, key, data, foodCacheTTL)
 	}
 	return foods, nil
@@ -112,9 +120,13 @@ func (r *CachedFoodRepository) SearchByCategory(ctx context.Context, categoryID 
 	key := r.searchByCategoryKey(categoryID, query, limit, offset)
 
 	if cached, err := r.rdb.Get(ctx, key).Bytes(); err == nil {
-		var foods []*entity.Food
-		if json.Unmarshal(cached, &foods) == nil {
-			return foods, nil
+		var dtos []foodCacheDTO
+		if json.Unmarshal(cached, &dtos) == nil {
+			result := make([]*entity.Food, len(dtos))
+			for i, d := range dtos {
+				result[i] = cacheToFood(d)
+			}
+			return result, nil
 		}
 	}
 
@@ -123,7 +135,11 @@ func (r *CachedFoodRepository) SearchByCategory(ctx context.Context, categoryID 
 		return nil, err
 	}
 
-	if data, mErr := json.Marshal(foods); mErr == nil {
+	dtos := make([]foodCacheDTO, len(foods))
+	for i, f := range foods {
+		dtos[i] = foodToCache(f)
+	}
+	if data, mErr := json.Marshal(dtos); mErr == nil {
 		r.rdb.Set(ctx, key, data, foodCacheTTL)
 	}
 	return foods, nil

@@ -61,20 +61,12 @@ func (s *ClientService) RegisterClient(ctx context.Context, req RegisterClientRe
 		return nil, shared.ErrUserAlreadyExists
 	}
 
-	nutID := req.NutritionistID
-	user := &entity.User{
-		ID:             uuid.New(),
-		Role:           entity.RoleClient,
-		Mobile:         mob.String(),
-		FirstName:      req.FirstName,
-		LastName:       req.LastName,
-		Gender:         req.Gender,
-		BirthDate:      req.BirthDate,
-		Height:         req.Height,
-		Weight:         req.Weight,
-		IsActive:       true,
-		NutritionistID: &nutID,
+	user, err := entity.NewUser(entity.RoleClient, mob.String(), req.FirstName, req.LastName)
+	if err != nil {
+		return nil, shared.ErrInternal
 	}
+	user.UpdateProfile("", "", req.Gender, req.BirthDate, req.Height, req.Weight)
+	user.AssignNutritionist(req.NutritionistID)
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		log.Error().Err(err).Msg("register client: db error")
@@ -118,24 +110,7 @@ func (s *ClientService) UpdateClient(ctx context.Context, req UpdateClientReques
 		return nil, shared.ErrForbidden
 	}
 
-	if req.FirstName != "" {
-		user.FirstName = req.FirstName
-	}
-	if req.LastName != "" {
-		user.LastName = req.LastName
-	}
-	if req.Gender != "" {
-		user.Gender = req.Gender
-	}
-	if req.BirthDate != nil {
-		user.BirthDate = req.BirthDate
-	}
-	if req.Height != nil {
-		user.Height = req.Height
-	}
-	if req.Weight != nil {
-		user.Weight = req.Weight
-	}
+	user.UpdateProfile(req.FirstName, req.LastName, req.Gender, req.BirthDate, req.Height, req.Weight)
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		log.Error().Err(err).Msg("update client: db error")
@@ -159,7 +134,7 @@ func (s *ClientService) SetClientStatus(ctx context.Context, clientID uuid.UUID,
 	if !user.BelongsTo(nutritionistID) {
 		return shared.ErrForbidden
 	}
-	user.IsActive = isActive
+	user.SetActive(isActive)
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return shared.ErrInternal
 	}

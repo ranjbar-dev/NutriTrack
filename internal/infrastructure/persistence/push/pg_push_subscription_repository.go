@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/push/entity"
+	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	db "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/sqlc"
 )
 
@@ -21,25 +22,28 @@ func NewPgPushSubscriptionRepository(pool *pgxpool.Pool) *PgPushSubscriptionRepo
 
 func (r *PgPushSubscriptionRepository) Upsert(ctx context.Context, sub *entity.PushSubscription) (*entity.PushSubscription, error) {
 	row, err := r.q.UpsertPushSubscription(ctx, db.UpsertPushSubscriptionParams{
-		UserID:   sub.UserID,
-		Endpoint: sub.Endpoint,
-		P256dh:   sub.P256dh,
-		Auth:     sub.Auth,
+		UserID:   sub.GetUserID(),
+		Endpoint: sub.GetEndpoint(),
+		P256dh:   sub.GetP256dh(),
+		Auth:     sub.GetAuth(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	return toDomain(row), nil
 }
 
 func (r *PgPushSubscriptionRepository) Delete(ctx context.Context, userID uuid.UUID, endpoint string) error {
-	return r.q.DeletePushSubscription(ctx, userID, endpoint)
+	if err := r.q.DeletePushSubscription(ctx, userID, endpoint); err != nil {
+		return shared.ErrInternal
+	}
+	return nil
 }
 
 func (r *PgPushSubscriptionRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*entity.PushSubscription, error) {
 	rows, err := r.q.ListPushSubscriptionsByUser(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	result := make([]*entity.PushSubscription, len(rows))
 	for i, row := range rows {

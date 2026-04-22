@@ -11,70 +11,75 @@ import (
 
 // dietPlanToDomain converts a sqlc DietPlan row to a domain entity.
 func dietPlanToDomain(p db.DietPlan) *entity.DietPlan {
-	return &entity.DietPlan{
-		ID:                 p.ID,
-		ClientID:           p.ClientID,
-		NutritionistID:     p.NutritionistID,
-		Title:              p.Title,
-		StartDate:          p.StartDate,
-		EndDate:            p.EndDate,
-		Notes:              p.Notes,
-		DailyWaterTargetML: int(p.DailyWaterTargetMl),
-		Status:             entity.PlanStatus(p.Status),
-		Days:               []*entity.DietPlanDay{},
-		CreatedAt:          p.CreatedAt,
-		UpdatedAt:          p.UpdatedAt,
-	}
+	return entity.ReconstituteDietPlan(
+		p.ID,
+		p.ClientID,
+		p.NutritionistID,
+		p.Title,
+		p.StartDate,
+		p.EndDate,
+		p.Notes,
+		int(p.DailyWaterTargetMl),
+		entity.PlanStatus(p.Status),
+		[]*entity.DietPlanDay{},
+		p.CreatedAt,
+		p.UpdatedAt,
+	)
 }
 
 // dietPlanDayToDomain converts a sqlc DietPlanDay row to a domain entity.
 func dietPlanDayToDomain(d db.DietPlanDay) *entity.DietPlanDay {
-	return &entity.DietPlanDay{
-		ID:            d.ID,
-		PlanID:        d.PlanID,
-		DayNumber:     int(d.DayNumber),
-		Meals:         []*entity.DietMeal{},
-		Exercises:     []*entity.ExerciseRecommendation{},
-		Prescriptions: []*entity.PrescribedMedication{},
-		CreatedAt:     d.CreatedAt,
-	}
+	return entity.ReconstituteDietPlanDay(
+		d.ID,
+		d.PlanID,
+		int(d.DayNumber),
+		[]*entity.DietMeal{},
+		nil,
+		[]*entity.ExerciseRecommendation{},
+		[]*entity.PrescribedMedication{},
+		d.CreatedAt,
+	)
 }
 
 // dietMealToDomain converts a sqlc DietMeal row to a domain entity.
 func dietMealToDomain(m db.DietMeal) *entity.DietMeal {
-	return &entity.DietMeal{
-		ID:            m.ID,
-		DayID:         m.DayID,
-		Title:         m.Title,
-		ScheduledTime: pgtimeToString(m.ScheduledTime),
-		DisplayOrder:  int(m.DisplayOrder),
-		Options:       []*entity.MealOption{},
-		CreatedAt:     m.CreatedAt,
-	}
+	return entity.ReconstituteDietMeal(
+		m.ID,
+		m.DayID,
+		m.Title,
+		pgtimeToString(m.ScheduledTime),
+		int(m.DisplayOrder),
+		[]*entity.MealOption{},
+		nil,
+		m.CreatedAt,
+	)
 }
 
 // mealOptionToDomain converts a sqlc MealOption row to a domain entity.
 func mealOptionToDomain(o db.MealOption) *entity.MealOption {
-	return &entity.MealOption{
-		ID:           o.ID,
-		MealID:       o.MealID,
-		OptionNumber: int(o.OptionNumber),
-		Items:        []*entity.MealOptionItem{},
-		CreatedAt:    o.CreatedAt,
-	}
+	return entity.ReconstituteMealOption(
+		o.ID,
+		o.MealID,
+		int(o.OptionNumber),
+		[]*entity.MealOptionItem{},
+		nil,
+		o.CreatedAt,
+	)
 }
 
 // mealOptionItemToDomain converts a sqlc MealOptionItem row to a domain entity.
 func mealOptionItemToDomain(i db.MealOptionItem) *entity.MealOptionItem {
-	return &entity.MealOptionItem{
-		ID:        i.ID,
-		OptionID:  i.OptionID,
-		FoodID:    i.FoodID,
-		Quantity:  numericToFloat64(i.Quantity),
-		Unit:      i.Unit,
-		Notes:     i.Notes,
-		CreatedAt: i.CreatedAt,
-	}
+	return entity.ReconstituteMealOptionItem(
+		i.ID,
+		i.OptionID,
+		i.FoodID,
+		numericToFloat64(i.Quantity),
+		i.Unit,
+		i.Notes,
+		nil,
+		nil,
+		i.CreatedAt,
+	)
 }
 
 // pgtimeToString converts pgtype.Time (microseconds since midnight) to "HH:MM" string.
@@ -116,36 +121,37 @@ func float64ToNumeric(f float64) pgtype.Numeric {
 
 // exerciseToDomain converts a sqlc ExerciseRecommendation row to a domain entity.
 func exerciseToDomain(e db.ExerciseRecommendation) *entity.ExerciseRecommendation {
-	return &entity.ExerciseRecommendation{
-		ID:                   e.ID,
-		DayID:                e.DayID,
-		ExerciseName:         e.ExerciseName,
-		DurationMinutes:      int(e.DurationMinutes),
-		Description:          e.Description,
-		CaloriesBurnEstimate: int(e.CaloriesBurnEstimate),
-		CreatedAt:            e.CreatedAt,
-	}
+	return entity.ReconstituteExerciseRecommendation(
+		e.ID,
+		e.DayID,
+		e.ExerciseName,
+		int(e.DurationMinutes),
+		e.Description,
+		int(e.CaloriesBurnEstimate),
+		e.CreatedAt,
+	)
 }
 
 // prescriptionWithMedToDomain converts a join row to a domain PrescribedMedication with medication snapshot.
 func prescriptionWithMedToDomain(r db.ListDayPrescribedMedicationsWithMedicationRow) *entity.PrescribedMedication {
-	return &entity.PrescribedMedication{
-		ID:           r.ID,
-		DayID:        r.DayID,
-		MedicationID: r.MedicationID,
-		Medication: &entity.MedicationSnapshot{
-			ID:   r.MedicationID,
-			Name: r.MedicationName,
-			Unit: r.MedicationUnit,
-		},
-		Dosage:       r.Dosage,
-		Frequency:    r.Frequency,
-		Times:        r.Times,
-		Instructions: r.Instructions,
-		StartDate:    r.StartDate,
-		EndDate:      r.EndDate,
-		CreatedAt:    r.CreatedAt,
+	med := &entity.MedicationSnapshot{
+		ID:   r.MedicationID,
+		Name: r.MedicationName,
+		Unit: r.MedicationUnit,
 	}
+	return entity.ReconstitutePrescribedMedication(
+		r.ID,
+		r.DayID,
+		r.MedicationID,
+		med,
+		r.Dosage,
+		r.Frequency,
+		r.Times,
+		r.Instructions,
+		r.StartDate,
+		r.EndDate,
+		r.CreatedAt,
+	)
 }
 
 // mealOptionItemWithFoodToDomain converts a join row to a domain entity with food snapshot and computed nutrition.
@@ -176,15 +182,15 @@ func mealOptionItemWithFoodToDomain(i db.ListMealOptionItemsWithFoodRow) *entity
 		Fiber:    fib * qty,
 	}
 
-	return &entity.MealOptionItem{
-		ID:        i.ID,
-		OptionID:  i.OptionID,
-		FoodID:    i.FoodID,
-		Quantity:  qty,
-		Unit:      i.Unit,
-		Notes:     i.Notes,
-		Food:      food,
-		Computed:  computed,
-		CreatedAt: i.CreatedAt,
-	}
+	return entity.ReconstituteMealOptionItem(
+		i.ID,
+		i.OptionID,
+		i.FoodID,
+		qty,
+		i.Unit,
+		i.Notes,
+		food,
+		computed,
+		i.CreatedAt,
+	)
 }

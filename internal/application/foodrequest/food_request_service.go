@@ -5,11 +5,18 @@ import (
 
 	"github.com/google/uuid"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
+	foodEntity "github.com/ranjbar-dev/nutritrack/internal/domain/food/entity"
 	frEntity "github.com/ranjbar-dev/nutritrack/internal/domain/foodrequest/entity"
 	frRepo "github.com/ranjbar-dev/nutritrack/internal/domain/foodrequest/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
 )
+
+// FoodCreator is the port through which FoodRequestService creates foods.
+// Defined here to avoid a concrete dependency on *appFood.FoodService.
+type FoodCreator interface {
+	CreateFood(ctx context.Context, req appFood.CreateFoodRequest) (*foodEntity.Food, error)
+}
 
 // ApproveRequest carries input for approving a food request by creating the food.
 type ApproveRequest struct {
@@ -26,11 +33,11 @@ type ApproveRequest struct {
 type FoodRequestService struct {
 	repo     frRepo.FoodRequestRepository
 	userRepo userRepo.UserRepository
-	foodSvc  *appFood.FoodService
+	foodSvc  FoodCreator
 }
 
 // NewFoodRequestService constructs a FoodRequestService.
-func NewFoodRequestService(repo frRepo.FoodRequestRepository, userRepo userRepo.UserRepository, foodSvc *appFood.FoodService) *FoodRequestService {
+func NewFoodRequestService(repo frRepo.FoodRequestRepository, userRepo userRepo.UserRepository, foodSvc FoodCreator) *FoodRequestService {
 	return &FoodRequestService{repo: repo, userRepo: userRepo, foodSvc: foodSvc}
 }
 
@@ -43,15 +50,13 @@ func (s *FoodRequestService) Submit(ctx context.Context, clientID uuid.UUID, foo
 	if client == nil {
 		return nil, shared.ErrUserNotFound
 	}
-	if client.NutritionistID == nil {
+	if client.GetNutritionistID() == nil {
 		return nil, shared.ErrForbidden
 	}
 
-	req := &frEntity.FoodRequest{
-		ClientID:       clientID,
-		NutritionistID: *client.NutritionistID,
-		FoodName:       foodName,
-		Status:         frEntity.FoodRequestStatusPending,
+	req, err := frEntity.NewFoodRequest(clientID, *client.GetNutritionistID(), foodName)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.Create(ctx, req); err != nil {
@@ -67,7 +72,7 @@ func (s *FoodRequestService) ListPending(ctx context.Context, nutritionistID uui
 	if err != nil {
 		return nil, 0, err
 	}
-	if user == nil || user.Role != "nutritionist" {
+	if user == nil || !user.IsNutritionist() {
 		return nil, 0, shared.ErrForbidden
 	}
 
@@ -93,7 +98,7 @@ func (s *FoodRequestService) Approve(ctx context.Context, requestID uuid.UUID, n
 	if foodReq == nil {
 		return nil, shared.ErrFoodRequestNotFound
 	}
-	if foodReq.NutritionistID != nutritionistID {
+	if foodReq.GetNutritionistID() != nutritionistID {
 		return nil, shared.ErrFoodRequestNotOwned
 	}
 	if !foodReq.IsPending() {
@@ -115,7 +120,7 @@ func (s *FoodRequestService) Approve(ctx context.Context, requestID uuid.UUID, n
 		return nil, err
 	}
 
-	updated, err := s.repo.UpdateStatus(ctx, requestID, frEntity.FoodRequestStatusApproved, nil, &food.ID)
+	updated, err := s.repo.UpdateStatus(ctx, requestID, frEntity.FoodRequestStatusApproved, nil, func() *uuid.UUID { id := food.ID(); return &id }())
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +137,7 @@ func (s *FoodRequestService) Reject(ctx context.Context, requestID uuid.UUID, nu
 	if foodReq == nil {
 		return nil, shared.ErrFoodRequestNotFound
 	}
-	if foodReq.NutritionistID != nutritionistID {
+	if foodReq.GetNutritionistID() != nutritionistID {
 		return nil, shared.ErrFoodRequestNotOwned
 	}
 	if !foodReq.IsPending() {

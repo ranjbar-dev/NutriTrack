@@ -1,11 +1,10 @@
 package middleware
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 )
 
 func Recovery() gin.HandlerFunc {
@@ -16,7 +15,7 @@ func Recovery() gin.HandlerFunc {
 			Interface("panic", recovered).
 			Msg("panic recovered")
 
-		c.JSON(http.StatusInternalServerError, shared.ErrInternal.ToResponse())
+		dto.Error(c, shared.ErrInternal)
 		c.Abort()
 	})
 }

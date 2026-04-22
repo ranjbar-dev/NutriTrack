@@ -30,20 +30,20 @@ func NewPgMedicationRepository(pool *pgxpool.Pool) *PgMedicationRepository {
 // Create inserts a new medication row and populates the entity with DB-generated fields.
 func (r *PgMedicationRepository) Create(ctx context.Context, med *entity.Medication) error {
 	created, err := r.queries.CreateMedication(ctx, db.CreateMedicationParams{
-		Name:           med.Name,
-		NameNormalized: med.NameNormalized,
-		Description:    med.Description,
-		Unit:           med.Unit,
-		CreatedBy:      uuidToPgtypeUUID(med.CreatedBy),
+		Name:           med.Name(),
+		NameNormalized: med.NameNormalized(),
+		Description:    med.Description(),
+		Unit:           med.Unit(),
+		CreatedBy:      uuidToPgtypeUUID(med.CreatedBy()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
 
-	med.ID = created.ID
-	med.IsActive = created.IsActive
-	med.CreatedAt = created.CreatedAt
-	med.UpdatedAt = created.UpdatedAt
+	med.SetID(created.ID)
+	med.SetIsActive(created.IsActive)
+	med.SetCreatedAt(created.CreatedAt)
+	med.SetUpdatedAt(created.UpdatedAt)
 
 	return nil
 }
@@ -64,11 +64,11 @@ func (r *PgMedicationRepository) FindByID(ctx context.Context, id uuid.UUID) (*e
 // Update persists updated medication fields.
 func (r *PgMedicationRepository) Update(ctx context.Context, med *entity.Medication) error {
 	updated, err := r.queries.UpdateMedication(ctx, db.UpdateMedicationParams{
-		ID:             med.ID,
-		Name:           med.Name,
-		NameNormalized: med.NameNormalized,
-		Description:    med.Description,
-		Unit:           med.Unit,
+		ID:             med.ID(),
+		Name:           med.Name(),
+		NameNormalized: med.NameNormalized(),
+		Description:    med.Description(),
+		Unit:           med.Unit(),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -76,7 +76,7 @@ func (r *PgMedicationRepository) Update(ctx context.Context, med *entity.Medicat
 		}
 		return shared.ErrInternal
 	}
-	med.UpdatedAt = updated.UpdatedAt
+	med.SetUpdatedAt(updated.UpdatedAt)
 	return nil
 }
 

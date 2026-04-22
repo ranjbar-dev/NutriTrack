@@ -10,6 +10,7 @@ import (
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
 )
 
 const maxAvatarSize = 5 * 1024 * 1024 // 5 MB
@@ -32,8 +33,8 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	callerIDRaw, _ := c.Get("userID")
-	callerRoleRaw, _ := c.Get("userRole")
+	callerIDRaw, _ := c.Get(middleware.AuthUserIDKey)
+	callerRoleRaw, _ := c.Get(middleware.AuthUserRoleKey)
 	callerID, _ := callerIDRaw.(uuid.UUID)
 	callerRole, _ := callerRoleRaw.(string)
 
@@ -86,7 +87,7 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 	}
 
 	dto.OK(c, gin.H{
-		"avatar_url": user.AvatarURL,
+		"avatar_url": user.GetAvatarURL(),
 		"message":    "تصویر پروفایل با موفقیت بارگذاری شد",
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appMed "github.com/ranjbar-dev/nutritrack/internal/application/medication"
-	"github.com/ranjbar-dev/nutritrack/internal/domain/medication/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
@@ -54,7 +53,7 @@ func (h *MedicationHandler) Create(c *gin.Context) {
 		return
 	}
 
-	dto.Created(c, toMedicationResponse(med))
+	dto.Created(c, appMed.MapMedicationResponse(med))
 }
 
 // GetOne handles GET /api/v1/medications/:id.
@@ -71,7 +70,7 @@ func (h *MedicationHandler) GetOne(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, toMedicationResponse(med))
+	dto.OK(c, appMed.MapMedicationResponse(med))
 }
 
 // Search handles GET /api/v1/medications.
@@ -85,9 +84,9 @@ func (h *MedicationHandler) Search(c *gin.Context) {
 		return
 	}
 
-	resp := make([]gin.H, len(meds))
+	resp := make([]map[string]any, len(meds))
 	for i, m := range meds {
-		resp[i] = toMedicationResponse(m)
+		resp[i] = appMed.MapMedicationResponse(m)
 	}
 	dto.Paginated(c, resp, total, pg.Page, pg.PageSize)
 }
@@ -124,7 +123,7 @@ func (h *MedicationHandler) Update(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, toMedicationResponse(med))
+	dto.OK(c, appMed.MapMedicationResponse(med))
 }
 
 // Delete handles DELETE /api/v1/medications/:id.
@@ -146,25 +145,4 @@ func (h *MedicationHandler) Delete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// --- helpers ---
-
-// toMedicationResponse converts a domain Medication to a JSON-serialisable map.
-func toMedicationResponse(m *entity.Medication) gin.H {
-	resp := gin.H{
-		"id":          m.ID,
-		"name":        m.Name,
-		"description": m.Description,
-		"unit":        m.Unit,
-		"is_active":   m.IsActive,
-		"created_at":  m.CreatedAt,
-		"updated_at":  m.UpdatedAt,
-	}
-	if m.CreatedBy != nil {
-		resp["created_by"] = *m.CreatedBy
-	} else {
-		resp["created_by"] = nil
-	}
-	return resp
 }

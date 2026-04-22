@@ -8,23 +8,22 @@ import (
 
 // toDomain converts a sqlc Medication row to a domain entity.
 func toDomain(m db.Medication) *entity.Medication {
-	result := &entity.Medication{
-		ID:             m.ID,
-		Name:           m.Name,
-		NameNormalized: m.NameNormalized,
-		Description:    m.Description,
-		Unit:           m.Unit,
-		IsActive:       m.IsActive,
-		CreatedAt:      m.CreatedAt,
-		UpdatedAt:      m.UpdatedAt,
-	}
-
+	var createdBy *uuid.UUID
 	if m.CreatedBy.Valid {
 		id := uuid.UUID(m.CreatedBy.Bytes)
-		result.CreatedBy = &id
+		createdBy = &id
 	}
-
-	return result
+	return entity.ReconstituteMedication(
+		m.ID,
+		m.Name,
+		m.NameNormalized,
+		m.Description,
+		m.Unit,
+		createdBy,
+		m.IsActive,
+		m.CreatedAt,
+		m.UpdatedAt,
+	)
 }
 
 // toDomainList converts a slice of sqlc Medication rows to domain entities.

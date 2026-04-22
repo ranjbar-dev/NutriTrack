@@ -2,6 +2,7 @@ package user
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,51 +13,62 @@ import (
 // toDomain converts a sqlc-generated User to a domain entity.
 // This adapter lives at the repository boundary — domain never sees sqlc types.
 func toDomain(u db.User) *entity.User {
-	result := &entity.User{
-		ID:        u.ID,
-		Role:      u.Role,
-		Mobile:    u.Mobile,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		IsActive:  u.IsActive,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}
+	var email, passwordHash, gender, avatarURL string
+	var birthDate *time.Time
+	var height, weight *float64
+	var nutritionistID *uuid.UUID
 
 	if u.Email != nil {
-		result.Email = *u.Email
+		email = *u.Email
 	}
 	if u.PasswordHash != nil {
-		result.PasswordHash = *u.PasswordHash
+		passwordHash = *u.PasswordHash
 	}
 	if u.Gender != nil {
-		result.Gender = *u.Gender
+		gender = *u.Gender
 	}
 	if u.BirthDate.Valid {
 		t := u.BirthDate.Time
-		result.BirthDate = &t
+		birthDate = &t
 	}
 	if u.Height.Valid {
 		if f, err := u.Height.Float64Value(); err == nil && f.Valid {
 			v := f.Float64
-			result.Height = &v
+			height = &v
 		}
 	}
 	if u.Weight.Valid {
 		if f, err := u.Weight.Float64Value(); err == nil && f.Valid {
 			v := f.Float64
-			result.Weight = &v
+			weight = &v
 		}
 	}
 	if u.AvatarUrl != nil {
-		result.AvatarURL = *u.AvatarUrl
+		avatarURL = *u.AvatarUrl
 	}
 	if u.NutritionistID.Valid {
 		id := uuid.UUID(u.NutritionistID.Bytes)
-		result.NutritionistID = &id
+		nutritionistID = &id
 	}
 
-	return result
+	return entity.Reconstitute(
+		u.ID,
+		entity.Role(u.Role),
+		u.Mobile,
+		email,
+		passwordHash,
+		u.FirstName,
+		u.LastName,
+		gender,
+		birthDate,
+		height,
+		weight,
+		avatarURL,
+		u.IsActive,
+		nutritionistID,
+		u.CreatedAt,
+		u.UpdatedAt,
+	)
 }
 
 func toDomainList(users []db.User) []*entity.User {

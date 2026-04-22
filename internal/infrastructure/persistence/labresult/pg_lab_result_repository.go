@@ -23,20 +23,20 @@ func NewPgLabResultRepository(pool *pgxpool.Pool) *PgLabResultRepository {
 // Create inserts a new lab result record.
 func (r *PgLabResultRepository) Create(ctx context.Context, result *entity.LabResult) (*entity.LabResult, error) {
 	row, err := r.queries.CreateLabResult(ctx, db.CreateLabResultParams{
-		ClientID:       result.ClientID,
-		NutritionistID: result.NutritionistID,
-		Title:          result.Title,
-		ResultType:     result.ResultType,
-		TestDate:       result.TestDate,
-		FilePath:       result.FilePath,
-		OriginalName:   result.OriginalName,
-		FileType:       result.FileType,
-		FileSize:       result.FileSize,
-		Link:           result.Link,
-		Notes:          result.Notes,
+		ClientID:       result.ClientID(),
+		NutritionistID: result.NutritionistID(),
+		Title:          result.Title(),
+		ResultType:     result.ResultType(),
+		TestDate:       result.TestDate(),
+		FilePath:       result.FilePath(),
+		OriginalName:   result.OriginalName(),
+		FileType:       result.FileType(),
+		FileSize:       result.FileSize(),
+		Link:           result.Link(),
+		Notes:          result.Notes(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	return toDomain(row), nil
 }
@@ -48,7 +48,7 @@ func (r *PgLabResultRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 		if isNotFound(err) {
 			return nil, shared.ErrLabResultNotFound
 		}
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	return toDomain(row), nil
 }
@@ -61,11 +61,11 @@ func (r *PgLabResultRepository) ListByClientID(ctx context.Context, clientID uui
 		Offset:   offset,
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, shared.ErrInternal
 	}
 	total, err := r.queries.CountLabResultsByClientID(ctx, clientID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, shared.ErrInternal
 	}
 	results := make([]*entity.LabResult, len(rows))
 	for i, row := range rows {

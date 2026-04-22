@@ -38,7 +38,7 @@ func (h *FoodCategoryHandler) Create(c *gin.Context) {
 		return
 	}
 
-	dto.Created(c, gin.H{"id": cat.ID, "name": cat.Name, "created_at": cat.CreatedAt})
+	dto.Created(c, gin.H{"id": cat.ID(), "name": cat.Name(), "created_at": cat.CreatedAt()})
 }
 
 // ListAll handles GET /food-categories
@@ -51,7 +51,7 @@ func (h *FoodCategoryHandler) ListAll(c *gin.Context) {
 
 	result := make([]gin.H, len(cats))
 	for i, cat := range cats {
-		result[i] = gin.H{"id": cat.ID, "name": cat.Name}
+		result[i] = gin.H{"id": cat.ID(), "name": cat.Name()}
 	}
 	dto.OK(c, result)
 }

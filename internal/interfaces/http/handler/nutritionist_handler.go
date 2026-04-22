@@ -5,7 +5,6 @@ import (
 	"github.com/google/uuid"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
-	"github.com/ranjbar-dev/nutritrack/internal/domain/user/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 )
 
@@ -48,7 +47,7 @@ func (h *NutritionistHandler) Create(c *gin.Context) {
 		dto.Abort(c, appErr)
 		return
 	}
-	dto.Created(c, toNutritionistResponse(user))
+	dto.Created(c, appUser.MapNutritionistResponse(user))
 }
 
 // Get handles GET /api/v1/admin/nutritionists/:id.
@@ -68,7 +67,7 @@ func (h *NutritionistHandler) Get(c *gin.Context) {
 		dto.Abort(c, appErr)
 		return
 	}
-	dto.OK(c, toNutritionistResponse(user))
+	dto.OK(c, appUser.MapNutritionistResponse(user))
 }
 
 // List handles GET /api/v1/admin/nutritionists.
@@ -81,9 +80,9 @@ func (h *NutritionistHandler) List(c *gin.Context) {
 		return
 	}
 
-	resp := make([]gin.H, len(users))
+	resp := make([]map[string]any, len(users))
 	for i, u := range users {
-		resp[i] = toNutritionistResponse(u)
+		resp[i] = appUser.MapNutritionistResponse(u)
 	}
 	dto.Paginated(c, resp, total, pg.Page, pg.PageSize)
 }
@@ -118,7 +117,7 @@ func (h *NutritionistHandler) Update(c *gin.Context) {
 		dto.Abort(c, appErr)
 		return
 	}
-	dto.OK(c, toNutritionistResponse(user))
+	dto.OK(c, appUser.MapNutritionistResponse(user))
 }
 
 // SetStatus handles PATCH /api/v1/admin/nutritionists/:id/status.
@@ -164,22 +163,9 @@ func (h *NutritionistHandler) GetClients(c *gin.Context) {
 		return
 	}
 
-	resp := make([]gin.H, len(users))
+	resp := make([]map[string]any, len(users))
 	for i, u := range users {
-		resp[i] = toClientResponse(u)
+		resp[i] = appUser.MapClientResponse(u)
 	}
 	dto.Paginated(c, resp, total, pg.Page, pg.PageSize)
-}
-
-// toNutritionistResponse converts a domain User to a JSON-serialisable map.
-func toNutritionistResponse(u *entity.User) gin.H {
-	return gin.H{
-		"id":         u.ID,
-		"email":      u.Email,
-		"mobile":     u.Mobile,
-		"first_name": u.FirstName,
-		"last_name":  u.LastName,
-		"is_active":  u.IsActive,
-		"created_at": u.CreatedAt,
-	}
 }

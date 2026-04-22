@@ -10,7 +10,6 @@ import (
 	msgRepo "github.com/ranjbar-dev/nutritrack/internal/domain/message/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
-	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/storage"
 )
 
 const (
@@ -29,14 +28,14 @@ var allowedAttachmentMIME = map[string]string{
 type MessageService struct {
 	msgRepo  msgRepo.MessageRepository
 	userRepo userRepo.UserRepository
-	storage  *storage.LocalStorage
+	storage  shared.AttachmentStorage
 }
 
 // NewMessageService creates a new MessageService.
 func NewMessageService(
 	msgRepo msgRepo.MessageRepository,
 	userRepo userRepo.UserRepository,
-	storage *storage.LocalStorage,
+	storage shared.AttachmentStorage,
 ) *MessageService {
 	return &MessageService{msgRepo: msgRepo, userRepo: userRepo, storage: storage}
 }
@@ -117,28 +116,24 @@ func (s *MessageService) SendAsClient(
 	if client == nil {
 		return nil, shared.ErrUserNotFound
 	}
-	if client.NutritionistID == nil {
+	if client.GetNutritionistID() == nil {
 		return nil, shared.ErrInternal
 	}
 
-	msg := &entity.Message{
-		SenderID:   clientID,
-		ReceiverID: *client.NutritionistID,
-		Content:    content,
-	}
+	msg := entity.NewMessage(clientID, *client.GetNutritionistID(), content)
 
 	if attachment != nil {
 		path, mimeType, size, name, saveErr := s.saveAttachment(attachment, attachmentName, attachmentSize)
 		if saveErr != nil {
 			return nil, saveErr
 		}
-		msg.AttachmentPath = path
-		msg.AttachmentType = mimeType
-		msg.AttachmentSize = size
-		msg.AttachmentName = name
+		msg.SetAttachmentPath(path)
+		msg.SetAttachmentType(mimeType)
+		msg.SetAttachmentSize(size)
+		msg.SetAttachmentName(name)
 	}
 
-	if msg.Content == "" && msg.AttachmentPath == nil {
+	if msg.Content() == "" && msg.AttachmentPath() == nil {
 		return nil, shared.ErrValidation
 	}
 
@@ -166,24 +161,20 @@ func (s *MessageService) SendAsNutritionist(
 		return nil, shared.ErrForbidden
 	}
 
-	msg := &entity.Message{
-		SenderID:   nutritionistID,
-		ReceiverID: clientID,
-		Content:    content,
-	}
+	msg := entity.NewMessage(nutritionistID, clientID, content)
 
 	if attachment != nil {
 		path, mimeType, size, name, saveErr := s.saveAttachment(attachment, attachmentName, attachmentSize)
 		if saveErr != nil {
 			return nil, saveErr
 		}
-		msg.AttachmentPath = path
-		msg.AttachmentType = mimeType
-		msg.AttachmentSize = size
-		msg.AttachmentName = name
+		msg.SetAttachmentPath(path)
+		msg.SetAttachmentType(mimeType)
+		msg.SetAttachmentSize(size)
+		msg.SetAttachmentName(name)
 	}
 
-	if msg.Content == "" && msg.AttachmentPath == nil {
+	if msg.Content() == "" && msg.AttachmentPath() == nil {
 		return nil, shared.ErrValidation
 	}
 
@@ -201,10 +192,10 @@ func (s *MessageService) GetClientConversation(
 	if err != nil {
 		return nil, 0, err
 	}
-	if client == nil || client.NutritionistID == nil {
+	if client == nil || client.GetNutritionistID() == nil {
 		return nil, 0, shared.ErrUserNotFound
 	}
-	nutritionistID := *client.NutritionistID
+	nutritionistID := *client.GetNutritionistID()
 
 	msgs, total, err := s.msgRepo.ListConversation(ctx, clientID, nutritionistID, limit, offset)
 	if err != nil {

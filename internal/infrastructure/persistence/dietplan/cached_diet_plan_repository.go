@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/dietplan/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -81,7 +81,7 @@ func (r *CachedDietPlanRepository) CreateWithArchive(ctx context.Context, plan *
 	if err := r.inner.CreateWithArchive(ctx, plan); err != nil {
 		return err
 	}
-	r.invalidateActiveCache(ctx, plan.ClientID)
+	r.invalidateActiveCache(ctx, plan.ClientID())
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (r *CachedDietPlanRepository) Update(ctx context.Context, plan *entity.Diet
 	if err := r.inner.Update(ctx, plan); err != nil {
 		return err
 	}
-	r.invalidateActiveCache(ctx, plan.ClientID)
+	r.invalidateActiveCache(ctx, plan.ClientID())
 	return nil
 }
 
@@ -102,7 +102,7 @@ func (r *CachedDietPlanRepository) Delete(ctx context.Context, id uuid.UUID) err
 		return err
 	}
 	if plan != nil {
-		r.invalidateActiveCache(ctx, plan.ClientID)
+		r.invalidateActiveCache(ctx, plan.ClientID())
 	}
 	return nil
 }

@@ -11,22 +11,33 @@ var (
 
 // ImageInfo holds the detected image format metadata.
 type ImageInfo struct {
-	Extension string // "jpg", "png", "webp"
-	MIMEType  string // "image/jpeg", "image/png", "image/webp"
+	extension string // "jpg", "png", "webp"
+	mimeType  string // "image/jpeg", "image/png", "image/webp"
 }
+
+// NewImageInfo constructs an ImageInfo value object.
+func NewImageInfo(extension, mimeType string) *ImageInfo {
+	return &ImageInfo{extension: extension, mimeType: mimeType}
+}
+
+// Extension returns the file extension (e.g. "jpg").
+func (i *ImageInfo) Extension() string { return i.extension }
+
+// MIMEType returns the MIME type (e.g. "image/jpeg").
+func (i *ImageInfo) MIMEType() string { return i.mimeType }
 
 // ValidateImageMagicBytes checks the first bytes of a file.
 // Returns ImageInfo and nil error if valid; ErrInvalidFileType otherwise.
 // header must be the first 12 bytes of the file (or all bytes if file is shorter).
 func ValidateImageMagicBytes(header []byte) (*ImageInfo, error) {
 	if bytes.HasPrefix(header, jpegMagic) {
-		return &ImageInfo{Extension: "jpg", MIMEType: "image/jpeg"}, nil
+		return NewImageInfo("jpg", "image/jpeg"), nil
 	}
 	if bytes.HasPrefix(header, pngMagic) {
-		return &ImageInfo{Extension: "png", MIMEType: "image/png"}, nil
+		return NewImageInfo("png", "image/png"), nil
 	}
 	if bytes.HasPrefix(header, webpMagic) && len(header) >= 12 && string(header[8:12]) == "WEBP" {
-		return &ImageInfo{Extension: "webp", MIMEType: "image/webp"}, nil
+		return NewImageInfo("webp", "image/webp"), nil
 	}
 	return nil, ErrInvalidFileType
 }

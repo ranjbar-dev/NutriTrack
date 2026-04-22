@@ -1,26 +1,28 @@
 package message
 
 import (
+	"errors"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/message/entity"
 	db "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/sqlc"
 )
 
 func toDomain(row db.Message) *entity.Message {
-	return &entity.Message{
-		ID:             row.ID,
-		SenderID:       row.SenderID,
-		ReceiverID:     row.ReceiverID,
-		Content:        row.Content,
-		AttachmentPath: row.AttachmentPath,
-		AttachmentType: row.AttachmentType,
-		AttachmentSize: row.AttachmentSize,
-		AttachmentName: row.AttachmentName,
-		ReadAt:         row.ReadAt,
-		CreatedAt:      row.CreatedAt,
-	}
+	return entity.ReconstituteMessage(
+		row.ID,
+		row.SenderID,
+		row.ReceiverID,
+		row.Content,
+		row.AttachmentPath,
+		row.AttachmentType,
+		row.AttachmentSize,
+		row.AttachmentName,
+		row.ReadAt,
+		row.CreatedAt,
+	)
 }
 
 func isNotFound(err error) bool {
-	return err == pgx.ErrNoRows
+	return errors.Is(err, pgx.ErrNoRows)
 }

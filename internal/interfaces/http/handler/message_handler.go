@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	appMessage "github.com/ranjbar-dev/nutritrack/internal/application/message"
 	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
-	msgEntity "github.com/ranjbar-dev/nutritrack/internal/domain/message/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
@@ -82,13 +81,13 @@ func (h *MessageHandler) SendAsClient(c *gin.Context) {
 	}
 
 	if h.pushSvc != nil {
-		receiverID := result.ReceiverID
+		receiverID := result.ReceiverID()
 		go func() {
 			_ = h.pushSvc.Send(context.Background(), receiverID, "پیام جدید", "یک پیام جدید دریافت کردید")
 		}()
 	}
 
-	dto.Created(c, messageToMap(result, callerIDVal.(uuid.UUID)))
+	dto.Created(c, appMessage.MapMessageResponse(result, callerIDVal.(uuid.UUID)))
 }
 
 // SendAsNutritionist handles POST /clients/:id/messages — nutritionist sends to client.
@@ -152,13 +151,13 @@ func (h *MessageHandler) SendAsNutritionist(c *gin.Context) {
 	}
 
 	if h.pushSvc != nil {
-		receiverID := result.ReceiverID
+		receiverID := result.ReceiverID()
 		go func() {
 			_ = h.pushSvc.Send(context.Background(), receiverID, "پیام جدید", "متخصص تغذیه شما پیام جدید فرستاد")
 		}()
 	}
 
-	dto.Created(c, messageToMap(result, callerIDVal.(uuid.UUID)))
+	dto.Created(c, appMessage.MapMessageResponse(result, callerIDVal.(uuid.UUID)))
 }
 
 // GetClientMessages handles GET /messages — client views their conversation with nutritionist.
@@ -189,7 +188,7 @@ func (h *MessageHandler) GetClientMessages(c *gin.Context) {
 
 	items := make([]map[string]any, len(msgs))
 	for i, m := range msgs {
-		items[i] = messageToMap(m, callerIDVal.(uuid.UUID))
+		items[i] = appMessage.MapMessageResponse(m, callerIDVal.(uuid.UUID))
 	}
 	dto.Paginated(c, items, total, pg.Page, pg.PageSize)
 }
@@ -230,7 +229,7 @@ func (h *MessageHandler) GetNutritionistMessages(c *gin.Context) {
 
 	items := make([]map[string]any, len(msgs))
 	for i, m := range msgs {
-		items[i] = messageToMap(m, callerIDVal.(uuid.UUID))
+		items[i] = appMessage.MapMessageResponse(m, callerIDVal.(uuid.UUID))
 	}
 	dto.Paginated(c, items, total, pg.Page, pg.PageSize)
 }
@@ -244,29 +243,4 @@ func (h *MessageHandler) GetUnreadCount(c *gin.Context) {
 		return
 	}
 	dto.OK(c, map[string]any{"unread_count": count})
-}
-
-// messageToMap converts a Message entity to a JSON-friendly map.
-// is_mine is true if the callerID is the sender.
-func messageToMap(m *msgEntity.Message, callerID uuid.UUID) map[string]any {
-	result := map[string]any{
-		"id":          m.ID,
-		"sender_id":   m.SenderID,
-		"receiver_id": m.ReceiverID,
-		"content":     m.Content,
-		"is_mine":     m.SenderID == callerID,
-		"read_at":     m.ReadAt,
-		"created_at":  m.CreatedAt,
-	}
-	if m.HasAttachment() {
-		result["attachment"] = map[string]any{
-			"url":  m.AttachmentPath,
-			"type": m.AttachmentType,
-			"size": m.AttachmentSize,
-			"name": m.AttachmentName,
-		}
-	} else {
-		result["attachment"] = nil
-	}
-	return result
 }

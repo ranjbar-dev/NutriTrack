@@ -11,18 +11,18 @@ import (
 
 // LocalStorage saves files to the local filesystem.
 type LocalStorage struct {
-	BasePath string // e.g. "uploads"
-	BaseURL  string // e.g. "/uploads" or "https://..."
+	basePath string // e.g. "uploads"
+	baseURL  string // e.g. "/uploads" or "https://..."
 }
 
 // NewLocalStorage creates a new LocalStorage with the given base path and URL prefix.
 func NewLocalStorage(basePath, baseURL string) *LocalStorage {
-	return &LocalStorage{BasePath: basePath, BaseURL: baseURL}
+	return &LocalStorage{basePath: basePath, baseURL: baseURL}
 }
 
 // SaveAvatar saves a file to <basePath>/avatars/<uuid>.<ext> and returns the URL path.
 func (s *LocalStorage) SaveAvatar(src io.Reader, ext string) (string, error) {
-	dir := filepath.Join(s.BasePath, "avatars")
+	dir := filepath.Join(s.basePath, "avatars")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
@@ -40,12 +40,12 @@ func (s *LocalStorage) SaveAvatar(src io.Reader, ext string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/avatars/%s", s.BaseURL, filename), nil
+	return fmt.Sprintf("%s/avatars/%s", s.baseURL, filename), nil
 }
 
 // SaveLabResult saves a file to <basePath>/lab-results/<uuid>.<ext> and returns the filesystem path.
 func (s *LocalStorage) SaveLabResult(src io.Reader, ext string) (string, error) {
-	dir := filepath.Join(s.BasePath, "lab-results")
+	dir := filepath.Join(s.basePath, "lab-results")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
@@ -68,7 +68,7 @@ func (s *LocalStorage) SaveLabResult(src io.Reader, ext string) (string, error) 
 
 // SaveAttachment saves a message attachment to <basePath>/attachments/<uuid>.<ext> and returns the URL path.
 func (s *LocalStorage) SaveAttachment(src io.Reader, ext string) (string, error) {
-	dir := filepath.Join(s.BasePath, "attachments")
+	dir := filepath.Join(s.basePath, "attachments")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
@@ -86,5 +86,5 @@ func (s *LocalStorage) SaveAttachment(src io.Reader, ext string) (string, error)
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/attachments/%s", s.BaseURL, filename), nil
+	return fmt.Sprintf("%s/attachments/%s", s.baseURL, filename), nil
 }

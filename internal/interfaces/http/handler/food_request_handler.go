@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	appFoodRequest "github.com/ranjbar-dev/nutritrack/internal/application/foodrequest"
 	appPush "github.com/ranjbar-dev/nutritrack/internal/application/push"
-	frEntity "github.com/ranjbar-dev/nutritrack/internal/domain/foodrequest/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
@@ -52,7 +51,7 @@ func (h *FoodRequestHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	dto.Created(c, foodRequestToMap(result))
+	dto.Created(c, appFoodRequest.MapFoodRequestResponse(result))
 }
 
 // ListPending handles GET /food-requests — nutritionist lists pending food requests.
@@ -83,7 +82,7 @@ func (h *FoodRequestHandler) ListPending(c *gin.Context) {
 
 	result := make([]map[string]any, len(items))
 	for i, item := range items {
-		result[i] = foodRequestToMap(item)
+		result[i] = appFoodRequest.MapFoodRequestResponse(item)
 	}
 	dto.Paginated(c, result, total, pg.Page, pg.PageSize)
 }
@@ -138,13 +137,13 @@ func (h *FoodRequestHandler) Approve(c *gin.Context) {
 	}
 
 	if h.pushSvc != nil {
-		clientID := result.ClientID
+		clientID := result.GetClientID()
 		go func() {
 			_ = h.pushSvc.Send(context.Background(), clientID, "درخواست غذا", "درخواست غذای شما تأیید شد")
 		}()
 	}
 
-	dto.OK(c, foodRequestToMap(result))
+	dto.OK(c, appFoodRequest.MapFoodRequestResponse(result))
 }
 
 // Reject handles POST /food-requests/:id/reject — nutritionist rejects a food request.
@@ -183,26 +182,11 @@ func (h *FoodRequestHandler) Reject(c *gin.Context) {
 	}
 
 	if h.pushSvc != nil {
-		clientID := result.ClientID
+		clientID := result.GetClientID()
 		go func() {
 			_ = h.pushSvc.Send(context.Background(), clientID, "درخواست غذا", "درخواست غذای شما رد شد")
 		}()
 	}
 
-	dto.OK(c, foodRequestToMap(result))
-}
-
-// foodRequestToMap converts a FoodRequest entity to a JSON-friendly map.
-func foodRequestToMap(r *frEntity.FoodRequest) map[string]any {
-	return map[string]any{
-		"id":               r.ID,
-		"client_id":        r.ClientID,
-		"nutritionist_id":  r.NutritionistID,
-		"food_name":        r.FoodName,
-		"status":           string(r.Status),
-		"rejection_reason": r.RejectionReason,
-		"created_food_id":  r.CreatedFoodID,
-		"created_at":       r.CreatedAt,
-		"updated_at":       r.UpdatedAt,
-	}
+	dto.OK(c, appFoodRequest.MapFoodRequestResponse(result))
 }

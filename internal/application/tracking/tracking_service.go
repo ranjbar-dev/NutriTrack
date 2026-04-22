@@ -136,21 +136,13 @@ func (s *TrackingService) checkClientAccess(ctx context.Context, clientID, calle
 
 // LogFood logs a food consumption entry for the authenticated client.
 func (s *TrackingService) LogFood(ctx context.Context, clientID uuid.UUID, req LogFoodRequest) (*entity.FoodLog, error) {
-	log := &entity.FoodLog{
-		ClientID:   clientID,
-		LocalID:    req.LocalID,
-		LoggedAt:   req.LoggedAt,
-		LoggedDate: tehranDate(req.LoggedAt),
-		FoodID:     req.FoodID,
-		FoodName:   req.FoodName,
-		Quantity:   req.Quantity,
-		Unit:       req.Unit,
-		Calories:   req.Calories,
-		Protein:    req.Protein,
-		Carbs:      req.Carbs,
-		Fat:        req.Fat,
-		Notes:      req.Notes,
+	if req.FoodName == "" {
+		return nil, shared.ErrValidation
 	}
+	if req.Quantity <= 0 {
+		return nil, shared.ErrValidation
+	}
+	log := entity.NewFoodLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.FoodID, req.FoodName, req.Quantity, req.Unit, req.Calories, req.Protein, req.Carbs, req.Fat, req.Notes)
 	if _, err := s.trackRepo.UpsertFoodLog(ctx, log); err != nil {
 		return nil, err
 	}
@@ -159,14 +151,10 @@ func (s *TrackingService) LogFood(ctx context.Context, clientID uuid.UUID, req L
 
 // LogWater logs a water intake entry.
 func (s *TrackingService) LogWater(ctx context.Context, clientID uuid.UUID, req LogWaterRequest) (*entity.WaterLog, error) {
-	log := &entity.WaterLog{
-		ClientID:   clientID,
-		LocalID:    req.LocalID,
-		LoggedAt:   req.LoggedAt,
-		LoggedDate: tehranDate(req.LoggedAt),
-		AmountMl:   req.AmountMl,
-		Notes:      req.Notes,
+	if req.AmountMl <= 0 {
+		return nil, shared.ErrValidation
 	}
+	log := entity.NewWaterLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.AmountMl, req.Notes)
 	if _, err := s.trackRepo.UpsertWaterLog(ctx, log); err != nil {
 		return nil, err
 	}
@@ -175,16 +163,10 @@ func (s *TrackingService) LogWater(ctx context.Context, clientID uuid.UUID, req 
 
 // LogSleep logs a sleep record. LoggedDate derived from SleepStart.
 func (s *TrackingService) LogSleep(ctx context.Context, clientID uuid.UUID, req LogSleepRequest) (*entity.SleepLog, error) {
-	log := &entity.SleepLog{
-		ClientID:        clientID,
-		LocalID:         req.LocalID,
-		LoggedDate:      tehranDate(req.SleepStart),
-		SleepStart:      req.SleepStart,
-		SleepEnd:        req.SleepEnd,
-		DurationMinutes: req.DurationMinutes,
-		Quality:         req.Quality,
-		Notes:           req.Notes,
+	if req.DurationMinutes <= 0 {
+		return nil, shared.ErrValidation
 	}
+	log := entity.NewSleepLog(clientID, req.LocalID, tehranDate(req.SleepStart), req.SleepStart, req.SleepEnd, req.DurationMinutes, req.Quality, req.Notes)
 	if _, err := s.trackRepo.UpsertSleepLog(ctx, log); err != nil {
 		return nil, err
 	}
@@ -193,16 +175,13 @@ func (s *TrackingService) LogSleep(ctx context.Context, clientID uuid.UUID, req 
 
 // LogExercise logs an exercise session.
 func (s *TrackingService) LogExercise(ctx context.Context, clientID uuid.UUID, req LogExerciseRequest) (*entity.ExerciseLog, error) {
-	log := &entity.ExerciseLog{
-		ClientID:        clientID,
-		LocalID:         req.LocalID,
-		LoggedAt:        req.LoggedAt,
-		LoggedDate:      tehranDate(req.LoggedAt),
-		ExerciseName:    req.ExerciseName,
-		DurationMinutes: req.DurationMinutes,
-		CaloriesBurned:  req.CaloriesBurned,
-		Notes:           req.Notes,
+	if req.ExerciseName == "" {
+		return nil, shared.ErrValidation
 	}
+	if req.DurationMinutes <= 0 {
+		return nil, shared.ErrValidation
+	}
+	log := entity.NewExerciseLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.ExerciseName, req.DurationMinutes, req.CaloriesBurned, req.Notes)
 	if _, err := s.trackRepo.UpsertExerciseLog(ctx, log); err != nil {
 		return nil, err
 	}
@@ -211,16 +190,10 @@ func (s *TrackingService) LogExercise(ctx context.Context, clientID uuid.UUID, r
 
 // LogMedication logs a medication intake.
 func (s *TrackingService) LogMedication(ctx context.Context, clientID uuid.UUID, req LogMedicationRequest) (*entity.MedicationLog, error) {
-	log := &entity.MedicationLog{
-		ClientID:       clientID,
-		LocalID:        req.LocalID,
-		LoggedAt:       req.LoggedAt,
-		LoggedDate:     tehranDate(req.LoggedAt),
-		MedicationID:   req.MedicationID,
-		MedicationName: req.MedicationName,
-		Dosage:         req.Dosage,
-		Notes:          req.Notes,
+	if req.MedicationName == "" {
+		return nil, shared.ErrValidation
 	}
+	log := entity.NewMedicationLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.MedicationID, req.MedicationName, req.Dosage, req.Notes)
 	if _, err := s.trackRepo.UpsertMedicationLog(ctx, log); err != nil {
 		return nil, err
 	}
@@ -229,19 +202,10 @@ func (s *TrackingService) LogMedication(ctx context.Context, clientID uuid.UUID,
 
 // LogBody logs a body measurement.
 func (s *TrackingService) LogBody(ctx context.Context, clientID uuid.UUID, req LogBodyRequest) (*entity.BodyMeasurement, error) {
-	m := &entity.BodyMeasurement{
-		ClientID:     clientID,
-		LocalID:      req.LocalID,
-		MeasuredAt:   req.MeasuredAt,
-		MeasuredDate: tehranDate(req.MeasuredAt),
-		WeightKg:     req.WeightKg,
-		HeightCm:     req.HeightCm,
-		WaistCm:      req.WaistCm,
-		HipCm:        req.HipCm,
-		ChestCm:      req.ChestCm,
-		ArmCm:        req.ArmCm,
-		Notes:        req.Notes,
+	if req.WeightKg == nil && req.HeightCm == nil && req.WaistCm == nil && req.HipCm == nil && req.ChestCm == nil && req.ArmCm == nil {
+		return nil, shared.ErrValidation
 	}
+	m := entity.NewBodyMeasurement(clientID, req.LocalID, req.MeasuredAt, tehranDate(req.MeasuredAt), req.WeightKg, req.HeightCm, req.WaistCm, req.HipCm, req.ChestCm, req.ArmCm, req.Notes)
 	if _, err := s.trackRepo.UpsertBodyMeasurement(ctx, m); err != nil {
 		return nil, err
 	}
@@ -263,21 +227,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue // skip malformed entries
 			}
 			req.LocalID = entry.LocalID
-			log := &entity.FoodLog{
-				ClientID:   clientID,
-				LocalID:    req.LocalID,
-				LoggedAt:   req.LoggedAt,
-				LoggedDate: tehranDate(req.LoggedAt),
-				FoodID:     req.FoodID,
-				FoodName:   req.FoodName,
-				Quantity:   req.Quantity,
-				Unit:       req.Unit,
-				Calories:   req.Calories,
-				Protein:    req.Protein,
-				Carbs:      req.Carbs,
-				Fat:        req.Fat,
-				Notes:      req.Notes,
-			}
+			log := entity.NewFoodLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.FoodID, req.FoodName, req.Quantity, req.Unit, req.Calories, req.Protein, req.Carbs, req.Fat, req.Notes)
 			inserted, err = s.trackRepo.UpsertFoodLog(ctx, log)
 		case "water":
 			var req LogWaterRequest
@@ -285,14 +235,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue
 			}
 			req.LocalID = entry.LocalID
-			log := &entity.WaterLog{
-				ClientID:   clientID,
-				LocalID:    req.LocalID,
-				LoggedAt:   req.LoggedAt,
-				LoggedDate: tehranDate(req.LoggedAt),
-				AmountMl:   req.AmountMl,
-				Notes:      req.Notes,
-			}
+			log := entity.NewWaterLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.AmountMl, req.Notes)
 			inserted, err = s.trackRepo.UpsertWaterLog(ctx, log)
 		case "sleep":
 			var req LogSleepRequest
@@ -300,16 +243,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue
 			}
 			req.LocalID = entry.LocalID
-			log := &entity.SleepLog{
-				ClientID:        clientID,
-				LocalID:         req.LocalID,
-				LoggedDate:      tehranDate(req.SleepStart),
-				SleepStart:      req.SleepStart,
-				SleepEnd:        req.SleepEnd,
-				DurationMinutes: req.DurationMinutes,
-				Quality:         req.Quality,
-				Notes:           req.Notes,
-			}
+			log := entity.NewSleepLog(clientID, req.LocalID, tehranDate(req.SleepStart), req.SleepStart, req.SleepEnd, req.DurationMinutes, req.Quality, req.Notes)
 			inserted, err = s.trackRepo.UpsertSleepLog(ctx, log)
 		case "exercise":
 			var req LogExerciseRequest
@@ -317,16 +251,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue
 			}
 			req.LocalID = entry.LocalID
-			log := &entity.ExerciseLog{
-				ClientID:        clientID,
-				LocalID:         req.LocalID,
-				LoggedAt:        req.LoggedAt,
-				LoggedDate:      tehranDate(req.LoggedAt),
-				ExerciseName:    req.ExerciseName,
-				DurationMinutes: req.DurationMinutes,
-				CaloriesBurned:  req.CaloriesBurned,
-				Notes:           req.Notes,
-			}
+			log := entity.NewExerciseLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.ExerciseName, req.DurationMinutes, req.CaloriesBurned, req.Notes)
 			inserted, err = s.trackRepo.UpsertExerciseLog(ctx, log)
 		case "medication":
 			var req LogMedicationRequest
@@ -334,16 +259,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue
 			}
 			req.LocalID = entry.LocalID
-			log := &entity.MedicationLog{
-				ClientID:       clientID,
-				LocalID:        req.LocalID,
-				LoggedAt:       req.LoggedAt,
-				LoggedDate:     tehranDate(req.LoggedAt),
-				MedicationID:   req.MedicationID,
-				MedicationName: req.MedicationName,
-				Dosage:         req.Dosage,
-				Notes:          req.Notes,
-			}
+			log := entity.NewMedicationLog(clientID, req.LocalID, req.LoggedAt, tehranDate(req.LoggedAt), req.MedicationID, req.MedicationName, req.Dosage, req.Notes)
 			inserted, err = s.trackRepo.UpsertMedicationLog(ctx, log)
 		case "body":
 			var req LogBodyRequest
@@ -351,19 +267,7 @@ func (s *TrackingService) BulkSync(ctx context.Context, clientID uuid.UUID, entr
 				continue
 			}
 			req.LocalID = entry.LocalID
-			m := &entity.BodyMeasurement{
-				ClientID:     clientID,
-				LocalID:      req.LocalID,
-				MeasuredAt:   req.MeasuredAt,
-				MeasuredDate: tehranDate(req.MeasuredAt),
-				WeightKg:     req.WeightKg,
-				HeightCm:     req.HeightCm,
-				WaistCm:      req.WaistCm,
-				HipCm:        req.HipCm,
-				ChestCm:      req.ChestCm,
-				ArmCm:        req.ArmCm,
-				Notes:        req.Notes,
-			}
+			m := entity.NewBodyMeasurement(clientID, req.LocalID, req.MeasuredAt, tehranDate(req.MeasuredAt), req.WeightKg, req.HeightCm, req.WaistCm, req.HipCm, req.ChestCm, req.ArmCm, req.Notes)
 			inserted, err = s.trackRepo.UpsertBodyMeasurement(ctx, m)
 		default:
 			continue // unknown type, skip

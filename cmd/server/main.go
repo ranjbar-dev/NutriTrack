@@ -52,7 +52,7 @@ func main() {
 	defer rdb.Close()
 	log.Info().Msg("redis connected")
 
-	r := router.New(db, rdb, cfg)
+	r := router.New(bootstrap.NewContainer(db, rdb, cfg))
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,

@@ -38,19 +38,19 @@ func (r *PgDietPlanRepository) CreateWithArchive(ctx context.Context, plan *enti
 	qtx := r.queries.WithTx(tx)
 
 	// 1. Archive existing active plan (exec, no error if no rows).
-	if err := qtx.ArchiveActivePlanForClient(ctx, plan.ClientID); err != nil {
+	if err := qtx.ArchiveActivePlanForClient(ctx, plan.ClientID()); err != nil {
 		return shared.ErrInternal
 	}
 
 	// 2. Insert new plan.
 	created, err := qtx.CreateDietPlan(ctx, db.CreateDietPlanParams{
-		ClientID:           plan.ClientID,
-		NutritionistID:     plan.NutritionistID,
-		Title:              plan.Title,
-		StartDate:          plan.StartDate,
-		EndDate:            plan.EndDate,
-		Notes:              plan.Notes,
-		DailyWaterTargetMl: int32(plan.DailyWaterTargetML),
+		ClientID:           plan.ClientID(),
+		NutritionistID:     plan.NutritionistID(),
+		Title:              plan.Title(),
+		StartDate:          plan.StartDate(),
+		EndDate:            plan.EndDate(),
+		Notes:              plan.Notes(),
+		DailyWaterTargetMl: int32(plan.DailyWaterTargetML()),
 	})
 	if err != nil {
 		return shared.ErrInternal
@@ -60,10 +60,10 @@ func (r *PgDietPlanRepository) CreateWithArchive(ctx context.Context, plan *enti
 		return shared.ErrInternal
 	}
 
-	plan.ID = created.ID
-	plan.Status = entity.PlanStatusActive
-	plan.CreatedAt = created.CreatedAt
-	plan.UpdatedAt = created.UpdatedAt
+	plan.SetID(created.ID)
+	plan.SetStatus(entity.PlanStatusActive)
+	plan.SetCreatedAt(created.CreatedAt)
+	plan.SetUpdatedAt(created.UpdatedAt)
 	return nil
 }
 
@@ -120,10 +120,10 @@ func (r *PgDietPlanRepository) CountByClientID(ctx context.Context, clientID uui
 // Update persists updated diet plan fields.
 func (r *PgDietPlanRepository) Update(ctx context.Context, plan *entity.DietPlan) error {
 	updated, err := r.queries.UpdateDietPlan(ctx, db.UpdateDietPlanParams{
-		ID:                 plan.ID,
-		Title:              plan.Title,
-		Notes:              plan.Notes,
-		DailyWaterTargetMl: int32(plan.DailyWaterTargetML),
+		ID:                 plan.ID(),
+		Title:              plan.Title(),
+		Notes:              plan.Notes(),
+		DailyWaterTargetMl: int32(plan.DailyWaterTargetML()),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -131,7 +131,7 @@ func (r *PgDietPlanRepository) Update(ctx context.Context, plan *entity.DietPlan
 		}
 		return shared.ErrInternal
 	}
-	plan.UpdatedAt = updated.UpdatedAt
+	plan.SetUpdatedAt(updated.UpdatedAt)
 	return nil
 }
 
@@ -146,14 +146,14 @@ func (r *PgDietPlanRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // AddDay inserts a new diet plan day and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddDay(ctx context.Context, day *entity.DietPlanDay) error {
 	created, err := r.queries.CreateDietPlanDay(ctx, db.CreateDietPlanDayParams{
-		PlanID:    day.PlanID,
-		DayNumber: int32(day.DayNumber),
+		PlanID:    day.PlanID(),
+		DayNumber: int32(day.DayNumber()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	day.ID = created.ID
-	day.CreatedAt = created.CreatedAt
+	day.SetID(created.ID)
+	day.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -193,16 +193,16 @@ func (r *PgDietPlanRepository) DeleteDay(ctx context.Context, id uuid.UUID) erro
 // AddMeal inserts a new diet meal and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddMeal(ctx context.Context, meal *entity.DietMeal) error {
 	created, err := r.queries.CreateDietMeal(ctx, db.CreateDietMealParams{
-		DayID:         meal.DayID,
-		Title:         meal.Title,
-		ScheduledTime: stringToPgtime(meal.ScheduledTime),
-		DisplayOrder:  int32(meal.DisplayOrder),
+		DayID:         meal.DayID(),
+		Title:         meal.Title(),
+		ScheduledTime: stringToPgtime(meal.ScheduledTime()),
+		DisplayOrder:  int32(meal.DisplayOrder()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	meal.ID = created.ID
-	meal.CreatedAt = created.CreatedAt
+	meal.SetID(created.ID)
+	meal.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -242,14 +242,14 @@ func (r *PgDietPlanRepository) DeleteMeal(ctx context.Context, id uuid.UUID) err
 // AddOption inserts a new meal option and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddOption(ctx context.Context, option *entity.MealOption) error {
 	created, err := r.queries.CreateMealOption(ctx, db.CreateMealOptionParams{
-		MealID:       option.MealID,
-		OptionNumber: int32(option.OptionNumber),
+		MealID:       option.MealID(),
+		OptionNumber: int32(option.OptionNumber()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	option.ID = created.ID
-	option.CreatedAt = created.CreatedAt
+	option.SetID(created.ID)
+	option.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -289,17 +289,17 @@ func (r *PgDietPlanRepository) DeleteOption(ctx context.Context, id uuid.UUID) e
 // AddItem inserts a new meal option item and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddItem(ctx context.Context, item *entity.MealOptionItem) error {
 	created, err := r.queries.CreateMealOptionItem(ctx, db.CreateMealOptionItemParams{
-		OptionID: item.OptionID,
-		FoodID:   item.FoodID,
-		Quantity: float64ToNumeric(item.Quantity),
-		Unit:     item.Unit,
-		Notes:    item.Notes,
+		OptionID: item.OptionID(),
+		FoodID:   item.FoodID(),
+		Quantity: float64ToNumeric(item.Quantity()),
+		Unit:     item.Unit(),
+		Notes:    item.Notes(),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	item.ID = created.ID
-	item.CreatedAt = created.CreatedAt
+	item.SetID(created.ID)
+	item.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -360,17 +360,17 @@ func (r *PgDietPlanRepository) ListItemsWithFood(ctx context.Context, optionID u
 // AddExercise inserts a new exercise recommendation and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddExercise(ctx context.Context, ex *entity.ExerciseRecommendation) error {
 	created, err := r.queries.CreateExerciseRecommendation(ctx, db.CreateExerciseRecommendationParams{
-		DayID:                ex.DayID,
-		ExerciseName:         ex.ExerciseName,
-		DurationMinutes:      int32(ex.DurationMinutes),
-		Description:          ex.Description,
-		CaloriesBurnEstimate: int32(ex.CaloriesBurnEstimate),
+		DayID:                ex.DayID(),
+		ExerciseName:         ex.ExerciseName(),
+		DurationMinutes:      int32(ex.DurationMinutes()),
+		Description:          ex.Description(),
+		CaloriesBurnEstimate: int32(ex.CaloriesBurnEstimate()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	ex.ID = created.ID
-	ex.CreatedAt = created.CreatedAt
+	ex.SetID(created.ID)
+	ex.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -410,20 +410,20 @@ func (r *PgDietPlanRepository) DeleteExercise(ctx context.Context, id uuid.UUID)
 // AddPrescription inserts a new prescribed medication and populates the entity with DB-generated fields.
 func (r *PgDietPlanRepository) AddPrescription(ctx context.Context, rx *entity.PrescribedMedication) error {
 	created, err := r.queries.CreateDayPrescribedMedication(ctx, db.CreateDayPrescribedMedicationParams{
-		DayID:        rx.DayID,
-		MedicationID: rx.MedicationID,
-		Dosage:       rx.Dosage,
-		Frequency:    rx.Frequency,
-		Times:        rx.Times,
-		Instructions: rx.Instructions,
-		StartDate:    rx.StartDate,
-		EndDate:      rx.EndDate,
+		DayID:        rx.DayID(),
+		MedicationID: rx.MedicationID(),
+		Dosage:       rx.Dosage(),
+		Frequency:    rx.Frequency(),
+		Times:        rx.Times(),
+		Instructions: rx.Instructions(),
+		StartDate:    rx.StartDate(),
+		EndDate:      rx.EndDate(),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
-	rx.ID = created.ID
-	rx.CreatedAt = created.CreatedAt
+	rx.SetID(created.ID)
+	rx.SetCreatedAt(created.CreatedAt)
 	return nil
 }
 
@@ -436,18 +436,19 @@ func (r *PgDietPlanRepository) FindPrescriptionByID(ctx context.Context, id uuid
 		}
 		return nil, shared.ErrInternal
 	}
-	return &entity.PrescribedMedication{
-		ID:           row.ID,
-		DayID:        row.DayID,
-		MedicationID: row.MedicationID,
-		Dosage:       row.Dosage,
-		Frequency:    row.Frequency,
-		Times:        row.Times,
-		Instructions: row.Instructions,
-		StartDate:    row.StartDate,
-		EndDate:      row.EndDate,
-		CreatedAt:    row.CreatedAt,
-	}, nil
+	return entity.ReconstitutePrescribedMedication(
+		row.ID,
+		row.DayID,
+		row.MedicationID,
+		nil,
+		row.Dosage,
+		row.Frequency,
+		row.Times,
+		row.Instructions,
+		row.StartDate,
+		row.EndDate,
+		row.CreatedAt,
+	), nil
 }
 
 // ListPrescriptionsWithMedication returns all prescribed medications for a day joined with medication data.

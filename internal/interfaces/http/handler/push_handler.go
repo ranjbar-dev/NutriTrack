@@ -40,10 +40,10 @@ func (h *PushHandler) Subscribe(c *gin.Context) {
 	}
 
 	dto.Created(c, map[string]any{
-		"id":         sub.ID,
-		"user_id":    sub.UserID,
-		"endpoint":   sub.Endpoint,
-		"created_at": sub.CreatedAt,
+		"id":         sub.GetID(),
+		"user_id":    sub.GetUserID(),
+		"endpoint":   sub.GetEndpoint(),
+		"created_at": sub.GetCreatedAt(),
 	})
 }
 

@@ -11,21 +11,20 @@ import (
 	labRepo "github.com/ranjbar-dev/nutritrack/internal/domain/labresult/repository"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
-	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/storage"
 )
 
 // LabResultService provides business logic for lab result management.
 type LabResultService struct {
 	repo     labRepo.LabResultRepository
 	userRepo userRepo.UserRepository
-	storage  *storage.LocalStorage
+	storage  shared.LabResultStorage
 }
 
 // NewLabResultService creates a new LabResultService.
 func NewLabResultService(
 	repo labRepo.LabResultRepository,
 	userRepo userRepo.UserRepository,
-	storage *storage.LocalStorage,
+	storage shared.LabResultStorage,
 ) *LabResultService {
 	return &LabResultService{repo: repo, userRepo: userRepo, storage: storage}
 }
@@ -74,16 +73,16 @@ func detectMIME(r io.Reader) (string, io.Reader, error) {
 
 // SubmitLabResultRequest holds parameters for submitting a lab result via file or link.
 type SubmitLabResultRequest struct {
-	Title        string
-	ResultType   string // blood_test, urine_test, thyroid, hormone, allergy, other
-	TestDate     *time.Time
-	Notes        string
+	Title      string
+	ResultType string // blood_test, urine_test, thyroid, hormone, allergy, other
+	TestDate   *time.Time
+	Notes      string
 	// File upload path (optional — one of File or Link must be provided)
 	File         io.Reader
 	FileOrigName string
 	FileSize     int64
 	// Link path (optional — takes effect when File is nil)
-	Link         *string
+	Link *string
 }
 
 // SubmitLabResult validates and stores a lab result (file or link) for a client.
@@ -111,10 +110,10 @@ func (s *LabResultService) SubmitLabResult(
 	var nutritionistID uuid.UUID
 	switch callerRole {
 	case "superadmin":
-		if client.NutritionistID == nil {
+		if client.GetNutritionistID() == nil {
 			return nil, shared.ErrInternal
 		}
-		nutritionistID = *client.NutritionistID
+		nutritionistID = *client.GetNutritionistID()
 	case "nutritionist":
 		if !client.BelongsTo(callerID) {
 			return nil, shared.ErrForbidden
@@ -124,23 +123,15 @@ func (s *LabResultService) SubmitLabResult(
 		if callerID != clientID {
 			return nil, shared.ErrForbidden
 		}
-		if client.NutritionistID == nil {
+		if client.GetNutritionistID() == nil {
 			return nil, shared.ErrInternal
 		}
-		nutritionistID = *client.NutritionistID
+		nutritionistID = *client.GetNutritionistID()
 	default:
 		return nil, shared.ErrForbidden
 	}
 
-	result := &entity.LabResult{
-		ClientID:       clientID,
-		NutritionistID: nutritionistID,
-		Title:          req.Title,
-		ResultType:     req.ResultType,
-		TestDate:       req.TestDate,
-		Notes:          req.Notes,
-		Link:           req.Link,
-	}
+	result := entity.NewLabResult(clientID, nutritionistID, req.Title, req.ResultType, req.TestDate, req.Notes, req.Link)
 
 	if req.File != nil {
 		const maxSize = 10 * 1024 * 1024 // 10 MB
@@ -165,10 +156,10 @@ func (s *LabResultService) SubmitLabResult(
 			return nil, err
 		}
 
-		result.FilePath = filePath
-		result.OriginalName = req.FileOrigName
-		result.FileType = mimeType
-		result.FileSize = req.FileSize
+		result.SetFilePath(filePath)
+		result.SetOriginalName(req.FileOrigName)
+		result.SetFileType(mimeType)
+		result.SetFileSize(req.FileSize)
 	}
 
 	return s.repo.Create(ctx, result)
@@ -219,7 +210,7 @@ func (s *LabResultService) GetLabResultForDownload(
 	if err != nil {
 		return nil, err
 	}
-	if err := s.checkAccess(ctx, result.ClientID, callerID, callerRole); err != nil {
+	if err := s.checkAccess(ctx, result.ClientID(), callerID, callerRole); err != nil {
 		return nil, err
 	}
 	return result, nil

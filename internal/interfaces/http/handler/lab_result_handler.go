@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appLabResult "github.com/ranjbar-dev/nutritrack/internal/application/labresult"
-	labresultEntity "github.com/ranjbar-dev/nutritrack/internal/domain/labresult/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
@@ -105,7 +104,7 @@ func (h *LabResultHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	dto.Created(c, labResultToMap(result))
+	dto.Created(c, appLabResult.MapLabResultResponse(result))
 }
 
 // List handles GET /clients/:id/lab-results
@@ -141,7 +140,7 @@ func (h *LabResultHandler) List(c *gin.Context) {
 
 	items := make([]map[string]any, len(results))
 	for i, r := range results {
-		items[i] = labResultToMap(r)
+		items[i] = appLabResult.MapLabResultResponse(r)
 	}
 
 	dto.Paginated(c, items, total, pg.Page, pg.PageSize)
@@ -175,32 +174,11 @@ func (h *LabResultHandler) Download(c *gin.Context) {
 	}
 
 	// If link-only result, redirect to the link
-	if result.FilePath == "" && result.Link != nil {
-		c.Redirect(http.StatusFound, *result.Link)
+	if result.FilePath() == "" && result.Link() != nil {
+		c.Redirect(http.StatusFound, *result.Link())
 		return
 	}
 
 	// Serve the file as an attachment
-	c.FileAttachment(result.FilePath, result.OriginalName)
-}
-
-func labResultToMap(r *labresultEntity.LabResult) map[string]any {
-	m := map[string]any{
-		"id":              r.ID,
-		"client_id":       r.ClientID,
-		"nutritionist_id": r.NutritionistID,
-		"title":           r.Title,
-		"result_type":     r.ResultType,
-		"test_date":       nil,
-		"original_name":   r.OriginalName,
-		"file_type":       r.FileType,
-		"file_size":       r.FileSize,
-		"link":            r.Link,
-		"notes":           r.Notes,
-		"created_at":      r.CreatedAt,
-	}
-	if r.TestDate != nil {
-		m["test_date"] = r.TestDate.Format("2006-01-02")
-	}
-	return m
+	c.FileAttachment(result.FilePath(), result.OriginalName())
 }

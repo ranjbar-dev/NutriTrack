@@ -6,12 +6,5 @@ import (
 )
 
 func toDomain(row db.PushSubscription) *entity.PushSubscription {
-	return &entity.PushSubscription{
-		ID:        row.ID,
-		UserID:    row.UserID,
-		Endpoint:  row.Endpoint,
-		P256dh:    row.P256dh,
-		Auth:      row.Auth,
-		CreatedAt: row.CreatedAt,
-	}
+	return entity.NewPushSubscriptionFromDB(row.ID, row.UserID, row.Endpoint, row.P256dh, row.Auth, row.CreatedAt)
 }

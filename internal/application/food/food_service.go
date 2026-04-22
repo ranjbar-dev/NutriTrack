@@ -78,21 +78,13 @@ func (s *FoodService) CreateFood(ctx context.Context, req CreateFoodRequest) (*e
 		}
 	}
 
-	food := &entity.Food{
-		Name:           req.Name,
-		NameNormalized: normalized,
-		Unit:           req.Unit,
-		Calories:       req.Calories,
-		Protein:        req.Protein,
-		Carbohydrate:   req.Carbohydrate,
-		Fat:            req.Fat,
-		Fiber:          req.Fiber,
-		Sugar:          req.Sugar,
-		Sodium:         req.Sodium,
-		Amount:         req.Amount,
-		CreatedBy:      &req.CallerID,
-		Categories:     categories,
-		IsActive:       true,
+	food, err := entity.NewFood(
+		req.Name, normalized, req.Unit,
+		req.Calories, req.Protein, req.Carbohydrate, req.Fat, req.Fiber, req.Sugar, req.Sodium, req.Amount,
+		&req.CallerID, categories,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := s.foodRepo.Create(ctx, food); err != nil {
@@ -108,7 +100,7 @@ func (s *FoodService) GetFood(ctx context.Context, id uuid.UUID) (*entity.Food, 
 	if err != nil {
 		return nil, err
 	}
-	if food == nil || !food.IsActive {
+	if food == nil || !food.IsActive() {
 		return nil, shared.ErrFoodNotFound
 	}
 	return food, nil
@@ -150,13 +142,13 @@ func (s *FoodService) UpdateFood(ctx context.Context, req UpdateFoodRequest) (*e
 	if err != nil {
 		return nil, err
 	}
-	if food == nil || !food.IsActive {
+	if food == nil || !food.IsActive() {
 		return nil, shared.ErrFoodNotFound
 	}
 
 	// Row-level ownership check for nutritionists.
 	if req.CallerRole == "nutritionist" {
-		if food.CreatedBy == nil || *food.CreatedBy != req.CallerID {
+		if food.CreatedBy() == nil || *food.CreatedBy() != req.CallerID {
 			return nil, shared.ErrForbidden
 		}
 	} else if req.CallerRole != "superadmin" {
@@ -175,18 +167,13 @@ func (s *FoodService) UpdateFood(ctx context.Context, req UpdateFoodRequest) (*e
 		}
 	}
 
-	food.Name = req.Name
-	food.NameNormalized = shared.NormalizePersian(req.Name)
-	food.Unit = req.Unit
-	food.Calories = req.Calories
-	food.Protein = req.Protein
-	food.Carbohydrate = req.Carbohydrate
-	food.Fat = req.Fat
-	food.Fiber = req.Fiber
-	food.Sugar = req.Sugar
-	food.Sodium = req.Sodium
-	food.Amount = req.Amount
-	food.Categories = categories
+	if err := food.Update(
+		req.Name, shared.NormalizePersian(req.Name), req.Unit,
+		req.Calories, req.Protein, req.Carbohydrate, req.Fat, req.Fiber, req.Sugar, req.Sodium, req.Amount,
+		categories,
+	); err != nil {
+		return nil, err
+	}
 
 	if err := s.foodRepo.Update(ctx, food); err != nil {
 		return nil, err
@@ -210,7 +197,7 @@ func (s *FoodService) DeleteFood(ctx context.Context, id uuid.UUID, callerID uui
 	case "superadmin":
 		return s.foodRepo.Delete(ctx, id)
 	case "nutritionist":
-		if food.CreatedBy == nil || *food.CreatedBy != callerID {
+		if food.CreatedBy() == nil || *food.CreatedBy() != callerID {
 			return shared.ErrForbidden
 		}
 		return s.foodRepo.Deactivate(ctx, id)

@@ -4,35 +4,31 @@ import (
 	"context"
 	"encoding/json"
 
-	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/google/uuid"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/push/entity"
+	pushPort "github.com/ranjbar-dev/nutritrack/internal/domain/push/port"
 	pushRepo "github.com/ranjbar-dev/nutritrack/internal/domain/push/repository"
 )
 
 // PushService manages Web Push subscriptions and delivers notifications.
 type PushService struct {
-	repo            pushRepo.PushSubscriptionRepository
-	vapidPublicKey  string
-	vapidPrivateKey string
+	repo   pushRepo.PushSubscriptionRepository
+	sender pushPort.PushSender
 }
 
 // NewPushService creates a new PushService.
-func NewPushService(repo pushRepo.PushSubscriptionRepository, vapidPublicKey, vapidPrivateKey string) *PushService {
+func NewPushService(repo pushRepo.PushSubscriptionRepository, sender pushPort.PushSender) *PushService {
 	return &PushService{
-		repo:            repo,
-		vapidPublicKey:  vapidPublicKey,
-		vapidPrivateKey: vapidPrivateKey,
+		repo:   repo,
+		sender: sender,
 	}
 }
 
 // Subscribe registers or updates a push subscription for a user.
 func (s *PushService) Subscribe(ctx context.Context, userID uuid.UUID, endpoint, p256dh, auth string) (*entity.PushSubscription, error) {
-	sub := &entity.PushSubscription{
-		UserID:   userID,
-		Endpoint: endpoint,
-		P256dh:   p256dh,
-		Auth:     auth,
+	sub, err := entity.NewPushSubscription(userID, endpoint, p256dh, auth)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.Upsert(ctx, sub)
 }
@@ -43,10 +39,9 @@ func (s *PushService) Unsubscribe(ctx context.Context, userID uuid.UUID, endpoin
 }
 
 // Send delivers a push notification to all active subscriptions of a user.
-// Returns nil immediately if VAPID keys are not configured.
 // Individual subscription failures are silently ignored (best-effort delivery).
 func (s *PushService) Send(ctx context.Context, userID uuid.UUID, title, body string) error {
-	if s.vapidPublicKey == "" || s.vapidPrivateKey == "" {
+	if s.sender == nil {
 		return nil
 	}
 
@@ -61,21 +56,7 @@ func (s *PushService) Send(ctx context.Context, userID uuid.UUID, title, body st
 	})
 
 	for _, sub := range subs {
-		resp, sendErr := webpush.SendNotification(payload, &webpush.Subscription{
-			Endpoint: sub.Endpoint,
-			Keys: webpush.Keys{
-				Auth:   sub.Auth,
-				P256dh: sub.P256dh,
-			},
-		}, &webpush.Options{
-			Subscriber:      "mailto:info@nutritrack.ir",
-			VAPIDPublicKey:  s.vapidPublicKey,
-			VAPIDPrivateKey: s.vapidPrivateKey,
-			TTL:             30,
-		})
-		if sendErr == nil && resp != nil {
-			resp.Body.Close()
-		}
+		_ = s.sender.SendToSubscription(ctx, sub.GetEndpoint(), sub.GetP256dh(), sub.GetAuth(), payload)
 	}
 
 	return nil

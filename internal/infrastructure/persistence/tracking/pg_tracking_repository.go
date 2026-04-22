@@ -28,19 +28,19 @@ func NewPgTrackingRepository(pool *pgxpool.Pool) *PgTrackingRepository {
 // The entity is populated with DB-assigned fields on success.
 func (r *PgTrackingRepository) UpsertFoodLog(ctx context.Context, log *entity.FoodLog) (bool, error) {
 	row, inserted, err := r.queries.UpsertFoodLog(ctx, db.UpsertFoodLogParams{
-		ClientID:   log.ClientID,
-		LocalID:    log.LocalID,
-		LoggedAt:   log.LoggedAt,
-		LoggedDate: log.LoggedDate,
-		FoodID:     log.FoodID,
-		FoodName:   log.FoodName,
-		Quantity:   float64ToNumeric(log.Quantity),
-		Unit:       log.Unit,
-		Calories:   float64ToNumeric(log.Calories),
-		Protein:    float64ToNumeric(log.Protein),
-		Carbs:      float64ToNumeric(log.Carbs),
-		Fat:        float64ToNumeric(log.Fat),
-		Notes:      log.Notes,
+		ClientID:   log.ClientID(),
+		LocalID:    log.LocalID(),
+		LoggedAt:   log.LoggedAt(),
+		LoggedDate: log.LoggedDate(),
+		FoodID:     log.FoodID(),
+		FoodName:   log.FoodName(),
+		Quantity:   float64ToNumeric(log.Quantity()),
+		Unit:       log.Unit(),
+		Calories:   float64ToNumeric(log.Calories()),
+		Protein:    float64ToNumeric(log.Protein()),
+		Carbs:      float64ToNumeric(log.Carbs()),
+		Fat:        float64ToNumeric(log.Fat()),
+		Notes:      log.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal
@@ -91,12 +91,12 @@ func (r *PgTrackingRepository) ListFoodLogs(ctx context.Context, clientID uuid.U
 // UpsertWaterLog inserts or updates a water log entry (idempotent via local_id).
 func (r *PgTrackingRepository) UpsertWaterLog(ctx context.Context, log *entity.WaterLog) (bool, error) {
 	row, inserted, err := r.queries.UpsertWaterLog(ctx, db.UpsertWaterLogParams{
-		ClientID:   log.ClientID,
-		LocalID:    log.LocalID,
-		LoggedAt:   log.LoggedAt,
-		LoggedDate: log.LoggedDate,
-		AmountMl:   int32(log.AmountMl),
-		Notes:      log.Notes,
+		ClientID:   log.ClientID(),
+		LocalID:    log.LocalID(),
+		LoggedAt:   log.LoggedAt(),
+		LoggedDate: log.LoggedDate(),
+		AmountMl:   int32(log.AmountMl()),
+		Notes:      log.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal
@@ -147,14 +147,14 @@ func (r *PgTrackingRepository) ListWaterLogs(ctx context.Context, clientID uuid.
 // UpsertSleepLog inserts or updates a sleep log entry (idempotent via local_id).
 func (r *PgTrackingRepository) UpsertSleepLog(ctx context.Context, log *entity.SleepLog) (bool, error) {
 	row, inserted, err := r.queries.UpsertSleepLog(ctx, db.UpsertSleepLogParams{
-		ClientID:        log.ClientID,
-		LocalID:         log.LocalID,
-		LoggedDate:      log.LoggedDate,
-		SleepStart:      log.SleepStart,
-		SleepEnd:        log.SleepEnd,
-		DurationMinutes: int32(log.DurationMinutes),
-		Quality:         int32(log.Quality),
-		Notes:           log.Notes,
+		ClientID:        log.ClientID(),
+		LocalID:         log.LocalID(),
+		LoggedDate:      log.LoggedDate(),
+		SleepStart:      log.SleepStart(),
+		SleepEnd:        log.SleepEnd(),
+		DurationMinutes: int32(log.DurationMinutes()),
+		Quality:         int32(log.Quality()),
+		Notes:           log.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal
@@ -205,14 +205,14 @@ func (r *PgTrackingRepository) ListSleepLogs(ctx context.Context, clientID uuid.
 // UpsertExerciseLog inserts or updates an exercise log entry (idempotent via local_id).
 func (r *PgTrackingRepository) UpsertExerciseLog(ctx context.Context, log *entity.ExerciseLog) (bool, error) {
 	row, inserted, err := r.queries.UpsertExerciseLog(ctx, db.UpsertExerciseLogParams{
-		ClientID:        log.ClientID,
-		LocalID:         log.LocalID,
-		LoggedAt:        log.LoggedAt,
-		LoggedDate:      log.LoggedDate,
-		ExerciseName:    log.ExerciseName,
-		DurationMinutes: int32(log.DurationMinutes),
-		CaloriesBurned:  int32(log.CaloriesBurned),
-		Notes:           log.Notes,
+		ClientID:        log.ClientID(),
+		LocalID:         log.LocalID(),
+		LoggedAt:        log.LoggedAt(),
+		LoggedDate:      log.LoggedDate(),
+		ExerciseName:    log.ExerciseName(),
+		DurationMinutes: int32(log.DurationMinutes()),
+		CaloriesBurned:  int32(log.CaloriesBurned()),
+		Notes:           log.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal
@@ -263,14 +263,14 @@ func (r *PgTrackingRepository) ListExerciseLogs(ctx context.Context, clientID uu
 // UpsertMedicationLog inserts or updates a medication log entry (idempotent via local_id).
 func (r *PgTrackingRepository) UpsertMedicationLog(ctx context.Context, log *entity.MedicationLog) (bool, error) {
 	row, inserted, err := r.queries.UpsertMedicationLog(ctx, db.UpsertMedicationLogParams{
-		ClientID:       log.ClientID,
-		LocalID:        log.LocalID,
-		LoggedAt:       log.LoggedAt,
-		LoggedDate:     log.LoggedDate,
-		MedicationID:   log.MedicationID,
-		MedicationName: log.MedicationName,
-		Dosage:         log.Dosage,
-		Notes:          log.Notes,
+		ClientID:       log.ClientID(),
+		LocalID:        log.LocalID(),
+		LoggedAt:       log.LoggedAt(),
+		LoggedDate:     log.LoggedDate(),
+		MedicationID:   log.MedicationID(),
+		MedicationName: log.MedicationName(),
+		Dosage:         log.Dosage(),
+		Notes:          log.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal
@@ -321,17 +321,17 @@ func (r *PgTrackingRepository) ListMedicationLogs(ctx context.Context, clientID 
 // UpsertBodyMeasurement inserts or updates a body measurement entry (idempotent via local_id).
 func (r *PgTrackingRepository) UpsertBodyMeasurement(ctx context.Context, m *entity.BodyMeasurement) (bool, error) {
 	row, inserted, err := r.queries.UpsertBodyMeasurement(ctx, db.UpsertBodyMeasurementParams{
-		ClientID:     m.ClientID,
-		LocalID:      m.LocalID,
-		MeasuredAt:   m.MeasuredAt,
-		MeasuredDate: m.MeasuredDate,
-		WeightKg:     optFloat64ToNumeric(m.WeightKg),
-		HeightCm:     optFloat64ToNumeric(m.HeightCm),
-		WaistCm:      optFloat64ToNumeric(m.WaistCm),
-		HipCm:        optFloat64ToNumeric(m.HipCm),
-		ChestCm:      optFloat64ToNumeric(m.ChestCm),
-		ArmCm:        optFloat64ToNumeric(m.ArmCm),
-		Notes:        m.Notes,
+		ClientID:     m.ClientID(),
+		LocalID:      m.LocalID(),
+		MeasuredAt:   m.MeasuredAt(),
+		MeasuredDate: m.MeasuredDate(),
+		WeightKg:     optFloat64ToNumeric(m.WeightKg()),
+		HeightCm:     optFloat64ToNumeric(m.HeightCm()),
+		WaistCm:      optFloat64ToNumeric(m.WaistCm()),
+		HipCm:        optFloat64ToNumeric(m.HipCm()),
+		ChestCm:      optFloat64ToNumeric(m.ChestCm()),
+		ArmCm:        optFloat64ToNumeric(m.ArmCm()),
+		Notes:        m.Notes(),
 	})
 	if err != nil {
 		return false, shared.ErrInternal

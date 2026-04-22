@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
+	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,7 +30,7 @@ func ErrorHandler() gin.HandlerFunc {
 				Str("request_id", requestID.(string)).
 				Str("code", appErr.Code).
 				Msg("app error")
-			c.JSON(appErr.HTTPStatus, appErr.ToResponse())
+			dto.Error(c, appErr)
 			return
 		}
 
@@ -47,7 +48,7 @@ func ErrorHandler() gin.HandlerFunc {
 			Str("request_id", requestID.(string)).
 			Err(err).
 			Msg("unhandled error")
-		c.JSON(http.StatusInternalServerError, shared.ErrInternal.ToResponse())
+		dto.Error(c, shared.ErrInternal)
 	}
 }
 

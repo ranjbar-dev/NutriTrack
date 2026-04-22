@@ -8,17 +8,16 @@ import (
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/user/entity"
 	userRepo "github.com/ranjbar-dev/nutritrack/internal/domain/user/repository"
-	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/storage"
 )
 
 // AvatarService handles profile picture uploads.
 type AvatarService struct {
 	userRepo userRepo.UserRepository
-	storage  *storage.LocalStorage
+	storage  shared.FileStorage
 }
 
 // NewAvatarService creates a new AvatarService.
-func NewAvatarService(repo userRepo.UserRepository, store *storage.LocalStorage) *AvatarService {
+func NewAvatarService(repo userRepo.UserRepository, store shared.FileStorage) *AvatarService {
 	return &AvatarService{userRepo: repo, storage: store}
 }
 
@@ -56,7 +55,7 @@ func (s *AvatarService) UploadAvatar(
 	//    - Nutritionist can update their own client's avatar (callerRole == "nutritionist" && user.BelongsTo(callerID))
 	//    - Superadmin can update anyone's avatar
 	allowed := false
-	switch callerRole {
+	switch entity.Role(callerRole) {
 	case entity.RoleSuperAdmin:
 		allowed = true
 	case entity.RoleNutritionist:
@@ -69,13 +68,13 @@ func (s *AvatarService) UploadAvatar(
 	}
 
 	// 4. Save to storage
-	avatarURL, err := s.storage.SaveAvatar(reader, imgInfo.Extension)
+	avatarURL, err := s.storage.SaveAvatar(reader, imgInfo.Extension())
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
 
 	// 5. Update DB
-	user.AvatarURL = avatarURL
+	user.SetAvatarURL(avatarURL)
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}

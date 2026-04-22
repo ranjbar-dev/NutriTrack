@@ -46,12 +46,12 @@ func (h *NotificationHandler) UpdatePreferences(c *gin.Context) {
 	}
 
 	dto.OK(c, map[string]any{
-		"id":              pref.ID,
-		"user_id":         pref.UserID,
-		"meal_reminders":  pref.MealReminders,
-		"water_reminders": pref.WaterReminders,
-		"message_alerts":  pref.MessageAlerts,
-		"diet_updates":    pref.DietUpdates,
+		"id":              pref.GetID(),
+		"user_id":         pref.GetUserID(),
+		"meal_reminders":  pref.GetMealReminders(),
+		"water_reminders": pref.GetWaterReminders(),
+		"message_alerts":  pref.GetMessageAlerts(),
+		"diet_updates":    pref.GetDietUpdates(),
 	})
 }
 
@@ -66,11 +66,11 @@ func (h *NotificationHandler) GetPreferences(c *gin.Context) {
 	}
 
 	dto.OK(c, map[string]any{
-		"id":              pref.ID,
-		"user_id":         pref.UserID,
-		"meal_reminders":  pref.MealReminders,
-		"water_reminders": pref.WaterReminders,
-		"message_alerts":  pref.MessageAlerts,
-		"diet_updates":    pref.DietUpdates,
+		"id":              pref.GetID(),
+		"user_id":         pref.GetUserID(),
+		"meal_reminders":  pref.GetMealReminders(),
+		"water_reminders": pref.GetWaterReminders(),
+		"message_alerts":  pref.GetMessageAlerts(),
+		"diet_updates":    pref.GetDietUpdates(),
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/foodrequest/entity"
+	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	db "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/sqlc"
 )
 
@@ -22,18 +23,15 @@ func NewPgFoodRequestRepository(pool *pgxpool.Pool) *PgFoodRequestRepository {
 // Create inserts a new food request.
 func (r *PgFoodRequestRepository) Create(ctx context.Context, req *entity.FoodRequest) error {
 	row, err := r.queries.CreateFoodRequest(ctx, db.CreateFoodRequestParams{
-		ClientID:       req.ClientID,
-		NutritionistID: req.NutritionistID,
-		FoodName:       req.FoodName,
+		ClientID:       req.GetClientID(),
+		NutritionistID: req.GetNutritionistID(),
+		FoodName:       req.GetFoodName(),
 	})
 	if err != nil {
-		return err
+		return shared.ErrInternal
 	}
-	// Populate generated fields back onto the entity.
-	req.ID = row.ID
-	req.Status = entity.FoodRequestStatus(row.Status)
-	req.CreatedAt = row.CreatedAt
-	req.UpdatedAt = row.UpdatedAt
+	// Populate DB-generated fields back onto the entity.
+	req.Hydrate(row.ID, entity.FoodRequestStatus(row.Status), row.CreatedAt, row.UpdatedAt)
 	return nil
 }
 
@@ -44,7 +42,7 @@ func (r *PgFoodRequestRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 		if isNotFound(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	return toDomain(row), nil
 }
@@ -57,7 +55,7 @@ func (r *PgFoodRequestRepository) ListPending(ctx context.Context, nutritionistI
 		Offset:         offset,
 	})
 	if err != nil {
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	result := make([]*entity.FoodRequest, len(rows))
 	for i, row := range rows {
@@ -68,7 +66,11 @@ func (r *PgFoodRequestRepository) ListPending(ctx context.Context, nutritionistI
 
 // CountPending counts pending food requests for a nutritionist.
 func (r *PgFoodRequestRepository) CountPending(ctx context.Context, nutritionistID uuid.UUID) (int64, error) {
-	return r.queries.CountPendingFoodRequests(ctx, nutritionistID)
+	count, err := r.queries.CountPendingFoodRequests(ctx, nutritionistID)
+	if err != nil {
+		return 0, shared.ErrInternal
+	}
+	return count, nil
 }
 
 // UpdateStatus updates the status, rejection reason, and created food ID of a food request.
@@ -80,7 +82,7 @@ func (r *PgFoodRequestRepository) UpdateStatus(ctx context.Context, id uuid.UUID
 		CreatedFoodID:   createdFoodID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, shared.ErrInternal
 	}
 	return toDomain(row), nil
 }

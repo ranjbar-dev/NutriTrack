@@ -30,34 +30,31 @@ func NewPgFoodRepository(pool *pgxpool.Pool) *PgFoodRepository {
 // Category mappings are inserted after the food row.
 func (r *PgFoodRepository) Create(ctx context.Context, food *entity.Food) error {
 	created, err := r.queries.CreateFood(ctx, db.CreateFoodParams{
-		Name:           food.Name,
-		NameNormalized: food.NameNormalized,
-		Unit:           food.Unit,
-		Calories:       float64ToNumeric(food.Calories),
-		Protein:        float64ToNumeric(food.Protein),
-		Carbohydrate:   float64ToNumeric(food.Carbohydrate),
-		Fat:            float64ToNumeric(food.Fat),
-		Fiber:          float64ToNumeric(food.Fiber),
-		Sugar:          float64ToNumeric(food.Sugar),
-		Sodium:         float64ToNumeric(food.Sodium),
-		Amount:         float64ToNumeric(food.Amount),
-		CreatedBy:      uuidToPgtypeUUID(food.CreatedBy),
+		Name:           food.Name(),
+		NameNormalized: food.NameNormalized(),
+		Unit:           food.Unit(),
+		Calories:       float64ToNumeric(food.Calories()),
+		Protein:        float64ToNumeric(food.Protein()),
+		Carbohydrate:   float64ToNumeric(food.Carbohydrate()),
+		Fat:            float64ToNumeric(food.Fat()),
+		Fiber:          float64ToNumeric(food.Fiber()),
+		Sugar:          float64ToNumeric(food.Sugar()),
+		Sodium:         float64ToNumeric(food.Sodium()),
+		Amount:         float64ToNumeric(food.Amount()),
+		CreatedBy:      uuidToPgtypeUUID(food.CreatedBy()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
 
 	// Populate entity with DB-generated values.
-	food.ID = created.ID
-	food.IsActive = created.IsActive
-	food.CreatedAt = created.CreatedAt
-	food.UpdatedAt = created.UpdatedAt
+	food.SetPersistedState(created.ID, created.IsActive, created.CreatedAt, created.UpdatedAt)
 
 	// Insert category mappings.
-	for _, cat := range food.Categories {
+	for _, cat := range food.Categories() {
 		if err := r.queries.AddFoodCategory(ctx, db.AddFoodCategoryParams{
-			FoodID:     food.ID,
-			CategoryID: cat.ID,
+			FoodID:     food.ID(),
+			CategoryID: cat.ID(),
 		}); err != nil {
 			return shared.ErrInternal
 		}
@@ -84,7 +81,7 @@ func (r *PgFoodRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
-	food.Categories = categoriesToDomain(cats)
+	food.SetCategories(categoriesToDomain(cats))
 
 	return food, nil
 }
@@ -92,18 +89,18 @@ func (r *PgFoodRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.
 // Update persists updated food fields. Category mappings are replaced entirely.
 func (r *PgFoodRepository) Update(ctx context.Context, food *entity.Food) error {
 	updated, err := r.queries.UpdateFood(ctx, db.UpdateFoodParams{
-		ID:             food.ID,
-		Name:           food.Name,
-		NameNormalized: food.NameNormalized,
-		Unit:           food.Unit,
-		Calories:       float64ToNumeric(food.Calories),
-		Protein:        float64ToNumeric(food.Protein),
-		Carbohydrate:   float64ToNumeric(food.Carbohydrate),
-		Fat:            float64ToNumeric(food.Fat),
-		Fiber:          float64ToNumeric(food.Fiber),
-		Sugar:          float64ToNumeric(food.Sugar),
-		Sodium:         float64ToNumeric(food.Sodium),
-		Amount:         float64ToNumeric(food.Amount),
+		ID:             food.ID(),
+		Name:           food.Name(),
+		NameNormalized: food.NameNormalized(),
+		Unit:           food.Unit(),
+		Calories:       float64ToNumeric(food.Calories()),
+		Protein:        float64ToNumeric(food.Protein()),
+		Carbohydrate:   float64ToNumeric(food.Carbohydrate()),
+		Fat:            float64ToNumeric(food.Fat()),
+		Fiber:          float64ToNumeric(food.Fiber()),
+		Sugar:          float64ToNumeric(food.Sugar()),
+		Sodium:         float64ToNumeric(food.Sodium()),
+		Amount:         float64ToNumeric(food.Amount()),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -112,16 +109,16 @@ func (r *PgFoodRepository) Update(ctx context.Context, food *entity.Food) error 
 		return shared.ErrInternal
 	}
 
-	food.UpdatedAt = updated.UpdatedAt
+	food.SetUpdatedAt(updated.UpdatedAt)
 
 	// Replace category mappings.
-	if err := r.queries.RemoveFoodCategories(ctx, food.ID); err != nil {
+	if err := r.queries.RemoveFoodCategories(ctx, food.ID()); err != nil {
 		return shared.ErrInternal
 	}
-	for _, cat := range food.Categories {
+	for _, cat := range food.Categories() {
 		if err := r.queries.AddFoodCategory(ctx, db.AddFoodCategoryParams{
-			FoodID:     food.ID,
-			CategoryID: cat.ID,
+			FoodID:     food.ID(),
+			CategoryID: cat.ID(),
 		}); err != nil {
 			return shared.ErrInternal
 		}

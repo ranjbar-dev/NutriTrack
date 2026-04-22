@@ -28,13 +28,15 @@ func NewNotificationService(repo repository.NotificationPreferenceRepository) *N
 
 // UpdatePreferences upserts notification preferences for the given user.
 func (s *NotificationService) UpdatePreferences(ctx context.Context, userID uuid.UUID, req UpdatePreferencesRequest) (entity.NotificationPreference, error) {
-	return s.prefRepo.Upsert(ctx, entity.NotificationPreference{
-		UserID:         userID,
-		MealReminders:  req.MealReminders,
-		WaterReminders: req.WaterReminders,
-		MessageAlerts:  req.MessageAlerts,
-		DietUpdates:    req.DietUpdates,
-	})
+	pref, err := entity.NewNotificationPreference(uuid.Nil, userID)
+	if err != nil {
+		return entity.NotificationPreference{}, err
+	}
+	pref.SetMealReminders(req.MealReminders)
+	pref.SetWaterReminders(req.WaterReminders)
+	pref.SetMessageAlerts(req.MessageAlerts)
+	pref.SetDietUpdates(req.DietUpdates)
+	return s.prefRepo.Upsert(ctx, *pref)
 }
 
 // GetPreferences returns the notification preferences for the given user.

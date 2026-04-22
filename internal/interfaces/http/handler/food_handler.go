@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	appFood "github.com/ranjbar-dev/nutritrack/internal/application/food"
-	"github.com/ranjbar-dev/nutritrack/internal/domain/food/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
@@ -67,7 +66,7 @@ func (h *FoodHandler) Create(c *gin.Context) {
 		return
 	}
 
-	dto.Created(c, toFoodResponse(food))
+	dto.Created(c, appFood.MapFoodResponse(food))
 }
 
 // GetOne handles GET /api/v1/foods/:id.
@@ -84,7 +83,7 @@ func (h *FoodHandler) GetOne(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, toFoodResponse(food))
+	dto.OK(c, appFood.MapFoodResponse(food))
 }
 
 // Search handles GET /api/v1/foods.
@@ -108,9 +107,9 @@ func (h *FoodHandler) Search(c *gin.Context) {
 		return
 	}
 
-	resp := make([]gin.H, len(foods))
+	resp := make([]map[string]any, len(foods))
 	for i, f := range foods {
-		resp[i] = toFoodResponse(f)
+		resp[i] = appFood.MapFoodResponse(f)
 	}
 	dto.Paginated(c, resp, total, pg.Page, pg.PageSize)
 }
@@ -152,7 +151,7 @@ func (h *FoodHandler) Update(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, toFoodResponse(food))
+	dto.OK(c, appFood.MapFoodResponse(food))
 }
 
 // Delete handles DELETE/api/v1/foods/:id.
@@ -193,41 +192,4 @@ func toAppError(err error) *shared.AppError {
 		return shared.ErrInternal
 	}
 	return appErr
-}
-
-// toFoodResponse converts a domain Food to a JSON-serialisable map.
-func toFoodResponse(f *entity.Food) gin.H {
-	cats := make([]gin.H, len(f.Categories))
-	for i, c := range f.Categories {
-		cats[i] = gin.H{
-			"id":   c.ID,
-			"name": c.Name,
-		}
-	}
-
-	resp := gin.H{
-		"id":           f.ID,
-		"name":         f.Name,
-		"unit":         f.Unit,
-		"calories":     f.Calories,
-		"protein":      f.Protein,
-		"carbohydrate": f.Carbohydrate,
-		"fat":          f.Fat,
-		"fiber":        f.Fiber,
-		"sugar":        f.Sugar,
-		"sodium":       f.Sodium,
-		"amount":       f.Amount,
-		"is_active":    f.IsActive,
-		"categories":   cats,
-		"created_at":   f.CreatedAt,
-		"updated_at":   f.UpdatedAt,
-	}
-
-	if f.CreatedBy != nil {
-		resp["created_by"] = *f.CreatedBy
-	} else {
-		resp["created_by"] = nil
-	}
-
-	return resp
 }

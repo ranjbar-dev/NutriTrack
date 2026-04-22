@@ -67,16 +67,12 @@ func (s *NutritionistService) Create(ctx context.Context, req CreateNutritionist
 		return nil, shared.ErrInternal
 	}
 
-	user := &entity.User{
-		ID:           uuid.New(),
-		Role:         entity.RoleNutritionist,
-		Email:        req.Email,
-		Mobile:       mob.String(),
-		PasswordHash: hash,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		IsActive:     true,
+	user, err := entity.NewUser(entity.RoleNutritionist, mob.String(), req.FirstName, req.LastName)
+	if err != nil {
+		return nil, shared.ErrInternal
 	}
+	user.SetEmail(req.Email)
+	user.SetPasswordHash(hash)
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		log.Error().Err(err).Msg("create nutritionist: db error")
@@ -92,7 +88,7 @@ func (s *NutritionistService) GetByID(ctx context.Context, id uuid.UUID) (*entit
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
-	if user == nil || user.Role != entity.RoleNutritionist {
+	if user == nil || user.GetRole() != entity.RoleNutritionist {
 		return nil, shared.ErrUserNotFound
 	}
 	return user, nil
@@ -117,18 +113,13 @@ func (s *NutritionistService) Update(ctx context.Context, req UpdateNutritionist
 	if err != nil {
 		return nil, shared.ErrInternal
 	}
-	if user == nil || user.Role != entity.RoleNutritionist {
+	if user == nil || user.GetRole() != entity.RoleNutritionist {
 		return nil, shared.ErrUserNotFound
 	}
 
-	if req.FirstName != "" {
-		user.FirstName = req.FirstName
-	}
-	if req.LastName != "" {
-		user.LastName = req.LastName
-	}
+	user.UpdateProfile(req.FirstName, req.LastName, "", nil, nil, nil)
 	if req.IsActive != nil {
-		user.IsActive = *req.IsActive
+		user.SetActive(*req.IsActive)
 	}
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
@@ -154,9 +145,9 @@ func (s *NutritionistService) SetStatus(ctx context.Context, id uuid.UUID, activ
 	if err != nil {
 		return shared.ErrInternal
 	}
-	if user == nil || user.Role != entity.RoleNutritionist {
+	if user == nil || user.GetRole() != entity.RoleNutritionist {
 		return shared.ErrUserNotFound
 	}
-	user.IsActive = active
+	user.SetActive(active)
 	return s.userRepo.Update(ctx, user)
 }

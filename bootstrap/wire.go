@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
+	"github.com/ranjbar-dev/nutritrack/configs"
 	appAdmin "github.com/ranjbar-dev/nutritrack/internal/application/admin"
 	appAuth "github.com/ranjbar-dev/nutritrack/internal/application/auth"
 	appDietPlan "github.com/ranjbar-dev/nutritrack/internal/application/dietplan"
@@ -16,6 +16,7 @@ import (
 	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	appUser "github.com/ranjbar-dev/nutritrack/internal/application/user"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
+	infraAdmin "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/admin"
 	pgDietPlan "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/dietplan"
 	foodRepo "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/food"
 	frInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/foodrequest"
@@ -27,50 +28,59 @@ import (
 	dbsqlc "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/sqlc"
 	trackInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/persistence/user"
+	infraPush "github.com/ranjbar-dev/nutritrack/internal/infrastructure/push"
 	redisInfra "github.com/ranjbar-dev/nutritrack/internal/infrastructure/redis"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/sms"
 	"github.com/ranjbar-dev/nutritrack/internal/infrastructure/storage"
-	"github.com/ranjbar-dev/nutritrack/configs"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 )
 
 // Container holds all application-level singletons wired together.
 type Container struct {
-	AuthService          *appAuth.AuthService
-	JWTService           *appAuth.JWTService
-	OTPStore             *redisInfra.OTPStore
-	TokenBlacklist       *redisInfra.TokenBlacklist
-	NutritionistService  *appUser.NutritionistService
-	ClientService        *appUser.ClientService
-	LocalStorage         *storage.LocalStorage
-	AvatarService        *appUser.AvatarService
-	FoodService          *appFood.FoodService
-	FoodCategoryService  *appFood.FoodCategoryService
-	MedicationService    *appMed.MedicationService
-	DietPlanService      *appDietPlan.DietPlanService
-	TrackingService      *appTracking.TrackingService
-	LabResultService     *appLabResult.LabResultService
-	MessageService       *appMessage.MessageService
-	FoodRequestService   *appFoodRequest.FoodRequestService
-	PushService          *appPush.PushService
-	NotificationService  *appNotif.NotificationService
-	AdminService         *appAdmin.AdminService
+	Cfg                 *configs.Config
+	RateLimiter         *redisInfra.RedisRateLimiter
+	AuthService         *appAuth.AuthService
+	JWTService          *appAuth.JWTService
+	OTPStore            *redisInfra.OTPStore
+	TokenBlacklist      *redisInfra.TokenBlacklist
+	NutritionistService *appUser.NutritionistService
+	ClientService       *appUser.ClientService
+	LocalStorage        *storage.LocalStorage
+	AvatarService       *appUser.AvatarService
+	FoodService         *appFood.FoodService
+	FoodCategoryService *appFood.FoodCategoryService
+	MedicationService   *appMed.MedicationService
+	DietPlanService     *appDietPlan.DietPlanService
+	TrackingService     *appTracking.TrackingService
+	LabResultService    *appLabResult.LabResultService
+	MessageService      *appMessage.MessageService
+	FoodRequestService  *appFoodRequest.FoodRequestService
+	PushService         *appPush.PushService
+	NotificationService *appNotif.NotificationService
+	AdminService        *appAdmin.AdminService
 }
 
 // NewContainer wires all dependencies manually (no code generation needed).
 func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Container {
 	// Infrastructure layer
-	userRepo       := user.NewPgUserRepository(db)
-	pgFoodRepo     := foodRepo.NewPgFoodRepository(db)
+	userRepo := user.NewPgUserRepository(db)
+	pgFoodRepo := foodRepo.NewPgFoodRepository(db)
 	cachedFoodRepo := foodRepo.NewCachedFoodRepository(pgFoodRepo, rdb)
 	pgCategoryRepo := foodRepo.NewPgFoodCategoryRepository(db)
-	otpStore       := redisInfra.NewOTPStore(rdb)
+	otpStore := redisInfra.NewOTPStore(rdb)
 	tokenBlacklist := redisInfra.NewTokenBlacklist(rdb)
-	jwtService     := appAuth.NewJWTService(&cfg.JWT)
+	rateLimiter := redisInfra.NewRedisRateLimiter(rdb)
+	jwtService := appAuth.NewJWTService(&cfg.JWT)
 
 	// SMS provider selection: Kavenegar in production, mock otherwise
 	var smsProvider shared.SMSProvider
 	if cfg.App.Env == "production" && cfg.SMS.KavenegarAPIKey != "" {
-		smsProvider = sms.NewKavenegarAdapter(cfg.SMS.KavenegarAPIKey, cfg.SMS.OTPTemplate)
+		kavAdapter, err := sms.NewKavenegarAdapter(cfg.SMS.KavenegarAPIKey, cfg.SMS.OTPTemplate)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to initialize Kavenegar SMS adapter")
+		}
+		smsProvider = kavAdapter
 	} else {
 		smsProvider = sms.NewMockSMSProvider()
 	}
@@ -85,7 +95,7 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	catSvc := appFood.NewFoodCategoryService(pgCategoryRepo)
 	pgMedRepo := medRepo.NewPgMedicationRepository(db)
 	medSvc := appMed.NewMedicationService(pgMedRepo)
-	pgPlanRepo     := pgDietPlan.NewPgDietPlanRepository(db)
+	pgPlanRepo := pgDietPlan.NewPgDietPlanRepository(db)
 	cachedPlanRepo := pgDietPlan.NewCachedDietPlanRepository(pgPlanRepo, rdb)
 	planSvc := appDietPlan.NewDietPlanService(cachedPlanRepo, userRepo)
 	pgTrackingRepo := trackInfra.NewPgTrackingRepository(db)
@@ -97,12 +107,15 @@ func NewContainer(db *pgxpool.Pool, rdb *redis.Client, cfg *configs.Config) *Con
 	pgFoodRequestRepo := frInfra.NewPgFoodRequestRepository(db)
 	foodRequestSvc := appFoodRequest.NewFoodRequestService(pgFoodRequestRepo, userRepo, foodSvc)
 	pgPushRepo := pushInfra.NewPgPushSubscriptionRepository(db)
-	pushSvc := appPush.NewPushService(pgPushRepo, cfg.VAPID.PublicKey, cfg.VAPID.PrivateKey)
+	webpushSender := infraPush.NewWebpushSender(cfg.VAPID.PublicKey, cfg.VAPID.PrivateKey, "mailto:info@nutritrack.ir")
+	pushSvc := appPush.NewPushService(pgPushRepo, webpushSender)
 	pgNotifPrefRepo := notifInfra.NewPgNotificationPreferenceRepository(db)
 	notifSvc := appNotif.NewNotificationService(pgNotifPrefRepo)
-	adminSvc := appAdmin.NewAdminService(dbsqlc.New(db))
+	adminSvc := appAdmin.NewAdminService(infraAdmin.NewPgAdminRepository(dbsqlc.New(db)))
 
 	return &Container{
+		Cfg:                 cfg,
+		RateLimiter:         rateLimiter,
 		AuthService:         authService,
 		JWTService:          jwtService,
 		OTPStore:            otpStore,

@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	appTracking "github.com/ranjbar-dev/nutritrack/internal/application/tracking"
 	"github.com/ranjbar-dev/nutritrack/internal/domain/shared"
-	"github.com/ranjbar-dev/nutritrack/internal/domain/tracking/entity"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/dto"
 	"github.com/ranjbar-dev/nutritrack/internal/interfaces/http/middleware"
 )
@@ -142,7 +141,7 @@ func (h *TrackingHandler) LogFood(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, foodLogToMap(result))
+	dto.OK(c, appTracking.MapFoodLog(result))
 }
 
 // LogWater handles POST /tracking/water
@@ -180,7 +179,7 @@ func (h *TrackingHandler) LogWater(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, waterLogToMap(result))
+	dto.OK(c, appTracking.MapWaterLog(result))
 }
 
 // LogSleep handles POST /tracking/sleep
@@ -215,7 +214,7 @@ func (h *TrackingHandler) LogSleep(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, sleepLogToMap(result))
+	dto.OK(c, appTracking.MapSleepLog(result))
 }
 
 // LogExercise handles POST /tracking/exercise
@@ -255,7 +254,7 @@ func (h *TrackingHandler) LogExercise(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, exerciseLogToMap(result))
+	dto.OK(c, appTracking.MapExerciseLog(result))
 }
 
 // LogMedication handles POST /tracking/medication
@@ -305,7 +304,7 @@ func (h *TrackingHandler) LogMedication(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, medicationLogToMap(result))
+	dto.OK(c, appTracking.MapMedicationLog(result))
 }
 
 // LogBody handles POST /tracking/body
@@ -348,7 +347,7 @@ func (h *TrackingHandler) LogBody(c *gin.Context) {
 		return
 	}
 
-	dto.OK(c, bodyMeasurementToMap(result))
+	dto.OK(c, appTracking.MapBodyMeasurement(result))
 }
 
 // BulkSync handles POST /tracking/sync
@@ -424,102 +423,4 @@ func (h *TrackingHandler) GetTracking(c *gin.Context) {
 	}
 
 	dto.OK(c, result)
-}
-
-// --- Response helper functions ---
-
-func foodLogToMap(l *entity.FoodLog) map[string]any {
-	return map[string]any{
-		"id":          l.ID,
-		"client_id":   l.ClientID,
-		"local_id":    l.LocalID,
-		"logged_at":   l.LoggedAt,
-		"logged_date": l.LoggedDate.Format("2006-01-02"),
-		"food_id":     l.FoodID,
-		"food_name":   l.FoodName,
-		"quantity":    l.Quantity,
-		"unit":        l.Unit,
-		"calories":    l.Calories,
-		"protein":     l.Protein,
-		"carbs":       l.Carbs,
-		"fat":         l.Fat,
-		"notes":       l.Notes,
-		"created_at":  l.CreatedAt,
-	}
-}
-
-func waterLogToMap(l *entity.WaterLog) map[string]any {
-	return map[string]any{
-		"id":          l.ID,
-		"client_id":   l.ClientID,
-		"local_id":    l.LocalID,
-		"logged_at":   l.LoggedAt,
-		"logged_date": l.LoggedDate.Format("2006-01-02"),
-		"amount_ml":   l.AmountMl,
-		"notes":       l.Notes,
-		"created_at":  l.CreatedAt,
-	}
-}
-
-func sleepLogToMap(l *entity.SleepLog) map[string]any {
-	return map[string]any{
-		"id":               l.ID,
-		"client_id":        l.ClientID,
-		"local_id":         l.LocalID,
-		"logged_date":      l.LoggedDate.Format("2006-01-02"),
-		"sleep_start":      l.SleepStart,
-		"sleep_end":        l.SleepEnd,
-		"duration_minutes": l.DurationMinutes,
-		"quality":          l.Quality,
-		"notes":            l.Notes,
-		"created_at":       l.CreatedAt,
-	}
-}
-
-func exerciseLogToMap(l *entity.ExerciseLog) map[string]any {
-	return map[string]any{
-		"id":               l.ID,
-		"client_id":        l.ClientID,
-		"local_id":         l.LocalID,
-		"logged_at":        l.LoggedAt,
-		"logged_date":      l.LoggedDate.Format("2006-01-02"),
-		"exercise_name":    l.ExerciseName,
-		"duration_minutes": l.DurationMinutes,
-		"calories_burned":  l.CaloriesBurned,
-		"notes":            l.Notes,
-		"created_at":       l.CreatedAt,
-	}
-}
-
-func medicationLogToMap(l *entity.MedicationLog) map[string]any {
-	return map[string]any{
-		"id":              l.ID,
-		"client_id":       l.ClientID,
-		"local_id":        l.LocalID,
-		"logged_at":       l.LoggedAt,
-		"logged_date":     l.LoggedDate.Format("2006-01-02"),
-		"medication_id":   l.MedicationID,
-		"medication_name": l.MedicationName,
-		"dosage":          l.Dosage,
-		"notes":           l.Notes,
-		"created_at":      l.CreatedAt,
-	}
-}
-
-func bodyMeasurementToMap(m *entity.BodyMeasurement) map[string]any {
-	return map[string]any{
-		"id":            m.ID,
-		"client_id":     m.ClientID,
-		"local_id":      m.LocalID,
-		"measured_at":   m.MeasuredAt,
-		"measured_date": m.MeasuredDate.Format("2006-01-02"),
-		"weight_kg":     m.WeightKg,
-		"height_cm":     m.HeightCm,
-		"waist_cm":      m.WaistCm,
-		"hip_cm":        m.HipCm,
-		"chest_cm":      m.ChestCm,
-		"arm_cm":        m.ArmCm,
-		"notes":         m.Notes,
-		"created_at":    m.CreatedAt,
-	}
 }

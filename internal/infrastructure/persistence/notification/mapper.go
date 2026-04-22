@@ -6,12 +6,10 @@ import (
 )
 
 func toDomain(row db.NotificationPreference) entity.NotificationPreference {
-	return entity.NotificationPreference{
-		ID:             row.ID,
-		UserID:         row.UserID,
-		MealReminders:  row.MealReminders,
-		WaterReminders: row.WaterReminders,
-		MessageAlerts:  row.MessageAlerts,
-		DietUpdates:    row.DietUpdates,
-	}
+	pref, _ := entity.NewNotificationPreference(row.ID, row.UserID)
+	pref.SetMealReminders(row.MealReminders)
+	pref.SetWaterReminders(row.WaterReminders)
+	pref.SetMessageAlerts(row.MessageAlerts)
+	pref.SetDietUpdates(row.DietUpdates)
+	return *pref
 }

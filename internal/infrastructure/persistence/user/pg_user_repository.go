@@ -100,53 +100,53 @@ func (r *PgUserRepository) CountAllNutritionists(ctx context.Context) (int64, er
 
 func (r *PgUserRepository) Create(ctx context.Context, user *entity.User) error {
 	var birthDate pgtype.Date
-	if user.BirthDate != nil {
-		birthDate = pgtype.Date{Time: *user.BirthDate, Valid: true}
+	if user.GetBirthDate() != nil {
+		birthDate = pgtype.Date{Time: *user.GetBirthDate(), Valid: true}
 	}
 
 	created, err := r.queries.CreateUser(ctx, db.CreateUserParams{
-		Role:           user.Role,
-		Mobile:         user.Mobile,
-		Email:          strPtrOrNil(user.Email),
-		PasswordHash:   strPtrOrNil(user.PasswordHash),
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		Gender:         strPtrOrNil(user.Gender),
+		Role:           string(user.GetRole()),
+		Mobile:         user.GetMobile(),
+		Email:          strPtrOrNil(user.GetEmail()),
+		PasswordHash:   strPtrOrNil(user.GetPasswordHash()),
+		FirstName:      user.GetFirstName(),
+		LastName:       user.GetLastName(),
+		Gender:         strPtrOrNil(user.GetGender()),
 		BirthDate:      birthDate,
-		Height:         float64ToNumeric(user.Height),
-		Weight:         float64ToNumeric(user.Weight),
-		AvatarUrl:      strPtrOrNil(user.AvatarURL),
-		IsActive:       user.IsActive,
-		NutritionistID: uuidToPgtypeUUID(user.NutritionistID),
+		Height:         float64ToNumeric(user.GetHeight()),
+		Weight:         float64ToNumeric(user.GetWeight()),
+		AvatarUrl:      strPtrOrNil(user.GetAvatarURL()),
+		IsActive:       user.GetIsActive(),
+		NutritionistID: uuidToPgtypeUUID(user.GetNutritionistID()),
 	})
 	if err != nil {
 		return shared.ErrInternal
 	}
 
 	// Populate entity with DB-generated values.
-	user.ID = created.ID
-	user.CreatedAt = created.CreatedAt
-	user.UpdatedAt = created.UpdatedAt
+	user.SetID(created.ID)
+	user.SetCreatedAt(created.CreatedAt)
+	user.SetUpdatedAt(created.UpdatedAt)
 	return nil
 }
 
 func (r *PgUserRepository) Update(ctx context.Context, user *entity.User) error {
 	var birthDate pgtype.Date
-	if user.BirthDate != nil {
-		birthDate = pgtype.Date{Time: *user.BirthDate, Valid: true}
+	if user.GetBirthDate() != nil {
+		birthDate = pgtype.Date{Time: *user.GetBirthDate(), Valid: true}
 	}
 
 	updated, err := r.queries.UpdateUser(ctx, db.UpdateUserParams{
-		ID:           user.ID,
-		FirstName:    user.FirstName,
-		LastName:     user.LastName,
-		Gender:       strPtrOrNil(user.Gender),
+		ID:           user.GetID(),
+		FirstName:    user.GetFirstName(),
+		LastName:     user.GetLastName(),
+		Gender:       strPtrOrNil(user.GetGender()),
 		BirthDate:    birthDate,
-		Height:       float64ToNumeric(user.Height),
-		Weight:       float64ToNumeric(user.Weight),
-		AvatarUrl:    strPtrOrNil(user.AvatarURL),
-		IsActive:     user.IsActive,
-		PasswordHash: strPtrOrNil(user.PasswordHash),
+		Height:       float64ToNumeric(user.GetHeight()),
+		Weight:       float64ToNumeric(user.GetWeight()),
+		AvatarUrl:    strPtrOrNil(user.GetAvatarURL()),
+		IsActive:     user.GetIsActive(),
+		PasswordHash: strPtrOrNil(user.GetPasswordHash()),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -155,7 +155,7 @@ func (r *PgUserRepository) Update(ctx context.Context, user *entity.User) error 
 		return shared.ErrInternal
 	}
 
-	user.UpdatedAt = updated.UpdatedAt
+	user.SetUpdatedAt(updated.UpdatedAt)
 	return nil
 }
 
