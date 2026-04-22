@@ -1,0 +1,24 @@
+:root {
+  --color-bg: #f4f7f8;
+  --color-surface: #ffffff;
+  --color-text: #12324a;
+  --color-muted: #4f6271;
+  --color-accent: #0f6b7a;
+  --color-danger: #b63d3d;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+
+  --font-base: 'Vazirmatn', 'Tahoma', sans-serif;
+  --font-heading: 'Vazirmatn', 'Tahoma', sans-serif;
+
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
