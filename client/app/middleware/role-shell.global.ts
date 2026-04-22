@@ -1,5 +1,9 @@
 export type RoleKey = 'auth' | 'client' | 'nutritionist' | 'admin'
 
+declare const defineNuxtRouteMiddleware: undefined | (<T>(handler: T) => T)
+declare const useCookie: <T>(key: string, options?: { default?: () => T }) => { value: T }
+declare const navigateTo: (path: string) => unknown
+
 const rolePrefixes: Record<RoleKey, string> = {
   auth: '/auth',
   client: '/client',
