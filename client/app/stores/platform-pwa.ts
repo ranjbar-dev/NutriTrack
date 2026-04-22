@@ -9,6 +9,26 @@ export interface PlatformPwaState {
   installReady: boolean
 }
 
+export interface PlatformBannerState {
+  showUpdateBanner: boolean
+  showInstallBanner: boolean
+  showConnectivityBanner: boolean
+}
+
+export function createBannerStateView(state: PlatformPwaState): PlatformBannerState {
+  return {
+    showUpdateBanner: state.needRefresh,
+    showInstallBanner: state.showInstallPrompt && state.installReady,
+    showConnectivityBanner: state.offline
+  }
+}
+
+export function createRefreshAction(refresh: () => void): { refresh: () => void } {
+  return {
+    refresh
+  }
+}
+
 export function createPlatformPwaState(): PlatformPwaState {
   return {
     needRefresh: false,
