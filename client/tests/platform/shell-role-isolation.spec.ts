@@ -9,9 +9,9 @@ function readWorkspaceFile(path: string): string {
 describe('platform shell role isolation baseline', () => {
   it('provides dedicated role layouts', () => {
     expect(readWorkspaceFile('app/layouts/auth.vue')).toContain('AppShell')
-    expect(readWorkspaceFile('app/layouts/client.vue')).toContain("role='client'")
-    expect(readWorkspaceFile('app/layouts/nutritionist.vue')).toContain("role='nutritionist'")
-    expect(readWorkspaceFile('app/layouts/admin.vue')).toContain("role='admin'")
+    expect(readWorkspaceFile('app/layouts/client.vue')).toContain('role="client"')
+    expect(readWorkspaceFile('app/layouts/nutritionist.vue')).toContain('role="nutritionist"')
+    expect(readWorkspaceFile('app/layouts/admin.vue')).toContain('role="admin"')
   })
 
   it('binds each role entry page to its dedicated layout', () => {
