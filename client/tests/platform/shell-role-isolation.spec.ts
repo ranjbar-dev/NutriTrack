@@ -1,36 +1,23 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const roleNamespaces = {
-  auth: ['/auth'],
-  client: ['/client'],
-  nutritionist: ['/nutritionist'],
-  admin: ['/admin']
-} as const
-
-function resolveRoleFromPath(path: string): keyof typeof roleNamespaces | 'unknown' {
-  if (path.startsWith('/auth')) return 'auth'
-  if (path.startsWith('/client')) return 'client'
-  if (path.startsWith('/nutritionist')) return 'nutritionist'
-  if (path.startsWith('/admin')) return 'admin'
-  return 'unknown'
+function readWorkspaceFile(path: string): string {
+  return readFileSync(resolve(process.cwd(), path), 'utf8')
 }
 
 describe('platform shell role isolation baseline', () => {
-  it('maps each role namespace to itself only', () => {
-    expect(resolveRoleFromPath('/auth')).toBe('auth')
-    expect(resolveRoleFromPath('/client/dashboard')).toBe('client')
-    expect(resolveRoleFromPath('/nutritionist/clients')).toBe('nutritionist')
-    expect(resolveRoleFromPath('/admin/stats')).toBe('admin')
+  it('provides dedicated role layouts', () => {
+    expect(readWorkspaceFile('app/layouts/auth.vue')).toContain('AppShell')
+    expect(readWorkspaceFile('app/layouts/client.vue')).toContain("role='client'")
+    expect(readWorkspaceFile('app/layouts/nutritionist.vue')).toContain("role='nutritionist'")
+    expect(readWorkspaceFile('app/layouts/admin.vue')).toContain("role='admin'")
   })
 
-  it('does not map unknown routes to a role shell', () => {
-    expect(resolveRoleFromPath('/')).toBe('unknown')
-    expect(resolveRoleFromPath('/foo')).toBe('unknown')
-  })
-
-  it('keeps namespace declarations explicit', () => {
-    expect(roleNamespaces.client).toStrictEqual(['/client'])
-    expect(roleNamespaces.nutritionist).toStrictEqual(['/nutritionist'])
-    expect(roleNamespaces.admin).toStrictEqual(['/admin'])
+  it('binds each role entry page to its dedicated layout', () => {
+    expect(readWorkspaceFile('app/pages/auth/index.vue')).toContain("layout: 'auth'")
+    expect(readWorkspaceFile('app/pages/client/index.vue')).toContain("layout: 'client'")
+    expect(readWorkspaceFile('app/pages/nutritionist/index.vue')).toContain("layout: 'nutritionist'")
+    expect(readWorkspaceFile('app/pages/admin/index.vue')).toContain("layout: 'admin'")
   })
 })
