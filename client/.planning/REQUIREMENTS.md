@@ -9,7 +9,7 @@
 
 - [ ] **PLAT-01**: User sees a Persian-only RTL mobile app shell with role-aware navigation for client, nutritionist, and super admin areas.
 - [x] **PLAT-02**: User can install the app as a PWA and receives a clear in-app update prompt when a newer version is available.
-- [ ] **PLAT-03**: User sees Persian typography, Persian numerals where appropriate, Jalali-aware date presentation, and mobile safe-area handling across core flows.
+- [x] **PLAT-03**: User sees Persian typography, Persian numerals where appropriate, Jalali-aware date presentation, and mobile safe-area handling across core flows.
 
 ### Authentication
 
@@ -97,7 +97,7 @@
 |-------------|-------|--------|
 | PLAT-01 | Phase 1 | Pending |
 | PLAT-02 | Phase 1 | Completed (01-01) |
-| PLAT-03 | Phase 1 | Pending |
+| PLAT-03 | Phase 1 | Completed (01-02) |
 | AUTH-01 | Phase 2 | Pending |
 | AUTH-02 | Phase 2 | Pending |
 | AUTH-03 | Phase 2 | Pending |
