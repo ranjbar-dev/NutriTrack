@@ -34,7 +34,7 @@ Plans:
 - [x] 01-01-PLAN.md - Baseline platform wiring, conservative PWA config, and test harness
 - [x] 01-02-PLAN.md - Persian RTL design tokens, locale formatting, and shared shell primitives
 - [ ] 01-03-PLAN.md - Install/update/connectivity banners and cache-boundary regression guards
-- [ ] 01-04-PLAN.md - Role shell isolation routes, layouts, and middleware enforcement
+- [x] 01-04-PLAN.md - Role shell isolation routes, layouts, and middleware enforcement
 **UI hint**: yes
 
 ### Phase 2: Authentication & Access Control
@@ -104,7 +104,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Platform Foundation | 2/4 | In progress | 2026-04-22 (01-01, 01-02) |
+| 1. Platform Foundation | 3/4 | In progress | 2026-04-22 (01-01, 01-02, 01-04) |
 | 2. Authentication & Access Control | 0/TBD | Not started | - |
 | 3. Client Offline Daily Loop | 0/TBD | Not started | - |
 | 4. Messaging, Notifications & Lab Exchange | 0/TBD | Not started | - |
