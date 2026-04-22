@@ -1,0 +1,28 @@
+{
+  "name": "nutritrack-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "preview": "nuxi preview",
+    "lint": "node -e \"console.log('lint: no eslint config yet')\"",
+    "typecheck": "nuxi typecheck",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.2",
+    "@vite-pwa/nuxt": "^1.1.1",
+    "nuxt": "^4.0.3",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.2"
+  }
+}
