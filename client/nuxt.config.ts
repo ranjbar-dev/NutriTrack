@@ -37,6 +37,7 @@ export default defineNuxtConfig({
           }
         },
         {
+          // cache-boundary::api-network-only
           // Keep authenticated API traffic network-only (api/** boundary).
           urlPattern: /\/api\/.*/,
           handler: 'NetworkOnly'
