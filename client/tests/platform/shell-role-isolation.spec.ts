@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveAllowedPrefix, shouldRedirectRolePath } from '../../app/middleware/role-shell.global'
+import { evaluateAuthAccess } from '../../app/middleware/auth-access.global'
 
 function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8')
@@ -33,6 +34,18 @@ describe('platform shell role isolation baseline', () => {
     expect(shouldRedirectRolePath('client', '/nutritionist')).toBe(true)
     expect(shouldRedirectRolePath('nutritionist', '/admin/dashboard')).toBe(true)
     expect(shouldRedirectRolePath('admin', '/admin')).toBe(false)
+  })
+
+  it('keeps deny-by-default auth-access guard active for protected namespaces', () => {
+    expect(evaluateAuthAccess('/client', null)).toEqual({
+      allowed: false,
+      redirectTo: '/auth'
+    })
+
+    expect(evaluateAuthAccess('/nutritionist', 'client')).toEqual({
+      allowed: false,
+      redirectTo: '/client'
+    })
   })
 
   it('renders install banner only in client layout intentional flow', () => {
