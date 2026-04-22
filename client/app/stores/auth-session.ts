@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import type { AuthRole, AuthSession } from '../types/auth'
 
+declare const useCookie: undefined | (<T>(key: string, options?: { default?: () => T }) => { value: T })
+
 export type LogoutReason = 'manual' | 'session-expired' | 'token-revoked' | 'unauthorized'
 
 export interface AuthSessionState {
@@ -73,6 +75,28 @@ export function runRoleScopedCleanup(role: AuthRole | null, cleaners: RoleScoped
   }
 }
 
+function setRoleCookie(role: AuthRole | null): void {
+  if (typeof useCookie !== 'function') {
+    return
+  }
+
+  const roleCookie = useCookie<AuthRole | null>('nt_role', {
+    default: () => null
+  })
+  roleCookie.value = role
+}
+
+function setSessionCookie(session: AuthSession | null): void {
+  if (typeof useCookie !== 'function') {
+    return
+  }
+
+  const sessionCookie = useCookie<string | null>('nt_auth_session', {
+    default: () => null
+  })
+  sessionCookie.value = session ? JSON.stringify(session) : null
+}
+
 export const useAuthSessionStore = defineStore('auth-session', {
   state: (): AuthSessionState => createAuthSessionState(),
   actions: {
@@ -83,6 +107,8 @@ export const useAuthSessionStore = defineStore('auth-session', {
       this.userId = session.userId
       this.hydrated = true
       this.lastLogoutReason = null
+      setRoleCookie(session.role)
+      setSessionCookie(session)
     },
     markHydrated(): void {
       this.hydrated = true
@@ -94,6 +120,8 @@ export const useAuthSessionStore = defineStore('auth-session', {
       this.userId = null
       this.lastLogoutReason = reason
       this.hydrated = true
+      setRoleCookie(null)
+      setSessionCookie(null)
     },
     async logoutWithCleanup(
       logoutAction: (refreshToken: string) => Promise<void>,

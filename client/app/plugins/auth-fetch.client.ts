@@ -1,4 +1,5 @@
 import { isForcedLogoutCode } from '../lib/auth/error-map'
+import { resolveRoleAuthPath } from '../stores/auth-session'
 
 interface FetchErrorShape {
   status?: number
@@ -95,8 +96,10 @@ export function createAuthFetchHandler(deps: {
 
 declare const defineNuxtPlugin: <T>(factory: () => T) => T
 declare const $fetch: FetchExecutor
+declare const navigateTo: (path: string) => Promise<void> | void
 declare const useAuthSessionStore: () => {
   accessToken: string | null
+  role: 'client' | 'nutritionist' | 'super_admin' | null
   logoutWithCleanup: (logoutAction: (refreshToken: string) => Promise<void>, cleaners: Record<string, () => void>, reason: 'manual' | 'session-expired' | 'token-revoked' | 'unauthorized') => Promise<void>
 }
 declare const useSessionRefresh: () => { refreshSingleFlight: () => Promise<unknown> }
@@ -112,6 +115,7 @@ export default defineNuxtPlugin(() => {
     getAccessToken: () => authStore.accessToken,
     refreshSingleFlight: sessionRefresh.refreshSingleFlight,
     onForcedLogout: async (code) => {
+      const previousRole = authStore.role
       const reason = code === 'TOKEN_REVOKED'
         ? 'token-revoked'
         : code === 'UNAUTHORIZED'
@@ -123,6 +127,8 @@ export default defineNuxtPlugin(() => {
         {},
         reason
       )
+
+      await navigateTo(`${resolveRoleAuthPath(previousRole)}?reason=session-expired`)
     }
   })
 
