@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
 - [x] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
-- [ ] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
+- [x] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
 - [ ] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
 - [ ] **Phase 5: Nutritionist Workspace & Plan Authoring** - Deliver the nutritionist's client workspace, plan management, catalogue access, and food-request handling.
 - [ ] **Phase 6: Admin Governance** - Deliver super-admin stats, nutritionist management, and elevated shared catalogue control.
@@ -64,7 +64,13 @@ Plans:
   3. Client can log food intake, water, sleep, exercise, medication intake, and body measurements from mobile-friendly Persian flows.
   4. Client can review recent tracking history and lightweight progress summaries from the data available in v1.
   5. While offline, client can read essential recent plan data and queue supported tracking writes with visible synced, retrying, or failed states plus reconnect or manual retry behavior.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [x] 03-01-PLAN.md - Offline queue foundation, typed tracking contracts, and replay orchestration
+- [x] 03-02-PLAN.md - Today view with sync strip, pending actions, and water quick-add UX
+- [x] 03-03-PLAN.md - Active plan readability and archived plan context/history views
+- [x] 03-04-PLAN.md - Tracking entry flows for food, water, sleep, exercise, medication, and body
+- [x] 03-05-PLAN.md - Tracking history, progress summaries, and failed-sync manual retry loop
 **UI hint**: yes
 
 ### Phase 4: Messaging, Notifications & Lab Exchange
@@ -88,7 +94,13 @@ Plans:
   2. Nutritionist can create, edit, and manage a client's diet-plan period, metadata, days, meals, meal options, meal items, exercises, and prescriptions from the frontend.
   3. Nutritionist and eligible users can search and view shared foods and medications needed for plan authoring and medication workflows.
   4. Client can submit a food request and nutritionist can review, approve, or reject that request from the frontend.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 04-01-PLAN.md — Typed API contracts and composables (messaging, lab, notifications)
+- [ ] 04-02-PLAN.md — Client conversation screen, offline message queue extension, polling
+- [ ] 04-03-PLAN.md — Nutritionist conversation screens and client list with unread indicators
+- [ ] 04-04-PLAN.md — Lab result upload/view flows for client and nutritionist
+- [ ] 04-05-PLAN.md — Push subscription controls and notification preferences pages
 **UI hint**: yes
 
 ### Phase 6: Admin Governance
@@ -111,7 +123,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Platform Foundation | 4/4 | Completed | 2026-04-22 (01-01, 01-02, 01-04, 01-03) |
 | 2. Authentication & Access Control | 4/4 | Completed | 2026-04-23 (02-01, 02-02, 02-03, 02-04) |
-| 3. Client Offline Daily Loop | 0/TBD | Not started | - |
+| 3. Client Offline Daily Loop | 5/5 | Completed | 2026-04-23 (03-01, 03-02, 03-03, 03-04, 03-05) |
 | 4. Messaging, Notifications & Lab Exchange | 0/TBD | Not started | - |
 | 5. Nutritionist Workspace & Plan Authoring | 0/TBD | Not started | - |
 | 6. Admin Governance | 0/TBD | Not started | - |
