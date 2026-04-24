@@ -167,7 +167,11 @@ if (existing) await existing.unsubscribe()
 
 **VAPID public key:** `NUXT_PUBLIC_VAPID_KEY` runtime config. Exposed as `useRuntimeConfig().public.vapidKey`.
 
-**Backend push registration endpoint:** `POST /push/subscribe` is **not listed** in Phase 4 API contract scope. Implement the full client-side subscribe/unsubscribe flow and subscription state feedback. Hold the `PushSubscription` object in component state ready for future wiring to the registration endpoint (Phase 5 scope).
+**Backend push registration endpoint:** Wire push subscription lifecycle to API contract in this phase:
+- `POST /push/subscribe` after successful browser subscription
+- `DELETE /push/subscribe` on explicit unsubscribe
+
+Keep UI state aligned with backend registration outcome (rollback to previous state on API failure).
 
 ### Permission State Mapping
 

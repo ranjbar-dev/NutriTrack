@@ -311,17 +311,15 @@ try {
 | A3 | Existing app persistence/caching surfaces can be fully cleaned by a centralized logout routine without extra plugin hooks. | Common Pitfalls | Potential residual auth artifacts if hidden persistence exists. |
 | A4 | Nuxt-auth external module would be less suitable for this custom OTP/role split contract. | Alternatives Considered | Could overlook module capabilities if evaluated deeply later. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. Should refresh retry behavior be zero retry or bounded retry (e.g., 1 retry with short backoff) for transient network failures?
-- What we know: API contract defines refresh endpoint and auth failure codes, but not client retry policy. [VERIFIED: docs/API.md]
-- What's unclear: desired UX for flaky networks during token refresh.
-- Recommendation: lock as product decision during planning; default to one bounded retry with strict timeout and then logout. [ASSUMED]
+- **Decision:** use one bounded retry with short backoff and strict timeout, then force safe logout.
+- **Reason:** balances transient network resilience with deterministic security behavior and avoids refresh loops.
 
 2. Should tokens be persisted in cookies, localStorage, or memory+cookie split in this repo?
-- What we know: current middleware reads `nt_role` cookie and Phase 1 already uses cookie-based route context. [VERIFIED: app/middleware/role-shell.global.ts]
-- What's unclear: security/persistence preference for access/refresh tokens in this frontend-only deployment.
-- Recommendation: keep access token in memory, store refresh token in secure persistence boundary compatible with current API contract, and document threat tradeoff explicitly. [ASSUMED]
+- **Decision:** keep access token in memory and keep refresh token in controlled persistence with role cookie context for routing.
+- **Reason:** reduces exposure of active access tokens while preserving session recovery needed by AUTH-03.
 
 ## Environment Availability
 

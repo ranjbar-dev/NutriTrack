@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const defaults: ClientNavItem[] = [
   { key: 'today', label: 'امروز', to: '/client' },
-  { key: 'history', label: 'تاریخچه', to: '/client/history' },
+  { key: 'history', label: 'تاریخچه', to: '/client/history/tracking' },
   { key: 'messages', label: 'پیام‌ها', to: '/client/messages' },
   { key: 'profile', label: 'پروفایل', to: '/client/profile' }
 ]

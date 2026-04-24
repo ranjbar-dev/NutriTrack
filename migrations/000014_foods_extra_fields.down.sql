@@ -1,4 +1,0 @@
-ALTER TABLE foods
-    DROP COLUMN IF EXISTS sugar,
-    DROP COLUMN IF EXISTS sodium,
-    DROP COLUMN IF EXISTS amount;

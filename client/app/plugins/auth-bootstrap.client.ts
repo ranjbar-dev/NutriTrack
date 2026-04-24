@@ -1,4 +1,5 @@
 import type { AuthSession } from '../types/auth'
+import { useClientOfflineStore } from '~/app/stores/client-offline'
 
 declare const defineNuxtPlugin: <T>(factory: () => T) => T
 declare const useAuthSessionStore: () => {
@@ -21,8 +22,20 @@ function isAuthSession(value: unknown): value is AuthSession {
   )
 }
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((nuxtApp) => {
   const authStore = useAuthSessionStore()
+  const offlineStore = useClientOfflineStore()
+
+  // Watch for logout and clear offline state
+  const originalClearSession = authStore.clearSession
+  authStore.clearSession = function(reason: 'manual' | 'session-expired' | 'token-revoked' | 'unauthorized') {
+    // Clear all offline queue and cache on logout
+    offlineStore.clearAllOfflineState()
+    console.log('[Auth Bootstrap] Cleared offline state on logout')
+    // Call original clearSession
+    originalClearSession.call(this, reason)
+  }
+
   if (authStore.hydrated) {
     return
   }

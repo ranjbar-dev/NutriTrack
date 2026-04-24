@@ -291,17 +291,15 @@ const showUpdate = computed(() => $pwa?.needRefresh)
 | A1 | `@vite-pwa/nuxt` Nuxt 3 docs behavior maps 1:1 to Nuxt 4 for required install/update primitives. [ASSUMED] | Standard Stack, Code Examples | Minor API mismatch could require small config adaptation |
 | A2 | Phase 1 should include only platform-level Pinia stores (not domain stores). [ASSUMED] | Architecture Patterns | Slight plan refactor if team wants early domain placeholders |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. Should Phase 1 include only shell-level store stubs, or also minimal auth/session placeholder contracts for Phase 2 handoff?
-   - What we know: phase goal is platform baseline, not full auth. [CITED: .planning/ROADMAP.md]
-   - What's unclear: desired depth of future-proof scaffolding in this phase.
-   - Recommendation: include typed store interfaces and empty actions only.
+  - **Decision:** include typed shell-level store interfaces and placeholder actions only; do not implement auth/session behavior in Phase 1.
+  - **Reason:** keeps Phase 1 inside platform boundary while preparing clean handoff to Phase 2 auth work.
 
 2. Should PWA icon generation be automated now or deferred?
-   - What we know: module supports asset tooling and manifest components. [CITED: https://vite-pwa-org.netlify.app/frameworks/nuxt.html]
-   - What's unclear: design team readiness of final icon set.
-   - Recommendation: wire manifest and placeholders now; finalize brand assets in later design pass.
+  - **Decision:** wire manifest with placeholder icon set in Phase 1 and defer final branded icon generation to a later design asset phase.
+  - **Reason:** preserves installability requirements now without blocking on final brand asset pipeline.
 
 ## Environment Availability
 
