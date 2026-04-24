@@ -1,142 +1,27 @@
 # Roadmap: NutriTrack Client
 
-## Overview
+## Milestones
 
-NutriTrack Client ships as a dependency-first Persian RTL mobile PWA: first establish the Nuxt 4 app shell, design system, and role boundaries; then stabilize authentication and role isolation; then deliver the client's offline-capable daily care loop before layering messaging, nutritionist operations, and super-admin governance. This sequence keeps the highest-risk product promises, especially offline client usage and mobile-first Persian UX, from becoming expensive rewrites later.
+- ✅ **v1.0 MVP** — Phases 1–6 (shipped 2026-04-24)
+- 📋 **v1.1** — Phases TBD (planned)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 MVP (Phases 1–6) — SHIPPED 2026-04-24</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Platform Foundation (4/4 plans) — completed 2026-04-22
+- [x] Phase 2: Authentication & Access Control (4/4 plans) — completed 2026-04-23
+- [x] Phase 3: Client Offline Daily Loop (5/5 plans) — completed 2026-04-23
+- [x] Phase 4: Messaging, Notifications & Lab Exchange (5/5 plans) — completed 2026-04-23
+- [x] Phase 5: Nutritionist Workspace & Plan Authoring (5/5 plans) — completed 2026-04-23
+- [x] Phase 6: Admin Governance (4/4 plans) — completed 2026-04-24
 
-- [x] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
-- [x] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
-- [x] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
-- [x] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
- (completed 2026-04-23)
-- [x] **Phase 5: Nutritionist Workspace & Plan Authoring** - Deliver the nutritionist's client workspace, plan management, catalogue access, and food-request handling.
-- [x] **Phase 6: Admin Governance** - Deliver super-admin stats, nutritionist management, and elevated shared catalogue control.
- (completed 2026-04-24)
+**Total:** 6 phases, 27 plans, all complete. Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
-## Phase Details
+</details>
 
-### Phase 1: Platform Foundation
-**Goal**: Users can open an installable Persian RTL mobile shell that establishes the visual, navigational, and PWA foundation for every role.
-**Depends on**: Nothing (first phase)
-**Requirements**: PLAT-01, PLAT-02, PLAT-03
-**Success Criteria** (what must be TRUE):
-  1. User can open a Persian-only RTL mobile app shell with role-aware navigation structure for client, nutritionist, and super admin areas.
-  2. User sees consistent Persian typography, Persian numerals where appropriate, Jalali-aware date presentation, and safe-area mobile layout behavior across shared UI primitives.
-  3. User can install the app as a PWA and sees a clear in-app update prompt when a newer client version is available.
-**Plans**: 4 plans
-Plans:
-- [x] 01-01-PLAN.md - Baseline platform wiring, conservative PWA config, and test harness
-- [x] 01-02-PLAN.md - Persian RTL design tokens, locale formatting, and shared shell primitives
-- [x] 01-03-PLAN.md - Install/update/connectivity banners and cache-boundary regression guards
-- [x] 01-04-PLAN.md - Role shell isolation routes, layouts, and middleware enforcement
-**UI hint**: yes
+### 📋 v1.1 (Planned)
 
-### Phase 2: Authentication & Access Control
-**Goal**: Users can sign in through the correct role-specific flow, keep stable sessions, and access only the surfaces allowed to them.
-**Depends on**: Phase 1
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04
-**Success Criteria** (what must be TRUE):
-  1. Client can request and verify an OTP with the documented mobile-based flow and land in the client experience.
-  2. Nutritionist and super admin can log in with email and password and land in their correct workspaces.
-  3. Authenticated user remains signed in across refreshes through token refresh and is redirected safely when the session expires or they log out.
-  4. User cannot access pages or data outside the routes allowed for their role and user identity.
-**Plans**: 4 plans
-Plans:
-- [x] 02-01-PLAN.md - Auth core infrastructure, typed session store, and refresh orchestration
-- [x] 02-02-PLAN.md - Client OTP flow screens and OTP verification lifecycle
-- [x] 02-03-PLAN.md - Nutritionist and admin credential auth flows with secure error handling
-- [x] 02-04-PLAN.md - Role route guards, session bootstrap, and logout/reset enforcement
-**UI hint**: yes
+*(To be planned via `/gsd-new-milestone`)*
 
-### Phase 3: Client Offline Daily Loop
-**Goal**: Client users can understand today's diet work, review plans, and record daily adherence even with unstable connectivity.
-**Depends on**: Phase 2
-**Requirements**: CLNT-01, CLNT-02, CLNT-03, TRCK-01, TRCK-02, TRCK-03, OFFL-01, OFFL-02, OFFL-03
-**Success Criteria** (what must be TRUE):
-  1. Client can open a Today view showing the active plan, pending daily actions, water target, and current sync state.
-  2. Client can read the full active plan and available archived plan history without losing the context of which plan is current.
-  3. Client can log food intake, water, sleep, exercise, medication intake, and body measurements from mobile-friendly Persian flows.
-  4. Client can review recent tracking history and lightweight progress summaries from the data available in v1.
-  5. While offline, client can read essential recent plan data and queue supported tracking writes with visible synced, retrying, or failed states plus reconnect or manual retry behavior.
-**Plans**: 5 plans
-Plans:
-- [x] 03-01-PLAN.md - Offline queue foundation, typed tracking contracts, and replay orchestration
-- [x] 03-02-PLAN.md - Today view with sync strip, pending actions, and water quick-add UX
-- [x] 03-03-PLAN.md - Active plan readability and archived plan context/history views
-- [x] 03-04-PLAN.md - Tracking entry flows for food, water, sleep, exercise, medication, and body
-- [x] 03-05-PLAN.md - Tracking history, progress summaries, and failed-sync manual retry loop
-**UI hint**: yes
-
-### Phase 4: Messaging, Notifications & Lab Exchange
-**Goal**: Client and nutritionist users can exchange messages, files, reminders, and lab results through coherent mobile communication flows.
-**Depends on**: Phase 3
-**Requirements**: MSG-01, MSG-02, NOTF-01, NOTF-02, LAB-01
-**Success Criteria** (what must be TRUE):
-  1. Client and nutritionist can read conversation history with unread state and stable refresh behavior suitable for polling-based chat.
-  2. Client and nutritionist can send Persian text messages and supported file attachments from mobile conversation screens.
-  3. Authenticated user can subscribe or unsubscribe from push notifications on supported devices and manage notification preferences for reminder and message categories.
-  4. Client and nutritionist can upload, view, and access lab results using the documented file or link-based flows.
-**Plans**: 5 plans
-Plans:
-- [x] 04-01-PLAN.md — Typed API contracts and composables (messaging, lab, notifications)
-- [x] 04-02-PLAN.md — Client conversation screen, offline message queue extension, polling
-- [x] 04-03-PLAN.md — Nutritionist conversation screens and client list with unread indicators
-- [x] 04-04-PLAN.md — Lab result upload/view flows for client and nutritionist
-- [x] 04-05-PLAN.md — Push subscription controls and notification preferences pages
-**UI hint**: yes
-
-### Phase 5: Nutritionist Workspace & Plan Authoring
-**Goal**: Nutritionists can manage clients and author care plans from a mobile-first operational workspace without inheriting client offline complexity.
-**Depends on**: Phase 4
-**Requirements**: NUTR-01, NUTR-02, NUTR-03, NUTR-04, CAT-01, CAT-02, CAT-03
-**Success Criteria** (what must be TRUE):
-  1. Nutritionist can browse, search, and filter their client roster, then open a client profile with identity details, current plan summary, tracking history, messages, lab results, and archived plans.
-  2. Nutritionist can create, edit, and manage a client's diet-plan period, metadata, days, meals, meal options, meal items, exercises, and prescriptions from the frontend.
-  3. Nutritionist and eligible users can search and view shared foods and medications needed for plan authoring and medication workflows.
-  4. Client can submit a food request and nutritionist can review, approve, or reject that request from the frontend.
-**Plans**: 5 plans
-Plans:
-- [x] 05-01-PLAN.md - Typed Phase 5 contracts and composables for workspace, authoring, catalogue, and requests
-- [x] 05-02-PLAN.md - Nutritionist roster and client profile workspace shell
-- [x] 05-03-PLAN.md - Plan metadata and hierarchy authoring flows
-- [x] 05-04-PLAN.md - Catalogue picker integration into plan authoring
-- [x] 05-05-PLAN.md - Client food request submission and nutritionist moderation flow
-**UI hint**: yes
-
-### Phase 6: Admin Governance
-**Goal**: Super admins can oversee platform health, nutritionist accounts, and shared catalogue governance from mobile-compatible admin screens.
-**Depends on**: Phase 5
-**Requirements**: ADMIN-01, ADMIN-02
-**Success Criteria** (what must be TRUE):
-  1. Super admin can view platform stats from mobile-compatible admin screens.
-  2. Super admin can create, update, activate, and deactivate nutritionist accounts from the frontend.
-  3. Super admin can manage shared food and medication catalogues using elevated admin endpoints.
-**Plans**: 4 plans
-Plans:
-- [x] 06-01-PLAN.md - Admin contract, composable, and governance endpoint foundation
-- [x] 06-02-PLAN.md - Admin dashboard, nutritionist roster, and create-account flow
-- [x] 06-03-PLAN.md - Nutritionist detail, update, status, and read-only client visibility
-- [x] 06-04-PLAN.md - Elevated food, medication, and category governance surfaces
-**UI hint**: yes
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Platform Foundation | 4/4 | Completed | 2026-04-22 (01-01, 01-02, 01-04, 01-03) |
-| 2. Authentication & Access Control | 4/4 | Completed | 2026-04-23 (02-01, 02-02, 02-03, 02-04) |
-| 3. Client Offline Daily Loop | 5/5 | Completed | 2026-04-23 (03-01, 03-02, 03-03, 03-04, 03-05) |
-| 4. Messaging, Notifications & Lab Exchange | 5/5 | Complete    | 2026-04-23 |
-| 5. Nutritionist Workspace & Plan Authoring | 5/5 | Completed | 2026-04-23 (05-01, 05-02, 05-03, 05-04, 05-05) |
-| 6. Admin Governance | 4/4 | Completed | 2026-04-24 (06-01, 06-02, 06-04, 06-03) |

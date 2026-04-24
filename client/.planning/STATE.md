@@ -101,6 +101,16 @@ None.
 
 ## Deferred Items
 
+Items acknowledged and deferred at milestone close on 2026-04-24:
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification | Phase 06 — mobile RTL UX walkthrough on admin screens | human_needed |
+
+Known deferred items at close: 1 (see above)
+
+## Deferred Items
+
 Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
