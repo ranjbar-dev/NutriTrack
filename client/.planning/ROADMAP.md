@@ -15,9 +15,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Platform Foundation** - Establish the Persian RTL mobile app shell, design primitives, and installable PWA baseline.
 - [x] **Phase 2: Authentication & Access Control** - Deliver role-specific sign-in, session refresh, and route protection for client, nutritionist, and super admin users.
 - [x] **Phase 3: Client Offline Daily Loop** - Deliver the client's today view, plan access, tracking flows, and offline sync visibility.
-- [ ] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
-- [ ] **Phase 5: Nutritionist Workspace & Plan Authoring** - Deliver the nutritionist's client workspace, plan management, catalogue access, and food-request handling.
-- [ ] **Phase 6: Admin Governance** - Deliver super-admin stats, nutritionist management, and elevated shared catalogue control.
+- [x] **Phase 4: Messaging, Notifications & Lab Exchange** - Deliver mobile communication flows, attachments, lab-result exchange, and notification controls.
+ (completed 2026-04-23)
+- [x] **Phase 5: Nutritionist Workspace & Plan Authoring** - Deliver the nutritionist's client workspace, plan management, catalogue access, and food-request handling.
+- [x] **Phase 6: Admin Governance** - Deliver super-admin stats, nutritionist management, and elevated shared catalogue control.
+ (completed 2026-04-24)
 
 ## Phase Details
 
@@ -82,7 +84,13 @@ Plans:
   2. Client and nutritionist can send Persian text messages and supported file attachments from mobile conversation screens.
   3. Authenticated user can subscribe or unsubscribe from push notifications on supported devices and manage notification preferences for reminder and message categories.
   4. Client and nutritionist can upload, view, and access lab results using the documented file or link-based flows.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [x] 04-01-PLAN.md — Typed API contracts and composables (messaging, lab, notifications)
+- [x] 04-02-PLAN.md — Client conversation screen, offline message queue extension, polling
+- [x] 04-03-PLAN.md — Nutritionist conversation screens and client list with unread indicators
+- [x] 04-04-PLAN.md — Lab result upload/view flows for client and nutritionist
+- [x] 04-05-PLAN.md — Push subscription controls and notification preferences pages
 **UI hint**: yes
 
 ### Phase 5: Nutritionist Workspace & Plan Authoring
@@ -96,11 +104,11 @@ Plans:
   4. Client can submit a food request and nutritionist can review, approve, or reject that request from the frontend.
 **Plans**: 5 plans
 Plans:
-- [ ] 04-01-PLAN.md — Typed API contracts and composables (messaging, lab, notifications)
-- [ ] 04-02-PLAN.md — Client conversation screen, offline message queue extension, polling
-- [ ] 04-03-PLAN.md — Nutritionist conversation screens and client list with unread indicators
-- [ ] 04-04-PLAN.md — Lab result upload/view flows for client and nutritionist
-- [ ] 04-05-PLAN.md — Push subscription controls and notification preferences pages
+- [x] 05-01-PLAN.md - Typed Phase 5 contracts and composables for workspace, authoring, catalogue, and requests
+- [x] 05-02-PLAN.md - Nutritionist roster and client profile workspace shell
+- [x] 05-03-PLAN.md - Plan metadata and hierarchy authoring flows
+- [x] 05-04-PLAN.md - Catalogue picker integration into plan authoring
+- [x] 05-05-PLAN.md - Client food request submission and nutritionist moderation flow
 **UI hint**: yes
 
 ### Phase 6: Admin Governance
@@ -111,7 +119,12 @@ Plans:
   1. Super admin can view platform stats from mobile-compatible admin screens.
   2. Super admin can create, update, activate, and deactivate nutritionist accounts from the frontend.
   3. Super admin can manage shared food and medication catalogues using elevated admin endpoints.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [x] 06-01-PLAN.md - Admin contract, composable, and governance endpoint foundation
+- [x] 06-02-PLAN.md - Admin dashboard, nutritionist roster, and create-account flow
+- [x] 06-03-PLAN.md - Nutritionist detail, update, status, and read-only client visibility
+- [x] 06-04-PLAN.md - Elevated food, medication, and category governance surfaces
 **UI hint**: yes
 
 ## Progress
@@ -124,6 +137,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Platform Foundation | 4/4 | Completed | 2026-04-22 (01-01, 01-02, 01-04, 01-03) |
 | 2. Authentication & Access Control | 4/4 | Completed | 2026-04-23 (02-01, 02-02, 02-03, 02-04) |
 | 3. Client Offline Daily Loop | 5/5 | Completed | 2026-04-23 (03-01, 03-02, 03-03, 03-04, 03-05) |
-| 4. Messaging, Notifications & Lab Exchange | 0/TBD | Not started | - |
-| 5. Nutritionist Workspace & Plan Authoring | 0/TBD | Not started | - |
-| 6. Admin Governance | 0/TBD | Not started | - |
+| 4. Messaging, Notifications & Lab Exchange | 5/5 | Complete    | 2026-04-23 |
+| 5. Nutritionist Workspace & Plan Authoring | 5/5 | Completed | 2026-04-23 (05-01, 05-02, 05-03, 05-04, 05-05) |
+| 6. Admin Governance | 4/4 | Completed | 2026-04-24 (06-01, 06-02, 06-04, 06-03) |
